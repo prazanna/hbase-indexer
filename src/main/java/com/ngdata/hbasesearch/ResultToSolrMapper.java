@@ -16,6 +16,25 @@
 package com.ngdata.hbasesearch;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableSet;
+
+import org.apache.hadoop.hbase.util.Bytes;
+
+import com.google.common.collect.TreeMultimap;
+
+import com.google.common.collect.SetMultimap;
+
+import com.google.common.collect.HashMultimap;
+
+import com.google.common.collect.Multimaps;
+
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.solr.common.SolrInputDocument;
+
+import com.ngdata.hbasesearch.conf.FieldDefinition;
 
 import com.ngdata.hbasesearch.parse.ByteArrayExtractor;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
@@ -32,31 +51,44 @@ import org.apache.hadoop.hbase.client.Result;
 /**
  * Parses HBase {@code Result} objects into a structure of fields and values.
  */
-public class ResultParser {
+public class ResultToSolrMapper implements HBaseToSolrMapper {
 
     /**
      * Map of Solr field names to transformers for extracting data from HBase {@code Result} objects.
      */
     private List<IndexValueTransformer<Result>> valueTransformers;
+    
+    /**
+     * Get to be used for fetching field required for indexing.
+     */
+    private Get get;
+    
 
     /**
-     * Instantiate based on a list of {@link FieldDefinition}s.
+     * Instantiate based on a collection of {@link FieldDefinition}s.
+     * @param fieldDefinitions define fields to be indexed
      */
-    public static ResultParser newInstance(List<FieldDefinition> fieldDefinitions) {
-        List<IndexValueTransformer<Result>> valueTransformers = Lists.newArrayList();
+    public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions) {
+        get = new Get();
+        valueTransformers = Lists.newArrayList();
         for (FieldDefinition fieldDefinition : fieldDefinitions) {
             ByteArrayExtractor byteArrayExtractor = ByteArrayExtractors.getExtractor(
                     fieldDefinition.getValueExpression(), fieldDefinition.getValueSource());
             ByteArrayValueMapper valueMapper = ByteArrayValueMappers.getMapper(fieldDefinition.getTypeName());
             valueTransformers.add(new ResultIndexValueTransformer(fieldDefinition.getName(), byteArrayExtractor,
                     valueMapper));
+            
+            byte[] columnFamily = byteArrayExtractor.getColumnFamily();
+            byte[] columnQualifier = byteArrayExtractor.getColumnQualifier();
+            if (columnFamily != null) {
+                if (columnQualifier != null) {
+                    get.addColumn(columnFamily, columnQualifier);
+                } else {
+                    get.addFamily(columnFamily);
+                }
+            }
 
         }
-        return new ResultParser(valueTransformers);
-    }
-
-    public ResultParser(List<IndexValueTransformer<Result>> valueTransformers) {
-        this.valueTransformers = valueTransformers;
     }
 
     public Multimap<String, Object> parse(Result result) {
@@ -65,6 +97,35 @@ public class ResultParser {
             parsedValueMap.putAll(valueTransformer.extractAndTransform(result));
         }
         return parsedValueMap;
+    }
+
+    @Override
+    public boolean isRelevantKV(KeyValue kv) {
+        // TODO Use the ordering of the family map to make this much more efficient
+        Map<byte[], NavigableSet<byte[]>> familyMap = get.getFamilyMap();
+        for (Entry<byte[], NavigableSet<byte[]>> entry : familyMap.entrySet()) {
+            if (kv.matchingFamily(entry.getKey())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Get getGet(byte[] row) {
+        return get;
+    }
+
+    @Override
+    public SolrInputDocument map(Result result) {
+        Multimap<String, Object> parsedMultimap = parse(result);
+        SolrInputDocument solrInputDocument = new SolrInputDocument();
+        for (String fieldName : parsedMultimap.keySet()) {
+            for (Object fieldValue : parsedMultimap.get(fieldName)) {
+                solrInputDocument.addField(fieldName, fieldValue);
+            }
+        }
+        return solrInputDocument;
     }
 
 }

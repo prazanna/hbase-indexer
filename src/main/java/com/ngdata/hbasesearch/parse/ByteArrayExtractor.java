@@ -32,4 +32,24 @@ public interface ByteArrayExtractor {
      */
     Collection<byte[]> extract(Result result);
 
+    /**
+     * Returns the column family used by this extractor.
+     * <p>
+     * If there are multiple column families used, or the choice of column family is dynamic, this method should return
+     * null.
+     * 
+     * @return the column family, or null if a single complete value cannot be returned
+     */
+    byte[] getColumnFamily();
+
+    /**
+     * Returns the column qualifier used by this extractor.
+     * <p>
+     * If there are multiple column qualifiers used, or dynamic matching is performed on column qualifier by this
+     * extractor, this method should return null.
+     * 
+     * @return the column qualifier, or null if a single complete value cannot be returned
+     */
+    byte[] getColumnQualifier();
+
 }

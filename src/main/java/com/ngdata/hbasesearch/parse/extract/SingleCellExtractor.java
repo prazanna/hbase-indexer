@@ -44,5 +44,15 @@ public class SingleCellExtractor implements ByteArrayExtractor {
             return Lists.newArrayList(bytes);
         }
     }
+    
+    @Override
+    public byte[] getColumnFamily() {
+        return columnFamily;
+    }
+    
+    @Override
+    public byte[] getColumnQualifier() {
+        return columnQualifier;
+    }
 
 }

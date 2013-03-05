@@ -55,5 +55,5 @@ public class SingleCellExtractorTest {
 
         assertEquals(Collections.emptyList(), extractor.extract(result));
     }
-
+    
 }

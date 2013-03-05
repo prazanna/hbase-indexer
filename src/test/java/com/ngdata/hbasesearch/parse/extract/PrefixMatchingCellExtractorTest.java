@@ -16,6 +16,7 @@
 package com.ngdata.hbasesearch.parse.extract;
 
 import static com.ngdata.hbasesearch.parse.extract.ExtractTestUtil.assertByteArraysEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.Lists;
@@ -71,6 +72,11 @@ public class PrefixMatchingCellExtractorTest {
     public void testExtract_NoMatches() {
         ByteArrayExtractor extractor = new PrefixMatchingCellExtractor(COLFAM_A, Bytes.toBytes("doesnt exist"));
         assertTrue(extractor.extract(result).isEmpty());
+    }
+    
+    @Test
+    public void testGetColumnQualifier() {
+        assertNull(new PrefixMatchingCellExtractor(COLFAM_A, Bytes.toBytes("A1")).getColumnQualifier());
     }
 
 }

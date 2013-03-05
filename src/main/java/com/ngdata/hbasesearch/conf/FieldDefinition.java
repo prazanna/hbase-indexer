@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbasesearch;
+package com.ngdata.hbasesearch.conf;
 
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
 

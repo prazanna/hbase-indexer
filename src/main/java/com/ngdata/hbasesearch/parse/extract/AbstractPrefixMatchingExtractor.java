@@ -66,4 +66,14 @@ public abstract class AbstractPrefixMatchingExtractor implements ByteArrayExtrac
         }
         return values;
     }
+    
+    @Override
+    public byte[] getColumnFamily() {
+        return columnFamily;
+    }
+    
+    @Override
+    public byte[] getColumnQualifier() {
+        return null;
+    }
 }
