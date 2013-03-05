@@ -13,25 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbasesearch.conf;
+package com.ngdata.hbasesearch;
 
-public class IndexConfBuilder {
-    private String table;
-    private IndexConf.MappingType mappingType = IndexConf.MappingType.ROW;
+import com.ngdata.hbasesearch.conf.IndexConf;
 
-    public IndexConfBuilder table(String table) {
-        this.table = table;
-        return this;
-    }
+/**
+ *
+ */
+public interface SolrUniqueKeyFormatter {
+    /**
+     * Called in case of row-based mapping, {@link IndexConf.MappingType#ROW}.
+     */
+    String format(byte[] row);
 
-    public IndexConfBuilder mappingType(IndexConf.MappingType mappingType) {
-        this.mappingType = mappingType;
-        return this;
-    }
-
-    public IndexConf create() {
-        IndexConf conf = new IndexConf(table);
-        conf.setMappingType(mappingType);
-        return conf;
-    }
+    /**
+     * Called in case of column-based mapping, {@link IndexConf.MappingType#COLUMN}.
+     */
+    String format(byte[] row, byte[] family, byte[] qualifier);
 }

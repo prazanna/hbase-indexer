@@ -47,9 +47,11 @@ public class HBaseSearch {
         HTablePool tablePool = new HTablePool(conf, 10);
 
         IndexConf indexConf = new IndexConfBuilder().table("table").create();
+        HBaseToSolrMapper mapper = null; // FIXMe
+        SolrUniqueKeyFormatter uniqueKeyFormatter = new DefaultSolrUniqueKeyFormatter();
+        Indexer indexer = new Indexer(indexConf, mapper, uniqueKeyFormatter, tablePool, solr);
 
-        SepConsumer sepConsumer = new SepConsumer("index1", 0, new Indexer(indexConf, tablePool, solr), 10,
-                "localhost", zk, conf, null);
+        SepConsumer sepConsumer = new SepConsumer("index1", 0, indexer, 10, "localhost", zk, conf, null);
 
         sepConsumer.start();
         System.out.println("Started");

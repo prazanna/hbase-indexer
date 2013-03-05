@@ -19,11 +19,12 @@ public class IndexConf {
     private String table;
     private MappingType mappingType = MappingType.ROW;
     private RowReadMode rowReadMode = RowReadMode.ALWAYS;
+    private String uniqueKeyField = "id";
 
     public enum MappingType { ROW, COLUMN }
     public enum RowReadMode { ALWAYS, NEVER }
 
-    protected IndexConf(String table) {
+    IndexConf(String table) {
         this.table = table;
     }
 
@@ -37,5 +38,21 @@ public class IndexConf {
 
     public RowReadMode getRowReadMode() {
         return rowReadMode;
+    }
+
+    public String getUniqueKeyField() {
+        return uniqueKeyField;
+    }
+
+    void setMappingType(MappingType mappingType) {
+        this.mappingType = mappingType;
+    }
+
+    void setRowReadMode(RowReadMode rowReadMode) {
+        this.rowReadMode = rowReadMode;
+    }
+
+    void setUniqueKeyField(String uniqueKeyField) {
+        this.uniqueKeyField = uniqueKeyField;
     }
 }
