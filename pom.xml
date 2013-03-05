@@ -20,6 +20,7 @@
 
   <properties>
     <version.sep>1.0-SNAPSHOT</version.sep>
+    <version.solr>4.1.0</version.solr>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -53,6 +54,30 @@
     <dependencies>
     </dependencies>
   </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.ngdata</groupId>
+      <artifactId>hbase-sep-api</artifactId>
+      <version>${version.sep}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.ngdata</groupId>
+      <artifactId>hbase-sep-impl</artifactId>
+      <version>${version.sep}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.solr</groupId>
+      <artifactId>solr-solrj</artifactId>
+      <version>${version.solr}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.solr</groupId>
+      <artifactId>solr-core</artifactId>
+      <version>${version.solr}</version>
+    </dependency>
+  </dependencies>
 
   <repositories>
     <repository>
