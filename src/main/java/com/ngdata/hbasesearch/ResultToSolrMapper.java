@@ -17,15 +17,14 @@ package com.ngdata.hbasesearch;
 
 import java.util.List;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.ngdata.hbasesearch.conf.FieldDefinition;
 import com.ngdata.hbasesearch.parse.ByteArrayExtractor;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMappers;
-import com.ngdata.hbasesearch.parse.IndexValueTransformer;
-import com.ngdata.hbasesearch.parse.ResultIndexValueTransformer;
+import com.ngdata.hbasesearch.parse.HBaseSolrDocumentExtractor;
+import com.ngdata.hbasesearch.parse.SolrDocumentExtractor;
+import com.ngdata.hbasesearch.parse.SolrInputDocumentBuilder;
 import com.ngdata.hbasesearch.parse.extract.ByteArrayExtractors;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -40,7 +39,7 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
     /**
      * Map of Solr field names to transformers for extracting data from HBase {@code Result} objects.
      */
-    private List<IndexValueTransformer<Result>> valueTransformers;
+    private List<SolrDocumentExtractor<Result>> resultDocumentExtractors;
     
     /**
      * Get to be used for fetching field required for indexing.
@@ -60,12 +59,12 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
     public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions) {
         get = new Get();
         extractors = Lists.newArrayList();
-        valueTransformers = Lists.newArrayList();
+        resultDocumentExtractors = Lists.newArrayList();
         for (FieldDefinition fieldDefinition : fieldDefinitions) {
             ByteArrayExtractor byteArrayExtractor = ByteArrayExtractors.getExtractor(
                     fieldDefinition.getValueExpression(), fieldDefinition.getValueSource());
             ByteArrayValueMapper valueMapper = ByteArrayValueMappers.getMapper(fieldDefinition.getTypeName());
-            valueTransformers.add(new ResultIndexValueTransformer(fieldDefinition.getName(), byteArrayExtractor,
+            resultDocumentExtractors.add(new HBaseSolrDocumentExtractor(fieldDefinition.getName(), byteArrayExtractor,
                     valueMapper));
             extractors.add(byteArrayExtractor);
             
@@ -80,14 +79,6 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
             }
 
         }
-    }
-
-    public Multimap<String, Object> parse(Result result) {
-        Multimap<String, Object> parsedValueMap = ArrayListMultimap.create();
-        for (IndexValueTransformer<Result> valueTransformer : valueTransformers) {
-            parsedValueMap.putAll(valueTransformer.extractAndTransform(result));
-        }
-        return parsedValueMap;
     }
 
     @Override
@@ -107,14 +98,11 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
 
     @Override
     public SolrInputDocument map(Result result) {
-        Multimap<String, Object> parsedMultimap = parse(result);
-        SolrInputDocument solrInputDocument = new SolrInputDocument();
-        for (String fieldName : parsedMultimap.keySet()) {
-            for (Object fieldValue : parsedMultimap.get(fieldName)) {
-                solrInputDocument.addField(fieldName, fieldValue);
-            }
+        SolrInputDocumentBuilder solrDocumentBuilder = new SolrInputDocumentBuilder();
+        for (SolrDocumentExtractor<Result> documentExtractor : resultDocumentExtractors) {
+            solrDocumentBuilder.add(documentExtractor.extractFields(result));
         }
-        return solrInputDocument;
+        return solrDocumentBuilder.getDocument();
     }
 
 }

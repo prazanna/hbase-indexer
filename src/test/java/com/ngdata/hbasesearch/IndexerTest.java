@@ -15,6 +15,17 @@
  */
 package com.ngdata.hbasesearch;
 
+import static junit.framework.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+
 import com.google.common.collect.Lists;
 import com.ngdata.hbasesearch.conf.IndexConf;
 import com.ngdata.hbasesearch.conf.IndexConfBuilder;
@@ -29,11 +40,6 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-
-import java.util.List;
-
-import static junit.framework.Assert.assertEquals;
-import static org.mockito.Mockito.*;
 
 public class IndexerTest {
     /**

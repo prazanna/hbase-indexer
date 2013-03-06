@@ -17,21 +17,20 @@ package com.ngdata.hbasesearch.parse;
 
 import java.util.List;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.solr.common.SolrInputDocument;
 
 /**
- * Extracts a value or collection of values from a {@code Result} object and transforms them into an indexable form.
+ * Extracts a {@code SolrInputDocument} from an HBase {@code Result} object.
  */
-public class ResultIndexValueTransformer implements IndexValueTransformer<Result> {
+public class HBaseSolrDocumentExtractor implements SolrDocumentExtractor<Result> {
 
     private String fieldName;
     private ByteArrayExtractor valueExtractor;
     private ByteArrayValueMapper valueMapper;
 
-    public ResultIndexValueTransformer(String fieldName, ByteArrayExtractor valueExtractor,
+    public HBaseSolrDocumentExtractor(String fieldName, ByteArrayExtractor valueExtractor,
             ByteArrayValueMapper valueMapper) {
         this.fieldName = fieldName;
         this.valueExtractor = valueExtractor;
@@ -39,20 +38,20 @@ public class ResultIndexValueTransformer implements IndexValueTransformer<Result
     }
 
     /**
-     * Extracts byte arrays from the given result, and transforms them into indexable values.
+     * Extracts byte arrays from the given {@code Result}, and transforms them into a {@code SolrInputDocument}.
      * 
      * @param result source of byte array data
      * @return indexable values
      */
     @Override
-    public Multimap<String, Object> extractAndTransform(Result result) {
+    public SolrInputDocument extractFields(Result result) {
         List<Object> values = Lists.newArrayList();
         for (byte[] bytes : valueExtractor.extract(result)) {
             values.addAll(valueMapper.map(bytes));
         }
-        Multimap<String, Object> mapped = ArrayListMultimap.create(1, values.size());
-        mapped.putAll(fieldName, values);
-        return mapped;
+        SolrInputDocument solrDocument = new SolrInputDocument();
+        solrDocument.addField(fieldName, values);
+        return solrDocument;
     }
 
 }

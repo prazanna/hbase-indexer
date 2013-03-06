@@ -21,9 +21,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.ngdata.hbasesearch.conf.FieldDefinition;
 import com.ngdata.hbasesearch.conf.FieldDefinition.ValueSource;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
@@ -43,7 +42,7 @@ public class ResultToSolrMapperTest {
     private static final byte[] QUALIFIER_B = Bytes.toBytes("qualifierB");
 
     @Test
-    public void testParse() {
+    public void testMap() {
         FieldDefinition fieldDefA = new FieldDefinition("fieldA", "cfA:qualifierA", ValueSource.VALUE, "int");
         FieldDefinition fieldDefB = new FieldDefinition("fieldB", "cfB:qualifierB", ValueSource.VALUE,
                 DummyValueMapper.class.getName());
@@ -53,15 +52,15 @@ public class ResultToSolrMapperTest {
         KeyValue kvB = new KeyValue(ROW, COLUMN_FAMILY_B, QUALIFIER_B, "dummy value".getBytes());
         Result result = new Result(Lists.newArrayList(kvA, kvB));
 
-        Multimap<String, Object> parsedOutput = resultMapper.parse(result);
-
-        Multimap<String, Object> expectedOutput = ArrayListMultimap.create();
-        expectedOutput.put("fieldA", 42);
-        expectedOutput.put("fieldB", "A");
-        expectedOutput.put("fieldB", "B");
-        expectedOutput.put("fieldB", "C");
-
-        assertEquals(expectedOutput, parsedOutput);
+        SolrInputDocument solrDocument = resultMapper.map(result);
+        
+        assertEquals(Sets.newHashSet("fieldA", "fieldB"), solrDocument.keySet());
+        
+        SolrInputField fieldA = solrDocument.get("fieldA");
+        SolrInputField fieldB = solrDocument.get("fieldB");
+        
+        assertEquals(Lists.newArrayList(42), fieldA.getValues());
+        assertEquals(Lists.newArrayList("A", "B", "C"), fieldB.getValues());
     }
 
     @Test
@@ -96,22 +95,6 @@ public class ResultToSolrMapperTest {
         assertTrue(resultMapper.isRelevantKV(relevantKV));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongFamily));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongQualifier));
-    }
-
-
-    @Test
-    public void testMap() {
-        FieldDefinition fieldDefA = new FieldDefinition("fieldA", "cfA:qualifierA", ValueSource.VALUE, "int");
-        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDefA));
-
-        KeyValue kvA = new KeyValue(ROW, COLUMN_FAMILY_A, QUALIFIER_A, Bytes.toBytes(42));
-        Result result = new Result(Lists.newArrayList(kvA));
-
-        SolrInputDocument solrDocument = resultMapper.map(result);
-
-        assertEquals(1, solrDocument.getFieldNames().size());
-        SolrInputField field = solrDocument.getField("fieldA");
-        assertEquals(Lists.newArrayList(42), field.getValues());
     }
 
     public static class DummyValueMapper implements ByteArrayValueMapper {

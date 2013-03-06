@@ -15,19 +15,18 @@
  */
 package com.ngdata.hbasesearch.parse;
 
-import com.google.common.collect.Multimap;
+import org.apache.solr.common.SolrInputDocument;
 
 /**
- * Extracts a value or collection of values from an input object and transforms them into an indexable form.
+ * Extracts a value or collection of values from an input object and transforms them into a {@code SolrInputDocument}.
  */
-public interface IndexValueTransformer<T> {
+public interface SolrDocumentExtractor<T> {
 
     /**
-     * Extract fields and values from the input value. The key of the output {@code Multimap} is the name of the field
-     * to be used in the index.
+     * Extract fields and values from the input value and puts them into a SolrInputDocument.
      * 
      * @param input to be mapped to an indexable form
-     * @return multimap keyed on field name, with indexable values
+     * @return SolrInputDocument containing extracted fields
      */
-    Multimap<String, Object> extractAndTransform(T input);
+    SolrInputDocument extractFields(T input);
 }

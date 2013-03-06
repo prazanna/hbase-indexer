@@ -15,6 +15,11 @@
  */
 package com.ngdata.hbasesearch;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import com.google.common.collect.Lists;
 import com.ngdata.hbasesearch.conf.IndexConf;
 import com.ngdata.sep.EventListener;
@@ -28,11 +33,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * The indexing algorithm. It receives an event from the SEP, handles it based on the configuration,

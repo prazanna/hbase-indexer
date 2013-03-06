@@ -18,10 +18,9 @@ package com.ngdata.hbasesearch.parse.extract;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.hadoop.hbase.KeyValue;
-
 import com.google.common.collect.Lists;
 import com.ngdata.hbasesearch.parse.ByteArrayExtractor;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 
 /**

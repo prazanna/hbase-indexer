@@ -18,26 +18,26 @@ package com.ngdata.hbasesearch.parse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import junit.framework.TestCase;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ResultIndexValueTransformerTest extends TestCase {
+public class HBaseSolrDocumentExtractorTest extends TestCase {
 
     private ByteArrayExtractor valueExtractor;
     private ByteArrayValueMapper valueMapper;
-    private ResultIndexValueTransformer transformer;
+    private HBaseSolrDocumentExtractor transformer;
 
     @Override
     @Before
     public void setUp() {
         valueExtractor = mock(ByteArrayExtractor.class);
         valueMapper = mock(ByteArrayValueMapper.class);
-        transformer = new ResultIndexValueTransformer("fieldName", valueExtractor, valueMapper);
+        transformer = new HBaseSolrDocumentExtractor("fieldName", valueExtractor, valueMapper);
     }
 
     @Test
@@ -50,12 +50,11 @@ public class ResultIndexValueTransformerTest extends TestCase {
         when(valueExtractor.extract(result)).thenReturn(Lists.newArrayList(bytesA, bytesB));
         when(valueMapper.map(bytesA)).thenReturn(Lists.<Object> newArrayList("A"));
         when(valueMapper.map(bytesB)).thenReturn(Lists.<Object> newArrayList("B"));
-
-        Multimap<String, Object> expectedOutput = ArrayListMultimap.create();
-        expectedOutput.putAll("fieldName", Lists.newArrayList("A", "B"));
-
-        assertEquals(expectedOutput, transformer.extractAndTransform(result));
-
+        
+        SolrInputDocument solrDocument = transformer.extractFields(result);
+        
+        assertEquals(Sets.newHashSet("fieldName"), solrDocument.keySet());
+        assertEquals(Lists.newArrayList("A", "B"), solrDocument.get("fieldName").getValues());
     }
 
 }
