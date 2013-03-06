@@ -15,16 +15,25 @@
  */
 package com.ngdata.hbasesearch;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
-public class DefaultSolrUniqueKeyFormatter implements SolrUniqueKeyFormatter {
+public class HexUniqueKeyFormatter implements UniqueKeyFormatter {
     @Override
     public String format(byte[] row) {
-        return Bytes.toString(row);
+        return toHexString(row);
     }
 
     @Override
     public String format(byte[] row, byte[] family, byte[] qualifier) {
-        return Bytes.toString(row) + "-" + Bytes.toString(family) + "-" + Bytes.toString(qualifier);
+        return toHexString(row) + "-" + toHexString(family) + "-" + toHexString(qualifier);
     }
+
+    private static String toHexString(byte[] b) {
+        StringBuilder sb = new StringBuilder(b.length * 2);
+        for (int i = 0; i < b.length; i++) {
+            sb.append(hexChar[(b[i] & 0xf0) >>> 4]);
+            sb.append(hexChar[b[i] & 0x0f]);
+        }
+        return sb.toString();
+    }
+
+    private final static char[] hexChar = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 }

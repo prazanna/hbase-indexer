@@ -43,9 +43,9 @@ public class Indexer implements EventListener {
     private SolrServer solr;
     private HTablePool tablePool;
     private HBaseToSolrMapper mapper;
-    private SolrUniqueKeyFormatter uniqueKeyFormatter;
+    private UniqueKeyFormatter uniqueKeyFormatter;
 
-    public Indexer(IndexConf conf, HBaseToSolrMapper mapper, SolrUniqueKeyFormatter uniqueKeyFormatter,
+    public Indexer(IndexConf conf, HBaseToSolrMapper mapper, UniqueKeyFormatter uniqueKeyFormatter,
             HTablePool tablePool, SolrServer solrServer) {
         this.conf = conf;
         this.mapper = mapper;

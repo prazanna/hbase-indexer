@@ -73,7 +73,7 @@ public class IndexerTest {
 
         HBaseToSolrMapper mapper = mock(HBaseToSolrMapper.class);
         when(mapper.isRelevantKV(any(KeyValue.class))).thenReturn(true);
-        Indexer indexer = new Indexer(conf, mapper, new DefaultSolrUniqueKeyFormatter(), tablePool, solrServer);
+        Indexer indexer = new Indexer(conf, mapper, new StringUniqueKeyFormatter(), tablePool, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(new KeyValue());
         SepEvent event = new SepEvent(Bytes.toBytes("table1"), Bytes.toBytes("row1"), kvs, null);
@@ -114,7 +114,7 @@ public class IndexerTest {
 
         SolrServer solrServer = mock(SolrServer.class);
 
-        Indexer indexer = new Indexer(conf, mapper, new DefaultSolrUniqueKeyFormatter(), tablePool, solrServer);
+        Indexer indexer = new Indexer(conf, mapper, new StringUniqueKeyFormatter(), tablePool, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(new KeyValue());
         SepEvent event = new SepEvent(Bytes.toBytes("table1"), Bytes.toBytes("row1"), kvs, null);
@@ -149,7 +149,7 @@ public class IndexerTest {
 
         SolrServer solrServer = mock(SolrServer.class);
 
-        Indexer indexer = new Indexer(conf, mapper, new DefaultSolrUniqueKeyFormatter(), null, solrServer);
+        Indexer indexer = new Indexer(conf, mapper, new StringUniqueKeyFormatter(), null, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(
                 new KeyValue(Bytes.toBytes("row1"), Bytes.toBytes("messages"), Bytes.toBytes("msg1"), Bytes.toBytes("the message")),

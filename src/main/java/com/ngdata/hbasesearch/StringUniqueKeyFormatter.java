@@ -15,19 +15,16 @@
  */
 package com.ngdata.hbasesearch;
 
-import com.ngdata.hbasesearch.conf.IndexConf;
+import org.apache.hadoop.hbase.util.Bytes;
 
-/**
- *
- */
-public interface SolrUniqueKeyFormatter {
-    /**
-     * Called in case of row-based mapping, {@link IndexConf.MappingType#ROW}.
-     */
-    String format(byte[] row);
+public class StringUniqueKeyFormatter implements UniqueKeyFormatter {
+    @Override
+    public String format(byte[] row) {
+        return Bytes.toString(row);
+    }
 
-    /**
-     * Called in case of column-based mapping, {@link IndexConf.MappingType#COLUMN}.
-     */
-    String format(byte[] row, byte[] family, byte[] qualifier);
+    @Override
+    public String format(byte[] row, byte[] family, byte[] qualifier) {
+        return Bytes.toString(row) + "-" + Bytes.toString(family) + "-" + Bytes.toString(qualifier);
+    }
 }

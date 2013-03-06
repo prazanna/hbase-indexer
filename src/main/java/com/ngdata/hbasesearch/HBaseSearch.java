@@ -48,7 +48,7 @@ public class HBaseSearch {
 
         IndexConf indexConf = new IndexConfBuilder().table("table").create();
         HBaseToSolrMapper mapper = null; // FIXMe
-        SolrUniqueKeyFormatter uniqueKeyFormatter = new DefaultSolrUniqueKeyFormatter();
+        UniqueKeyFormatter uniqueKeyFormatter = new StringUniqueKeyFormatter();
         Indexer indexer = new Indexer(indexConf, mapper, uniqueKeyFormatter, tablePool, solr);
 
         SepConsumer sepConsumer = new SepConsumer("index1", 0, indexer, 10, "localhost", zk, conf, null);
