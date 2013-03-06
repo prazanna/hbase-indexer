@@ -22,7 +22,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 
-import static com.ngdata.hbasesearch.conf.FieldDefinition.ValueSource;
 import static org.junit.Assert.assertEquals;
 
 public class XmlIndexConfReaderTest {

@@ -15,7 +15,7 @@
  */
 package com.ngdata.hbasesearch.parse.extract;
 
-import com.ngdata.hbasesearch.conf.FieldDefinition.ValueSource;
+import com.ngdata.hbasesearch.conf.ValueSource;
 import com.ngdata.hbasesearch.parse.ByteArrayExtractor;
 import org.apache.hadoop.hbase.util.Bytes;
 

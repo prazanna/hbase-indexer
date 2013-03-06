@@ -24,7 +24,7 @@ import org.apache.solr.common.SolrInputDocument;
 /**
  * Extracts a {@code SolrInputDocument} from an HBase {@code Result} object.
  */
-public class HBaseSolrDocumentExtractor implements SolrDocumentExtractor<Result> {
+public class HBaseSolrDocumentExtractor implements SolrDocumentExtractor {
 
     private String fieldName;
     private ByteArrayExtractor valueExtractor;
@@ -44,7 +44,7 @@ public class HBaseSolrDocumentExtractor implements SolrDocumentExtractor<Result>
      * @return indexable values
      */
     @Override
-    public SolrInputDocument extractFields(Result result) {
+    public SolrInputDocument extractDocument(Result result) {
         List<Object> values = Lists.newArrayList();
         for (byte[] bytes : valueExtractor.extract(result)) {
             values.addAll(valueMapper.map(bytes));

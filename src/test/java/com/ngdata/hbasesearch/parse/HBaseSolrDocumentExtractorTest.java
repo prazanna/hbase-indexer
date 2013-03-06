@@ -41,7 +41,7 @@ public class HBaseSolrDocumentExtractorTest extends TestCase {
     }
 
     @Test
-    public void testExtractAndTransform() {
+    public void testExtractDocument() {
         byte[] bytesA = new byte[] { 1, 2 };
         byte[] bytesB = new byte[] { 3, 4 };
 
@@ -51,7 +51,7 @@ public class HBaseSolrDocumentExtractorTest extends TestCase {
         when(valueMapper.map(bytesA)).thenReturn(Lists.<Object> newArrayList("A"));
         when(valueMapper.map(bytesB)).thenReturn(Lists.<Object> newArrayList("B"));
         
-        SolrInputDocument solrDocument = transformer.extractFields(result);
+        SolrInputDocument solrDocument = transformer.extractDocument(result);
         
         assertEquals(Sets.newHashSet("fieldName"), solrDocument.keySet());
         assertEquals(Lists.newArrayList("A", "B"), solrDocument.get("fieldName").getValues());

@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.ngdata.hbasesearch.conf.FieldDefinition.ValueSource;
+import com.ngdata.hbasesearch.conf.ValueSource;
 import com.ngdata.hbasesearch.parse.ByteArrayExtractor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;

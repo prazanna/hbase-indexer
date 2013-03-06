@@ -39,7 +39,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ngdata.hbasesearch.conf.FieldDefinition.ValueSource;
 import static com.ngdata.hbasesearch.conf.IndexConf.MappingType;
 import static com.ngdata.hbasesearch.conf.IndexConf.RowReadMode;
 

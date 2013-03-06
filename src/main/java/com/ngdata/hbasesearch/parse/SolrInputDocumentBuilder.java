@@ -24,7 +24,7 @@ import org.apache.solr.common.SolrInputField;
  * Builds a SolrInputDocument based on the merged contents of multiple other SolrInputDocuments.
  */
 public class SolrInputDocumentBuilder {
-    
+
     private SolrInputDocument document = new SolrInputDocument();
 
     /**
@@ -33,9 +33,19 @@ public class SolrInputDocumentBuilder {
      * @param inputDocument document to be merged
      */
     public void add(SolrInputDocument inputDocument) {
+        add(inputDocument, "");
+    }
+
+    /**
+     * Merge a {@code SolrInputDocument} into the master document, adding a prefix to every field name as it is added.
+     * 
+     * @param inputDocument document to be added
+     * @param prefix prefix to be added to field names
+     */
+    public void add(SolrInputDocument inputDocument, String prefix) {
         for (Entry<String, SolrInputField> entry : inputDocument.entrySet()) {
             SolrInputField inputField = entry.getValue();
-            document.addField(entry.getKey(), inputField.getValues(), inputField.getBoost());
+            document.addField(prefix + entry.getKey(), inputField.getValues(), inputField.getBoost());
         }
     }
 
@@ -47,4 +57,5 @@ public class SolrInputDocumentBuilder {
     public SolrInputDocument getDocument() {
         return document;
     }
+
 }

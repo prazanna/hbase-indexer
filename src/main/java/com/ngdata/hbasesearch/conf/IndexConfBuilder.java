@@ -15,12 +15,12 @@
  */
 package com.ngdata.hbasesearch.conf;
 
-import com.google.common.collect.Lists;
-import com.ngdata.hbasesearch.UniqueKeyFormatter;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.collect.Lists;
+import com.ngdata.hbasesearch.UniqueKeyFormatter;
 
 /**
  * A builder for creating {@link IndexConf} instances.
@@ -59,7 +59,7 @@ public class IndexConfBuilder {
     }
 
     public IndexConfBuilder addFieldDefinition(String name, String valueExpression,
-            FieldDefinition.ValueSource valueSource, String typeName) {
+            ValueSource valueSource, String typeName) {
         fieldDefinitions.add(new FieldDefinition(name, valueExpression, valueSource, typeName));
         return this;
     }

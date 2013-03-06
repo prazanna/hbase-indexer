@@ -24,21 +24,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class FieldDefinition {
 
-    /**
-     * Specifies where values to index should be extracted from.
-     */
-    public static enum ValueSource {
-        /**
-         * Extract values to index from the column qualifier of a {@code KeyValue}.
-         */
-        QUALIFIER,
-
-        /**
-         * Extract values to index from the cell value of a {@code KeyValue}.
-         */
-        VALUE
-    };
-
     private final String name;
 
     private final String valueExpression;

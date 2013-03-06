@@ -20,11 +20,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
+import java.util.Collections;
+
+import com.ngdata.hbasesearch.conf.DocumentExtractDefinition;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.ngdata.hbasesearch.conf.FieldDefinition;
-import com.ngdata.hbasesearch.conf.FieldDefinition.ValueSource;
+import com.ngdata.hbasesearch.conf.ValueSource;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -46,27 +49,47 @@ public class ResultToSolrMapperTest {
         FieldDefinition fieldDefA = new FieldDefinition("fieldA", "cfA:qualifierA", ValueSource.VALUE, "int");
         FieldDefinition fieldDefB = new FieldDefinition("fieldB", "cfB:qualifierB", ValueSource.VALUE,
                 DummyValueMapper.class.getName());
-        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDefA, fieldDefB));
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDefA, fieldDefB),
+                Collections.<DocumentExtractDefinition> emptyList());
 
         KeyValue kvA = new KeyValue(ROW, COLUMN_FAMILY_A, QUALIFIER_A, Bytes.toBytes(42));
         KeyValue kvB = new KeyValue(ROW, COLUMN_FAMILY_B, QUALIFIER_B, "dummy value".getBytes());
         Result result = new Result(Lists.newArrayList(kvA, kvB));
 
         SolrInputDocument solrDocument = resultMapper.map(result);
-        
+
         assertEquals(Sets.newHashSet("fieldA", "fieldB"), solrDocument.keySet());
-        
+
         SolrInputField fieldA = solrDocument.get("fieldA");
         SolrInputField fieldB = solrDocument.get("fieldB");
-        
+
         assertEquals(Lists.newArrayList(42), fieldA.getValues());
         assertEquals(Lists.newArrayList("A", "B", "C"), fieldB.getValues());
     }
 
     @Test
+    public void testMap_WithExtractDefinitions() {
+        DocumentExtractDefinition extractDefinition = new DocumentExtractDefinition("testprefix_", ValueSource.VALUE,
+                "cfA:qualifierA", "text/plain");
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Collections.<FieldDefinition> emptyList(),
+                Lists.newArrayList(extractDefinition));
+
+        KeyValue kvA = new KeyValue(ROW, COLUMN_FAMILY_A, QUALIFIER_A, Bytes.toBytes("test value"));
+        KeyValue kvB = new KeyValue(ROW, COLUMN_FAMILY_B, QUALIFIER_B, "dummy value".getBytes());
+        Result result = new Result(Lists.newArrayList(kvA, kvB));
+
+        SolrInputDocument solrDocument = resultMapper.map(result);
+
+        assertTrue(solrDocument.getFieldNames().contains("testprefix_content"));
+        assertTrue(solrDocument.getField("testprefix_content").getValues().toString().contains("test value"));
+        assertFalse(solrDocument.getField("testprefix_content").getValues().toString().contains("dummy value"));
+    }
+
+    @Test
     public void testIsRelevantKV_WithoutWildcards() {
         FieldDefinition fieldDef = new FieldDefinition("fieldA", "cf:qualifier", ValueSource.VALUE, "int");
-        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef));
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef),
+                Collections.<DocumentExtractDefinition> emptyList());
 
         KeyValue relevantKV = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"), Bytes.toBytes("qualifier"),
                 Bytes.toBytes("value"));
@@ -74,7 +97,7 @@ public class ResultToSolrMapperTest {
                 Bytes.toBytes("qualifier"), Bytes.toBytes("value"));
         KeyValue notRelevantKV_WrongQualifier = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"),
                 Bytes.toBytes("wrongqualifier"), Bytes.toBytes("value"));
-        
+
         assertTrue(resultMapper.isRelevantKV(relevantKV));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongFamily));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongQualifier));
@@ -83,10 +106,11 @@ public class ResultToSolrMapperTest {
     @Test
     public void testIsRelevantKV_WithWildcards() {
         FieldDefinition fieldDef = new FieldDefinition("fieldA", "cf:quali*", ValueSource.VALUE, "int");
-        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef));
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef),
+                Collections.<DocumentExtractDefinition> emptyList());
 
-        KeyValue relevantKV = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"),
-                Bytes.toBytes("qualifier"), Bytes.toBytes("value"));
+        KeyValue relevantKV = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"), Bytes.toBytes("qualifier"),
+                Bytes.toBytes("value"));
         KeyValue notRelevantKV_WrongFamily = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("wrongcf"),
                 Bytes.toBytes("qualifier"), Bytes.toBytes("value"));
         KeyValue notRelevantKV_WrongQualifier = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"),

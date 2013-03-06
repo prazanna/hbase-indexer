@@ -13,21 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbasesearch.parse;
-
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.solr.common.SolrInputDocument;
+package com.ngdata.hbasesearch.conf;
 
 /**
- * Extracts a value or collection of values from an HBase {@code Result} and transforms them into a {@code SolrInputDocument}.
+ * Specifies where values to index should be extracted from in an HBase {@code KeyValue}.
  */
-public interface SolrDocumentExtractor {
+public enum ValueSource {
+    /**
+     * Extract values to index from the column qualifier of a {@code KeyValue}.
+     */
+    QUALIFIER,
 
     /**
-     * Extracts fields and values from an HBase {@code Result} and puts them into a SolrInputDocument.
-     * 
-     * @param input {@code Result} to be mapped to an indexable form
-     * @return SolrInputDocument containing extracted fields
+     * Extract values to index from the cell value of a {@code KeyValue}.
      */
-    SolrInputDocument extractDocument(Result input);
-}
+    VALUE
+};

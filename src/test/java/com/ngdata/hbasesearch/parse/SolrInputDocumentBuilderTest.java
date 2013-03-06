@@ -44,8 +44,27 @@ public class SolrInputDocumentBuilderTest {
         
         assertEquals(Lists.newArrayList("valueA1", "valueA2"), merged.getField("fieldA").getValues());
         assertEquals(Lists.newArrayList("valueB"), merged.getField("fieldB").getValues());
+    }
+    
+    @Test
+    public void testAdd_WithPrefix() {
+        SolrInputDocumentBuilder builder = new SolrInputDocumentBuilder();
         
+        SolrInputDocument docA = new SolrInputDocument();
+        SolrInputDocument docB = new SolrInputDocument();
         
+        docA.addField("fieldA", "valueA");
+        docB.addField("fieldB", "valueB");
+        
+        builder.add(docA, "A_");
+        builder.add(docB);
+        
+        SolrInputDocument merged = builder.getDocument();
+        
+        assertEquals(Sets.newHashSet("A_fieldA", "fieldB"), merged.keySet());
+        
+        assertEquals(Lists.newArrayList("valueA"), merged.getField("A_fieldA").getValues());
+        assertEquals(Lists.newArrayList("valueB"), merged.getField("fieldB").getValues());
     }
     
     @Test
