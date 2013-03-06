@@ -15,9 +15,23 @@
  */
 package com.ngdata.hbasesearch.conf;
 
+import com.google.common.collect.Lists;
+import com.ngdata.hbasesearch.UniqueKeyFormatter;
+
+import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+/**
+ * A builder for creating {@link IndexConf} instances.
+ */
 public class IndexConfBuilder {
     private String table;
+    private String uniqueKeyField = "id";
+    private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
+    private IndexConf.RowReadMode rowReadMode = IndexConf.RowReadMode.ALWAYS;
     private IndexConf.MappingType mappingType = IndexConf.MappingType.ROW;
+    private List<FieldDefinition> fieldDefinitions = Lists.newArrayList();
 
     public IndexConfBuilder table(String table) {
         this.table = table;
@@ -29,9 +43,36 @@ public class IndexConfBuilder {
         return this;
     }
 
+    public IndexConfBuilder rowReadMode(IndexConf.RowReadMode rowReadMode) {
+        this.rowReadMode = rowReadMode;
+        return this;
+    }
+
+    public IndexConfBuilder uniqueyKeyField(String uniqueKeyField) {
+        this.uniqueKeyField = uniqueKeyField;
+        return this;
+    }
+
+    public IndexConfBuilder uniqueKeyFormatterClass(Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass) {
+        this.uniqueKeyFormatterClass = uniqueKeyFormatterClass;
+        return this;
+    }
+
+    public IndexConfBuilder addFieldDefinition(String name, String valueExpression,
+            FieldDefinition.ValueSource valueSource, String typeName) {
+        fieldDefinitions.add(new FieldDefinition(name, valueExpression, valueSource, typeName));
+        return this;
+    }
+
     public IndexConf create() {
+        checkNotNull(table, "table name");
         IndexConf conf = new IndexConf(table);
-        conf.setMappingType(mappingType);
+        conf.setMappingType(mappingType != null ? mappingType : IndexConf.DEFAULT_MAPPING_TYPE);
+        conf.setRowReadMode(rowReadMode != null ? rowReadMode : IndexConf.DEFAULT_ROW_READ_MODE);
+        conf.setUniqueKeyField(uniqueKeyField != null ? uniqueKeyField : IndexConf.DEFAULT_UNIQUE_KEY_FIELD);
+        conf.setUniqueKeyFormatterClass(uniqueKeyFormatterClass != null ?
+                uniqueKeyFormatterClass : IndexConf.DEFAULT_UNIQUE_KEY_FORMATTER);
+        conf.setFieldDefinitions(fieldDefinitions);
         return conf;
     }
 }

@@ -1,0 +1,6 @@
+<!-- A test indexconf that use defaults maximally, thus specifies minimal conf -->
+<index table="table1">
+
+  <field name="field1" value="col:qual1"/>
+
+</index>

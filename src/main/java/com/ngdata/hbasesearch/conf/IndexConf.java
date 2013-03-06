@@ -15,14 +15,35 @@
  */
 package com.ngdata.hbasesearch.conf;
 
+import com.ngdata.hbasesearch.Indexer;
+import com.ngdata.hbasesearch.StringUniqueKeyFormatter;
+import com.ngdata.hbasesearch.UniqueKeyFormatter;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * The configuration for an index, i.e. this defines the behavior of the {@link Indexer} and of the parser/mapper
+ * called by the indexer.
+ *
+ * <p>Instances of IndexConf can be created using {@link IndexConfBuilder} or from XML using
+ * {@link XmlIndexConfReader}.</p>
+ */
 public class IndexConf {
     private String table;
-    private MappingType mappingType = MappingType.ROW;
-    private RowReadMode rowReadMode = RowReadMode.ALWAYS;
-    private String uniqueKeyField = "id";
+    private MappingType mappingType;
+    private RowReadMode rowReadMode;
+    private String uniqueKeyField;
+    private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
+    private List<FieldDefinition> fieldDefinitions;
 
     public enum MappingType { ROW, COLUMN }
     public enum RowReadMode { ALWAYS, NEVER }
+
+    public static final MappingType DEFAULT_MAPPING_TYPE = MappingType.ROW;
+    public static final RowReadMode DEFAULT_ROW_READ_MODE = RowReadMode.ALWAYS;
+    public static final String DEFAULT_UNIQUE_KEY_FIELD = "id";
+    public static final Class<? extends UniqueKeyFormatter> DEFAULT_UNIQUE_KEY_FORMATTER = StringUniqueKeyFormatter.class;
 
     IndexConf(String table) {
         this.table = table;
@@ -44,6 +65,14 @@ public class IndexConf {
         return uniqueKeyField;
     }
 
+    public Class<? extends UniqueKeyFormatter> getUniqueKeyFormatterClass() {
+        return uniqueKeyFormatterClass;
+    }
+
+    public List<FieldDefinition> getFieldDefinitions() {
+        return fieldDefinitions;
+    }
+
     void setMappingType(MappingType mappingType) {
         this.mappingType = mappingType;
     }
@@ -54,5 +83,13 @@ public class IndexConf {
 
     void setUniqueKeyField(String uniqueKeyField) {
         this.uniqueKeyField = uniqueKeyField;
+    }
+
+    void setFieldDefinitions(List<FieldDefinition> fieldDefinitions) {
+        this.fieldDefinitions = Collections.unmodifiableList(fieldDefinitions);
+    }
+
+    void setUniqueKeyFormatterClass(Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass) {
+        this.uniqueKeyFormatterClass = uniqueKeyFormatterClass;
     }
 }

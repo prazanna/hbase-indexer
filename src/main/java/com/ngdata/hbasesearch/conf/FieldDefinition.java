@@ -17,6 +17,8 @@ package com.ngdata.hbasesearch.conf;
 
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Defines a single field in an index definition;
  */
@@ -45,11 +47,17 @@ public class FieldDefinition {
 
     private final String typeName;
 
+    public static final ValueSource DEFAULT_VALUE_SOURCE = ValueSource.VALUE;
+
+    public static final String DEFAULT_TYPE_NAME = "string";
+
     public FieldDefinition(String name, String valueExpression, ValueSource valueSource, String typeName) {
+        checkNotNull(name, "name");
+        checkNotNull(name, "valueExpression");
         this.name = name;
         this.valueExpression = valueExpression;
-        this.valueSource = valueSource;
-        this.typeName = typeName;
+        this.valueSource = valueSource != null ? valueSource : DEFAULT_VALUE_SOURCE;
+        this.typeName = typeName != null ? typeName : DEFAULT_TYPE_NAME;
     }
 
     /**

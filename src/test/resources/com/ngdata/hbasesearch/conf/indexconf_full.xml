@@ -1,0 +1,13 @@
+<!-- A test indexconf that makes use of every element and attribute -->
+<index
+    table="table1"
+    mapping-type="column"
+    read-row="never"
+    unique-key-field="key"
+    unique-key-formatter="com.ngdata.hbasesearch.HexUniqueKeyFormatter"
+    >
+
+  <field name="field1" value="col:qual1" source="qualifier" type="float"/>
+  <field name="field2" value="col:qual2" source="value" type="long"/>
+
+</index>
