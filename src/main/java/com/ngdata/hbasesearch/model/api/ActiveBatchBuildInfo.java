@@ -1,0 +1,100 @@
+/*
+ * Copyright 2013 NGDATA nv
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.ngdata.hbasesearch.model.api;
+
+import com.google.common.base.Objects;
+
+public class ActiveBatchBuildInfo {
+    private String jobId;
+    private long submitTime;
+    private boolean immutable;
+    private String trackingUrl;
+    private byte[] batchIndexConfiguration;
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        checkIfMutable();
+        this.jobId = jobId;
+    }
+
+    public long getSubmitTime() {
+        return submitTime;
+    }
+
+    public void setSubmitTime(long submitTime) {
+        checkIfMutable();
+        this.submitTime = submitTime;
+    }
+
+    public String getTrackingUrl() {
+        return trackingUrl;
+    }
+
+    public void setTrackingUrl(String trackingUrl) {
+        checkIfMutable();
+        this.trackingUrl = trackingUrl;
+    }
+
+    public void makeImmutable() {
+        this.immutable = true;
+    }
+
+    private void checkIfMutable() {
+        if (immutable)
+            throw new RuntimeException("This IndexDefinition is immutable");
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        ActiveBatchBuildInfo other = (ActiveBatchBuildInfo)obj;
+
+        if (!Objects.equal(jobId, other.jobId))
+            return false;
+
+        if (submitTime != other.submitTime)
+            return false;
+
+        if (!Objects.equal(trackingUrl, other.trackingUrl))
+            return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = jobId != null ? jobId.hashCode() : 0;
+        result = 31 * result + (int) (submitTime ^ (submitTime >>> 32));
+        result = 31 * result + (trackingUrl != null ? trackingUrl.hashCode() : 0);
+        return result;
+    }
+
+    public byte[] getBatchIndexConfiguration() {
+        return batchIndexConfiguration;
+    }
+
+    public void setBatchIndexConfiguration(byte[] batchIndexConfiguration) {
+        this.batchIndexConfiguration = batchIndexConfiguration;
+    }
+}
