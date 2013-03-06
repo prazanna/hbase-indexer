@@ -17,6 +17,7 @@ package com.ngdata.hbasesearch.parse;
 
 import java.util.Collection;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 
 /**
@@ -51,5 +52,15 @@ public interface ByteArrayExtractor {
      * @return the column qualifier, or null if a single complete value cannot be returned
      */
     byte[] getColumnQualifier();
+    
+    /**
+     * Determine if this extractor can be applied to a given KeyValue.
+     * <p>
+     * This functionality is used to determine if an individual KeyValue should be used for extraction.
+     * 
+     * @param keyValue the {@code KeyValue} to be checked for applicability
+     * @return true if the given {@code KeyValue} is applicable, otherwise false
+     */
+    boolean isApplicable(KeyValue keyValue);
 
 }

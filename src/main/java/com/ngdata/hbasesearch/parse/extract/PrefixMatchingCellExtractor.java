@@ -25,7 +25,7 @@ public class PrefixMatchingCellExtractor extends AbstractPrefixMatchingExtractor
     }
 
     @Override
-    protected byte[] extract(byte[] qualifier, byte[] value) {
+    protected byte[] extractInternal(byte[] qualifier, byte[] value) {
         return value;
     }
 

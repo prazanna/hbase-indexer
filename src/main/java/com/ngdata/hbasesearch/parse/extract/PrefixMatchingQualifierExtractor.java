@@ -25,7 +25,7 @@ public class PrefixMatchingQualifierExtractor extends AbstractPrefixMatchingExtr
     }
 
     @Override
-    protected byte[] extract(byte[] qualifier, byte[] value) {
+    protected byte[] extractInternal(byte[] qualifier, byte[] value) {
         return qualifier;
     }
 

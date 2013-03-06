@@ -16,37 +16,21 @@
 package com.ngdata.hbasesearch;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableSet;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
-import com.google.common.collect.TreeMultimap;
-
-import com.google.common.collect.SetMultimap;
-
-import com.google.common.collect.HashMultimap;
-
-import com.google.common.collect.Multimaps;
-
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.solr.common.SolrInputDocument;
-
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.ngdata.hbasesearch.conf.FieldDefinition;
-
 import com.ngdata.hbasesearch.parse.ByteArrayExtractor;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMappers;
 import com.ngdata.hbasesearch.parse.IndexValueTransformer;
 import com.ngdata.hbasesearch.parse.ResultIndexValueTransformer;
-
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.ngdata.hbasesearch.parse.extract.ByteArrayExtractors;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.solr.common.SolrInputDocument;
 
 /**
  * Parses HBase {@code Result} objects into a structure of fields and values.
@@ -63,6 +47,11 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      */
     private Get get;
     
+    /**
+     * Used to do evaluation on applicability of KeyValues.
+     */
+    private List<ByteArrayExtractor> extractors;
+    
 
     /**
      * Instantiate based on a collection of {@link FieldDefinition}s.
@@ -70,6 +59,7 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      */
     public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions) {
         get = new Get();
+        extractors = Lists.newArrayList();
         valueTransformers = Lists.newArrayList();
         for (FieldDefinition fieldDefinition : fieldDefinitions) {
             ByteArrayExtractor byteArrayExtractor = ByteArrayExtractors.getExtractor(
@@ -77,6 +67,7 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
             ByteArrayValueMapper valueMapper = ByteArrayValueMappers.getMapper(fieldDefinition.getTypeName());
             valueTransformers.add(new ResultIndexValueTransformer(fieldDefinition.getName(), byteArrayExtractor,
                     valueMapper));
+            extractors.add(byteArrayExtractor);
             
             byte[] columnFamily = byteArrayExtractor.getColumnFamily();
             byte[] columnQualifier = byteArrayExtractor.getColumnQualifier();
@@ -101,10 +92,8 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
 
     @Override
     public boolean isRelevantKV(KeyValue kv) {
-        // TODO Use the ordering of the family map to make this much more efficient
-        Map<byte[], NavigableSet<byte[]>> familyMap = get.getFamilyMap();
-        for (Entry<byte[], NavigableSet<byte[]>> entry : familyMap.entrySet()) {
-            if (kv.matchingFamily(entry.getKey())) {
+        for (ByteArrayExtractor extractor : extractors) {
+            if (extractor.isApplicable(kv)) {
                 return true;
             }
         }

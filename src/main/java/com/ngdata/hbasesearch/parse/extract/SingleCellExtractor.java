@@ -18,6 +18,8 @@ package com.ngdata.hbasesearch.parse.extract;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.apache.hadoop.hbase.KeyValue;
+
 import com.google.common.collect.Lists;
 import com.ngdata.hbasesearch.parse.ByteArrayExtractor;
 import org.apache.hadoop.hbase.client.Result;
@@ -53,6 +55,11 @@ public class SingleCellExtractor implements ByteArrayExtractor {
     @Override
     public byte[] getColumnQualifier() {
         return columnQualifier;
+    }
+    
+    @Override
+    public boolean isApplicable(KeyValue keyValue) {
+        return keyValue.matchingColumn(columnFamily, columnQualifier);
     }
 
 }

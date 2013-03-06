@@ -74,28 +74,28 @@ public class ResultToSolrMapperTest {
         KeyValue notRelevantKV_WrongFamily = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("wrongcf"),
                 Bytes.toBytes("qualifier"), Bytes.toBytes("value"));
         KeyValue notRelevantKV_WrongQualifier = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"),
-                Bytes.toBytes("qualifier"), Bytes.toBytes("value"));
+                Bytes.toBytes("wrongqualifier"), Bytes.toBytes("value"));
         
         assertTrue(resultMapper.isRelevantKV(relevantKV));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongFamily));
-        
-        // TODO The following assert should eventually be uncommented
-//        assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongQualifier));
+        assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongQualifier));
     }
 
     @Test
     public void testIsRelevantKV_WithWildcards() {
-        // If the qualifier in the field definition is a wildcard, it is relevant for anything in the same column family
         FieldDefinition fieldDef = new FieldDefinition("fieldA", "cf:quali*", ValueSource.VALUE, "int");
         ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef));
 
         KeyValue relevantKV = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"),
-                Bytes.toBytes("doesn't matter what the qualifier is"), Bytes.toBytes("value"));
+                Bytes.toBytes("qualifier"), Bytes.toBytes("value"));
         KeyValue notRelevantKV_WrongFamily = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("wrongcf"),
                 Bytes.toBytes("qualifier"), Bytes.toBytes("value"));
+        KeyValue notRelevantKV_WrongQualifier = new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("cf"),
+                Bytes.toBytes("qu wrong qualifier"), Bytes.toBytes("value"));
 
         assertTrue(resultMapper.isRelevantKV(relevantKV));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongFamily));
+        assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongQualifier));
     }
 
 

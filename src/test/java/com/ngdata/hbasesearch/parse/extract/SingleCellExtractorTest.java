@@ -16,12 +16,15 @@
 package com.ngdata.hbasesearch.parse.extract;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Before;
@@ -29,6 +32,7 @@ import org.junit.Test;
 
 public class SingleCellExtractorTest {
 
+    private static final byte[] ROW = Bytes.toBytes("row");
     private static final byte[] COLUMN_FAMILY = Bytes.toBytes("col_family");
     private static final byte[] COLUMN_QUALIFIER = Bytes.toBytes("col_qualifier");
 
@@ -55,5 +59,22 @@ public class SingleCellExtractorTest {
 
         assertEquals(Collections.emptyList(), extractor.extract(result));
     }
-    
+
+    @Test
+    public void testIsApplicable_Match() {
+        assertTrue(extractor.isApplicable(new KeyValue(ROW, COLUMN_FAMILY, COLUMN_QUALIFIER, Bytes.toBytes("value"))));
+    }
+
+    @Test
+    public void testIsApplicable_NoMatch_WrongFamily() {
+        assertFalse(extractor.isApplicable(new KeyValue(ROW, Bytes.toBytes("wrong family"), COLUMN_QUALIFIER,
+                Bytes.toBytes("value"))));
+    }
+
+    @Test
+    public void testIsApplicable_NoMatch_WrongQualifier() {
+        assertFalse(extractor.isApplicable(new KeyValue(ROW, COLUMN_FAMILY, Bytes.toBytes("wrong qualifier"),
+                Bytes.toBytes("value"))));
+    }
+
 }
