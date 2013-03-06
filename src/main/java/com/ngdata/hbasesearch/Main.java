@@ -15,21 +15,23 @@
  */
 package com.ngdata.hbasesearch;
 
-import com.ngdata.hbasesearch.conf.IndexConf;
-import com.ngdata.hbasesearch.conf.IndexConfBuilder;
+import com.ngdata.hbasesearch.master.IndexerMaster;
+import com.ngdata.hbasesearch.model.api.IndexDefinition;
+import com.ngdata.hbasesearch.model.api.WriteableIndexerModel;
+import com.ngdata.hbasesearch.model.impl.IndexerModelImpl;
+import com.ngdata.hbasesearch.supervisor.IndexerRegistry;
+import com.ngdata.hbasesearch.supervisor.IndexerSupervisor;
 import com.ngdata.sep.SepModel;
-import com.ngdata.sep.impl.SepConsumer;
 import com.ngdata.sep.impl.SepModelImpl;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTablePool;
-import org.apache.solr.client.solrj.impl.HttpSolrServer;
 
-public class HBaseSearch {
+public class Main {
     public static void main(String[] args) throws Exception {
-        new HBaseSearch().run(args);
+        new Main().run(args);
     }
 
     public void run(String[] args) throws Exception {
@@ -37,24 +39,26 @@ public class HBaseSearch {
         conf.setBoolean("hbase.replication", true);
 
         ZooKeeperItf zk = ZkUtil.connect("localhost", 20000);
-        SepModel sepModel = new SepModelImpl(zk, conf);
 
-        if (!sepModel.hasSubscription("index1")) {
-            sepModel.addSubscription("index1");
-        }
-
-        HttpSolrServer solr = new HttpSolrServer("http://localhost:8983/solr");
         HTablePool tablePool = new HTablePool(conf, 10);
 
-        IndexConf indexConf = new IndexConfBuilder().table("table").create();
-        HBaseToSolrMapper mapper = null; // FIXMe
-        UniqueKeyFormatter uniqueKeyFormatter = new StringUniqueKeyFormatter();
-        Indexer indexer = new Indexer(indexConf, mapper, uniqueKeyFormatter, tablePool, solr);
+        WriteableIndexerModel indexModel = new IndexerModelImpl(zk);
 
-        SepConsumer sepConsumer = new SepConsumer("index1", 0, indexer, 10, "localhost", zk, conf, null);
+        SepModel sepModel = new SepModelImpl(zk, conf);
 
-        sepConsumer.start();
-        System.out.println("Started");
+        IndexerMaster master = new IndexerMaster(zk, indexModel, null, null, conf, "localhost:2181", 30000,
+                sepModel, "localhost");
+        master.start();
+
+        IndexerRegistry indexerRegistry = new IndexerRegistry();
+        IndexerSupervisor supervisor = new IndexerSupervisor(indexModel, zk, "localhost" /* TODO */, indexerRegistry,
+                tablePool, conf);
+
+        supervisor.init();
+
+//        IndexDefinition definition = indexModel.newIndex("index1");
+//        definition.setConfiguration("<index table='table1'/>".getBytes());
+//        indexModel.addIndex(definition);
 
         while (true) {
             Thread.sleep(Long.MAX_VALUE);

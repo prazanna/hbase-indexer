@@ -198,24 +198,26 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 throw new IndexValidityException("Job id of active batch build cannot be null.");
         }
 
-       boolean hasShards = index.getSolrShards() != null && !index.getSolrShards().isEmpty();
-       boolean hasCollection = index.getSolrCollection() != null;
-       boolean hasZkConnectionString = index.getZkConnectionString() != null && !index.getZkConnectionString().isEmpty();
 
-       if (hasCollection && hasShards) {
-           throw new IndexValidityException("Ambiguous solr configuration in index defintion. Setting a solr " +
-                   "collection together with solr shards has no use. Set either the solr shards or collection.");
-       }
-
-       if (hasShards && hasZkConnectionString) {
-           throw new IndexValidityException("Ambiguous solr configuration in index defintion. Setting a solr " +
-                   "zookeeper connection together with solr shards has no use. Set either the solr shards or " +
-                   "zookeeper connection.");
-       }
-       if (!hasShards && !hasZkConnectionString) {
-           throw new IndexValidityException("Incomplete solr configuration in index defintion. You need at least " +
-                   "a shard or a zookeeper connection string.");
-       }
+        // TODO FIXME disabled this code (after copying from Lily)
+//       boolean hasShards = index.getSolrShards() != null && !index.getSolrShards().isEmpty();
+//       boolean hasCollection = index.getSolrCollection() != null;
+//       boolean hasZkConnectionString = index.getZkConnectionString() != null && !index.getZkConnectionString().isEmpty();
+//
+//       if (hasCollection && hasShards) {
+//           throw new IndexValidityException("Ambiguous solr configuration in index defintion. Setting a solr " +
+//                   "collection together with solr shards has no use. Set either the solr shards or collection.");
+//       }
+//
+//       if (hasShards && hasZkConnectionString) {
+//           throw new IndexValidityException("Ambiguous solr configuration in index defintion. Setting a solr " +
+//                   "zookeeper connection together with solr shards has no use. Set either the solr shards or " +
+//                   "zookeeper connection.");
+//       }
+//       if (!hasShards && !hasZkConnectionString) {
+//           throw new IndexValidityException("Incomplete solr configuration in index defintion. You need at least " +
+//                   "a shard or a zookeeper connection string.");
+//       }
 
         if (index.getLastBatchBuildInfo() != null) {
             BatchBuildInfo info = index.getLastBatchBuildInfo();

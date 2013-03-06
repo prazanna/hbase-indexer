@@ -45,11 +45,14 @@ public class Indexer implements EventListener {
     private HBaseToSolrMapper mapper;
     private UniqueKeyFormatter uniqueKeyFormatter;
 
-    public Indexer(IndexConf conf, HBaseToSolrMapper mapper, UniqueKeyFormatter uniqueKeyFormatter,
-            HTablePool tablePool, SolrServer solrServer) {
+    public Indexer(IndexConf conf, HBaseToSolrMapper mapper, HTablePool tablePool, SolrServer solrServer) {
         this.conf = conf;
         this.mapper = mapper;
-        this.uniqueKeyFormatter = uniqueKeyFormatter;
+        try {
+            this.uniqueKeyFormatter = conf.getUniqueKeyFormatterClass().newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Problem instantiating the UniqueKeyFormatter.", e);
+        }
         this.tablePool = tablePool;
         this.solr = solrServer;
     }
