@@ -253,9 +253,9 @@ fi
 
 # figure out which class to run
 if [ "$COMMAND" = "server" ] ; then
-  CLASS='com.ngdata.hbasesearch.Main'
+  CLASS='com.ngdata.hbaseindexer.Main'
 elif [ "$COMMAND" = "add-index" ] ; then
-  CLASS='com.ngdata.hbasesearch.cli.AddIndex'
+  CLASS='com.ngdata.hbaseindexer.cli.AddIndex'
 elif [ "$COMMAND" = "classpath" ] ; then
   echo $CLASSPATH
   exit 0

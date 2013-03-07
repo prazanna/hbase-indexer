@@ -30,7 +30,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ngdata</groupId>
-  <artifactId>hbase-search</artifactId>
+  <artifactId>hbase-indexer</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
   <name>HBase Search</name>
@@ -47,9 +47,9 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git@github.com:NGDATA/hbase-search.git</connection>
-    <url>scm:git:git@github.com:NGDATA/hbase-search.git</url>
-    <developerConnection>scm:git:git@github.com:NGDATA/hbase-search.git</developerConnection>
+    <connection>scm:git:git@github.com:NGDATA/hbase-indexer.git</connection>
+    <url>scm:git:git@github.com:NGDATA/hbase-indexer.git</url>
+    <developerConnection>scm:git:git@github.com:NGDATA/hbase-indexer.git</developerConnection>
   </scm>
 
   <dependencyManagement>
@@ -207,12 +207,12 @@
           <execution>
             <!-- generates the file that will be used by the bin/hbase-indexer script in the dev env -->
             <id>create-hbase-indexer-generated-classpath</id>
-            <phase>test</phase>
+            <phase>compile</phase>
             <goals>
               <goal>build-classpath</goal>
             </goals>
             <configuration>
-              <outputFile>${project.build.directory}/target/cached_classpath.txt</outputFile>
+              <outputFile>${project.build.directory}/cached_classpath.txt</outputFile>
             </configuration>
           </execution>
         </executions>

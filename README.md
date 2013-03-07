@@ -1,2 +1,2 @@
-hbase-search
-============
+hbase-indexer
+=============
