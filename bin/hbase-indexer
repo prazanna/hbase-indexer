@@ -143,9 +143,8 @@ add_maven_deps_to_classpath() {
 }
 
 add_maven_main_classes_to_classpath() {
-  if [ -d "$HBASE_INDEXER_HOME/target/classes" ]; then
-    CLASSPATH=${CLASSPATH}:$HBASE_INDEXER_HOME/target/classes
-  fi
+  HBASE_INDEXER_VERSION=`cat $HBASE_INDEXER_HOME/pom.xml | grep -m 1 --only-matching \<version\>.*\</version\> | sed 's,<version>,,g' | sed 's,</version>,,g'`
+  CLASSPATH=${CLASSPATH}:$HBASE_INDEXER_HOME/target/hbase-indexer-${HBASE_INDEXER_VERSION}.jar
 }
 
 #Add the development env class path stuff

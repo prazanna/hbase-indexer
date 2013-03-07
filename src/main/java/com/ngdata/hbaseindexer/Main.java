@@ -24,33 +24,48 @@ import com.ngdata.sep.SepModel;
 import com.ngdata.sep.impl.SepModelImpl;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.util.Strings;
+import org.apache.hadoop.net.DNS;
 
 public class Main {
+    private Log log = LogFactory.getLog(getClass());
+
     public static void main(String[] args) throws Exception {
         new Main().run(args);
     }
 
     public void run(String[] args) throws Exception {
-        Configuration conf = HBaseConfiguration.create();
+        // The same configuration object is used for both hbase-indexer as for hbase client access
+        Configuration conf = HBaseIndexerConfiguration.create();
         conf.setBoolean("hbase.replication", true);
 
-        ZooKeeperItf zk = ZkUtil.connect("localhost", 20000);
+        String hostname = Strings.domainNamePointerToHostName(DNS.getDefaultHost(
+                conf.get("hbase.regionserver.dns.interface", "default"),
+                conf.get("hbase.regionserver.dns.nameserver", "default")));
 
-        HTablePool tablePool = new HTablePool(conf, 10);
+        log.debug("Using hostname " + hostname);
+
+        String zkConnectString = conf.get("hbaseindexer.zookeeper.connectstring");
+        int zkSessionTimeout = conf.getInt("hbaseindexer.zookeeper.session.timeout", 30000);
+        ZooKeeperItf zk = ZkUtil.connect(zkConnectString, zkSessionTimeout);
+
+        HTablePool tablePool = new HTablePool(conf, 10 /* TODO configurable */);
 
         WriteableIndexerModel indexModel = new IndexerModelImpl(zk);
 
         SepModel sepModel = new SepModelImpl(zk, conf);
 
-        IndexerMaster master = new IndexerMaster(zk, indexModel, null, null, conf, "localhost:2181", 30000,
-                sepModel, "localhost");
+        IndexerMaster master = new IndexerMaster(zk, indexModel, null, null, conf, zkConnectString, zkSessionTimeout,
+                sepModel, hostname);
         master.start();
 
         IndexerRegistry indexerRegistry = new IndexerRegistry();
-        IndexerSupervisor supervisor = new IndexerSupervisor(indexModel, zk, "localhost" /* TODO */, indexerRegistry,
+        IndexerSupervisor supervisor = new IndexerSupervisor(indexModel, zk, hostname, indexerRegistry,
                 tablePool, conf);
 
         supervisor.init();
