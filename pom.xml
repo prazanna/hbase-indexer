@@ -22,6 +22,7 @@
     <version.sep>1.0-SNAPSHOT</version.sep>
     <version.solr>4.1.0</version.solr>
     <version.guava>11.0.2</version.guava>
+    <version.slf4j>1.7.2</version.slf4j>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -88,6 +89,21 @@
           <artifactId>slf4j-jdk14</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>${version.slf4j}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+      <version>${version.slf4j}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>${version.slf4j}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.solr</groupId>
@@ -183,6 +199,25 @@
         <version>2.0</version>
       </extension>
     </extensions>
+
+    <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- generates the file that will be used by the bin/hbase-indexer script in the dev env -->
+            <id>create-hbase-indexer-generated-classpath</id>
+            <phase>test</phase>
+            <goals>
+              <goal>build-classpath</goal>
+            </goals>
+            <configuration>
+              <outputFile>${project.build.directory}/target/cached_classpath.txt</outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
 
     <pluginManagement>
       <plugins>
