@@ -64,12 +64,11 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
     }
 
     @Override
-    public SolrInputDocument extractDocument(Result result) {
-        SolrInputDocumentBuilder builder = new SolrInputDocumentBuilder();
+    public void extractDocument(Result result, SolrInputDocument solrInputDocument) {
+        SolrInputDocumentBuilder builder = new SolrInputDocumentBuilder(solrInputDocument);
         for (byte[] bytes : extractor.extract(result)) {
             builder.add(extractInternal(bytes), fieldNamePrefix);
         }
-        return builder.getDocument();
     }
 
     private SolrInputDocument extractInternal(byte[] input) {

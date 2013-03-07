@@ -16,6 +16,7 @@
 package com.ngdata.hbasesearch.parse;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -44,6 +45,23 @@ public class SolrInputDocumentBuilderTest {
         
         assertEquals(Lists.newArrayList("valueA1", "valueA2"), merged.getField("fieldA").getValues());
         assertEquals(Lists.newArrayList("valueB"), merged.getField("fieldB").getValues());
+    }
+    
+    @Test
+    public void testAdd_WithBaseDocument() {
+        SolrInputDocument baseDocument = new SolrInputDocument();
+        baseDocument.addField("baseField", "baseValue");
+        
+        SolrInputDocumentBuilder builder = new SolrInputDocumentBuilder(baseDocument);
+        
+        SolrInputDocument additionalDocument = new SolrInputDocument();
+        additionalDocument.addField("additionalField", "additionalValue");
+        builder.add(additionalDocument);
+        
+        SolrInputDocument merged = builder.getDocument();
+        assertSame(merged, baseDocument);
+        assertEquals(Sets.newHashSet("baseField", "additionalField"), merged.keySet());
+        
     }
     
     @Test

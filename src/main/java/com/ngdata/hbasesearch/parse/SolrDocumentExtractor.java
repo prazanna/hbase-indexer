@@ -27,7 +27,7 @@ public interface SolrDocumentExtractor {
      * Extracts fields and values from an HBase {@code Result} and puts them into a SolrInputDocument.
      * 
      * @param input {@code Result} to be mapped to an indexable form
-     * @return SolrInputDocument containing extracted fields
+     * @param solrInputDocument document where fields are to be added
      */
-    SolrInputDocument extractDocument(Result input);
+    void extractDocument(Result input, SolrInputDocument solrInputDocument);
 }

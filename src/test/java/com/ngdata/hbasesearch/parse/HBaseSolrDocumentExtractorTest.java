@@ -30,14 +30,14 @@ public class HBaseSolrDocumentExtractorTest extends TestCase {
 
     private ByteArrayExtractor valueExtractor;
     private ByteArrayValueMapper valueMapper;
-    private HBaseSolrDocumentExtractor transformer;
+    private HBaseSolrDocumentExtractor documentExtractor;
 
     @Override
     @Before
     public void setUp() {
         valueExtractor = mock(ByteArrayExtractor.class);
         valueMapper = mock(ByteArrayValueMapper.class);
-        transformer = new HBaseSolrDocumentExtractor("fieldName", valueExtractor, valueMapper);
+        documentExtractor = new HBaseSolrDocumentExtractor("fieldName", valueExtractor, valueMapper);
     }
 
     @Test
@@ -51,7 +51,8 @@ public class HBaseSolrDocumentExtractorTest extends TestCase {
         when(valueMapper.map(bytesA)).thenReturn(Lists.<Object> newArrayList("A"));
         when(valueMapper.map(bytesB)).thenReturn(Lists.<Object> newArrayList("B"));
         
-        SolrInputDocument solrDocument = transformer.extractDocument(result);
+        SolrInputDocument solrDocument = new SolrInputDocument();
+        documentExtractor.extractDocument(result, solrDocument);
         
         assertEquals(Sets.newHashSet("fieldName"), solrDocument.keySet());
         assertEquals(Lists.newArrayList("A", "B"), solrDocument.get("fieldName").getValues());

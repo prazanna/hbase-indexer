@@ -26,7 +26,6 @@ import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMappers;
 import com.ngdata.hbasesearch.parse.HBaseSolrDocumentExtractor;
 import com.ngdata.hbasesearch.parse.SolrDocumentExtractor;
-import com.ngdata.hbasesearch.parse.SolrInputDocumentBuilder;
 import com.ngdata.hbasesearch.parse.TikaSolrDocumentExtractor;
 import com.ngdata.hbasesearch.parse.extract.ByteArrayExtractors;
 import org.apache.hadoop.hbase.KeyValue;
@@ -124,11 +123,11 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
 
     @Override
     public SolrInputDocument map(Result result) {
-        SolrInputDocumentBuilder solrDocumentBuilder = new SolrInputDocumentBuilder();
+        SolrInputDocument solrInputDocument = new SolrInputDocument();
         for (SolrDocumentExtractor documentExtractor : resultDocumentExtractors) {
-            solrDocumentBuilder.add(documentExtractor.extractDocument(result));
+            documentExtractor.extractDocument(result, solrInputDocument);
         }
-        return solrDocumentBuilder.getDocument();
+        return solrInputDocument;
     }
 
 }

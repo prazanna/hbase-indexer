@@ -44,13 +44,14 @@ public class TikaSolrDocumentExtractorTest {
 
         SolrDocumentExtractor documentExtractor = TikaSolrDocumentExtractor.createInstance(new SingleCellExtractor(
                 columnFamily, columnQualifier), "prefix_", "text/plain");
-        SolrInputDocument extractedDocument = documentExtractor.extractDocument(result);
+        SolrInputDocument solrInputDocument = new SolrInputDocument();
+        documentExtractor.extractDocument(result, solrInputDocument);
 
         // Make sure that the input text got in here somehow
-        assertTrue(extractedDocument.containsKey("prefix_content"));
-        assertTrue(extractedDocument.get("prefix_content").getValues().toString().contains(applicableValue));
+        assertTrue(solrInputDocument.containsKey("prefix_content"));
+        assertTrue(solrInputDocument.get("prefix_content").getValues().toString().contains(applicableValue));
 
-        assertFalse(extractedDocument.get("prefix_content").getValues().toString().contains(nonApplicableValue));
+        assertFalse(solrInputDocument.get("prefix_content").getValues().toString().contains(nonApplicableValue));
     }
 
 }

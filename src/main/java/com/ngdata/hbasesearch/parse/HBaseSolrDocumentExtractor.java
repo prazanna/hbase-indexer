@@ -41,17 +41,15 @@ public class HBaseSolrDocumentExtractor implements SolrDocumentExtractor {
      * Extracts byte arrays from the given {@code Result}, and transforms them into a {@code SolrInputDocument}.
      * 
      * @param result source of byte array data
-     * @return indexable values
+     * @param solrInputDocument document where indexable data is to be added
      */
     @Override
-    public SolrInputDocument extractDocument(Result result) {
+    public void extractDocument(Result result, SolrInputDocument solrInputDocument) {
         List<Object> values = Lists.newArrayList();
         for (byte[] bytes : valueExtractor.extract(result)) {
             values.addAll(valueMapper.map(bytes));
         }
-        SolrInputDocument solrDocument = new SolrInputDocument();
-        solrDocument.addField(fieldName, values);
-        return solrDocument;
+        solrInputDocument.addField(fieldName, values);
     }
 
 }

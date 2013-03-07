@@ -25,7 +25,25 @@ import org.apache.solr.common.SolrInputField;
  */
 public class SolrInputDocumentBuilder {
 
-    private SolrInputDocument document = new SolrInputDocument();
+    private SolrInputDocument document;
+
+    /**
+     * Instantiate with a blank SolrInputDocument.
+     */
+    public SolrInputDocumentBuilder() {
+        this(new SolrInputDocument());
+    }
+
+    /**
+     * Instantiate with a base document.
+     * <p>
+     * All added documents will be merged into the given base document.
+     * 
+     * @param baseDocument document in which additional documents will be merged
+     */
+    public SolrInputDocumentBuilder(SolrInputDocument baseDocument) {
+        this.document = baseDocument;
+    }
 
     /**
      * Merge a {@code SolrInputDocument} into the master document being built.
