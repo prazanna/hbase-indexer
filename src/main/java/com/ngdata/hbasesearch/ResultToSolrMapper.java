@@ -17,6 +17,9 @@ package com.ngdata.hbasesearch;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableSet;
 
 import com.google.common.collect.Lists;
 import com.ngdata.hbasesearch.conf.DocumentExtractDefinition;
@@ -44,9 +47,9 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
     private List<SolrDocumentExtractor> resultDocumentExtractors;
 
     /**
-     * Get to be used for fetching field required for indexing.
+     * Information to be used for constructing a Get to fetch data required for indexing.
      */
-    private Get get;
+    private Map<byte[], NavigableSet<byte[]>> familyMap;
 
     /**
      * Used to do evaluation on applicability of KeyValues.
@@ -71,7 +74,6 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      */
     public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions,
             List<DocumentExtractDefinition> documentExtractDefinitions) {
-        get = new Get();
         extractors = Lists.newArrayList();
         resultDocumentExtractors = Lists.newArrayList();
         for (FieldDefinition fieldDefinition : fieldDefinitions) {
@@ -91,6 +93,7 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
             extractors.add(byteArrayExtractor);
         }
 
+        Get get = new Get();
         for (ByteArrayExtractor extractor : extractors) {
 
             byte[] columnFamily = extractor.getColumnFamily();
@@ -102,8 +105,8 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
                     get.addFamily(columnFamily);
                 }
             }
-
         }
+        familyMap = get.getFamilyMap();
     }
 
     @Override
@@ -118,6 +121,17 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
 
     @Override
     public Get getGet(byte[] row) {
+        Get get = new Get(row);
+        for (Entry<byte[], NavigableSet<byte[]>> familyMapEntry : familyMap.entrySet()) {
+            byte[] columnFamily = familyMapEntry.getKey();
+            if (familyMapEntry.getValue() == null) {
+                get.addFamily(columnFamily);
+            } else {
+                for (byte[] qualifier : familyMapEntry.getValue()) {
+                    get.addColumn(columnFamily, qualifier);
+                }
+            }
+        }
         return get;
     }
 

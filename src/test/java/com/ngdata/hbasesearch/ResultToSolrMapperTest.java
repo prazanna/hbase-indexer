@@ -15,21 +15,22 @@
  */
 package com.ngdata.hbasesearch;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 import java.util.Collections;
-
-import com.ngdata.hbasesearch.conf.DocumentExtractDefinition;
+import java.util.NavigableSet;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.ngdata.hbasesearch.conf.DocumentExtractDefinition;
 import com.ngdata.hbasesearch.conf.FieldDefinition;
 import com.ngdata.hbasesearch.conf.ValueSource;
 import com.ngdata.hbasesearch.parse.ByteArrayValueMapper;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.common.SolrInputDocument;
@@ -119,6 +120,37 @@ public class ResultToSolrMapperTest {
         assertTrue(resultMapper.isRelevantKV(relevantKV));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongFamily));
         assertFalse(resultMapper.isRelevantKV(notRelevantKV_WrongQualifier));
+    }
+    
+    @Test
+    public void testGetGet_SingleCellFieldDefinition() {
+        FieldDefinition fieldDef = new FieldDefinition("fieldname", "cf:qualifier", ValueSource.VALUE, "int");
+        
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef));
+        Get get = resultMapper.getGet(ROW);
+        
+        assertArrayEquals(ROW, get.getRow());
+        assertEquals(1, get.getFamilyMap().size());
+        
+        assertTrue(get.getFamilyMap().containsKey(Bytes.toBytes("cf")));
+        NavigableSet<byte[]> qualifiers = get.getFamilyMap().get(Bytes.toBytes("cf"));
+        assertEquals(1, qualifiers.size());
+        assertTrue(qualifiers.contains(Bytes.toBytes("qualifier")));
+    }
+    
+    @Test
+    public void testGetGet_WildcardFieldDefinition() {
+        FieldDefinition fieldDef = new FieldDefinition("fieldname", "cf:qual*", ValueSource.VALUE, "int");
+        
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef));
+        Get get = resultMapper.getGet(ROW);
+        
+        assertArrayEquals(ROW, get.getRow());
+        assertEquals(1, get.getFamilyMap().size());
+        
+        assertTrue(get.getFamilyMap().containsKey(Bytes.toBytes("cf")));
+        NavigableSet<byte[]> qualifiers = get.getFamilyMap().get(Bytes.toBytes("cf"));
+        assertNull(qualifiers);
     }
 
     public static class DummyValueMapper implements ByteArrayValueMapper {
