@@ -16,6 +16,7 @@
 package com.ngdata.hbasesearch;
 
 import com.ngdata.hbasesearch.master.IndexerMaster;
+import com.ngdata.hbasesearch.model.api.IndexDefinition;
 import com.ngdata.hbasesearch.model.api.WriteableIndexerModel;
 import com.ngdata.hbasesearch.model.impl.IndexerModelImpl;
 import com.ngdata.hbasesearch.supervisor.IndexerRegistry;
@@ -55,9 +56,10 @@ public class Main {
 
         supervisor.init();
 
-//        IndexDefinition definition = indexModel.newIndex("index1");
-//        definition.setConfiguration("<index table='table1'/>".getBytes());
-//        indexModel.addIndex(definition);
+      
+        IndexDefinition definition = indexModel.newIndex("index6");
+        definition.setConfiguration("<index table='sep-user-demo'><field name='features' value='info:*' source='value' type='string'/></index>".getBytes());
+        indexModel.addIndex(definition);
 
         while (true) {
             Thread.sleep(Long.MAX_VALUE);
