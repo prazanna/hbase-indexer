@@ -24,6 +24,8 @@ import com.google.common.collect.Lists;
 import com.ngdata.hbasesearch.conf.IndexConf;
 import com.ngdata.sep.EventListener;
 import com.ngdata.sep.SepEvent;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -39,6 +41,9 @@ import org.apache.solr.common.SolrInputDocument;
  * and eventually calls Solr.
  */
 public class Indexer implements EventListener {
+    
+    private Log log = LogFactory.getLog(getClass());
+    
     private IndexConf conf;
     private SolrServer solr;
     private HTablePool tablePool;
@@ -111,14 +116,18 @@ public class Indexer implements EventListener {
         if (rowDeleted) {
             // Delete row from Solr as well
             solr.deleteById(uniqueKeyFormatter.format(event.getRow()));
-            System.out.println("Row " + Bytes.toString(event.getRow()) + ": deleted from Solr");
+            if (log.isDebugEnabled()) {
+                log.debug("Row " + Bytes.toString(event.getRow()) + ": deleted from Solr");
+            }
         } else {
             SolrInputDocument document = mapper.map(result);
             document.addField(conf.getUniqueKeyField(), uniqueKeyFormatter.format(event.getRow()));
             // TODO there should probably some way for the mapper to indicate there was no useful content to map,
             // e.g. if there are no fields in the solr document (and should we then perform a delete instead?)
             solr.add(document);
-            System.out.println("Row " + Bytes.toString(event.getRow()) + ": added to Solr");
+            if (log.isDebugEnabled()) {
+                log.debug("Row " + Bytes.toString(event.getRow()) + ": added to Solr");
+            }
         }
     }
 
