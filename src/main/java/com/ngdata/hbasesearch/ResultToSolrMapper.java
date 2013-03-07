@@ -15,6 +15,7 @@
  */
 package com.ngdata.hbasesearch;
 
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -52,11 +53,22 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      * Used to do evaluation on applicability of KeyValues.
      */
     private List<ByteArrayExtractor> extractors;
+    
+    
+    /**
+     * Instantiate with {@code FieldDefinition}s.
+     * 
+     * @param fieldDefinitions
+     */
+    public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions) {
+        this(fieldDefinitions, Collections.<DocumentExtractDefinition>emptyList());
+    }
 
     /**
-     * Instantiate based on a collection of {@link FieldDefinition}s.
+     * Instantiate with {@code FieldDefinitions}s and {@code DocumentExtractDefinition}s.
      * 
      * @param fieldDefinitions define fields to be indexed
+     * @param documentExtractDefinitions additional document extraction definitions
      */
     public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions,
             List<DocumentExtractDefinition> documentExtractDefinitions) {

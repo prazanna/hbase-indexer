@@ -16,7 +16,6 @@
 package com.ngdata.hbasesearch;
 
 import com.ngdata.hbasesearch.master.IndexerMaster;
-import com.ngdata.hbasesearch.model.api.IndexDefinition;
 import com.ngdata.hbasesearch.model.api.WriteableIndexerModel;
 import com.ngdata.hbasesearch.model.impl.IndexerModelImpl;
 import com.ngdata.hbasesearch.supervisor.IndexerRegistry;
