@@ -160,7 +160,7 @@ public class IndexerSupervisor {
                 try {
                     handle.stop();
                 } catch (Throwable t2) {
-                    if (t instanceof InterruptedException) {
+                    if (t2 instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
                     }
                     log.error("Problem stopping listeners for failed-to-start index updater for index '" +
