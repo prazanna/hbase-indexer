@@ -20,10 +20,10 @@ import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
 import com.ngdata.hbaseindexer.model.impl.IndexerModelImpl;
 import com.ngdata.hbaseindexer.supervisor.IndexerRegistry;
 import com.ngdata.hbaseindexer.supervisor.IndexerSupervisor;
+import com.ngdata.hbaseindexer.util.zookeeper.StateWatchingZooKeeper;
 import com.ngdata.sep.SepModel;
 import com.ngdata.sep.impl.SepModelImpl;
-import com.ngdata.sep.util.zookeeper.ZkUtil;
-import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import com.ngdata.sep.util.io.Closer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -33,12 +33,24 @@ import org.apache.hadoop.net.DNS;
 
 public class Main {
     private Log log = LogFactory.getLog(getClass());
+    private HTablePool tablePool;
+    private WriteableIndexerModel indexerModel;
+    private SepModel sepModel;
+    private IndexerMaster indexerMaster;
+    private IndexerSupervisor indexerSupervisor;
+    private StateWatchingZooKeeper zk;
 
     public static void main(String[] args) throws Exception {
         new Main().run(args);
     }
 
     public void run(String[] args) throws Exception {
+        startServices();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
+    }
+
+    void startServices() throws Exception {
         // The same configuration object is used for both hbase-indexer as for hbase client access
         Configuration conf = HBaseIndexerConfiguration.create();
         conf.setBoolean("hbase.replication", true);
@@ -51,28 +63,44 @@ public class Main {
 
         String zkConnectString = conf.get(ConfKeys.ZK_CONNECT_STRING);
         int zkSessionTimeout = conf.getInt(ConfKeys.ZK_SESSION_TIMEOUT, 30000);
-        ZooKeeperItf zk = ZkUtil.connect(zkConnectString, zkSessionTimeout);
+        zk = new StateWatchingZooKeeper(zkConnectString, zkSessionTimeout);
 
-        HTablePool tablePool = new HTablePool(conf, 10 /* TODO configurable */);
+        tablePool = new HTablePool(conf, 10 /* TODO configurable */);
 
         String zkRoot = conf.get(ConfKeys.ZK_ROOT_NODE);
 
-        WriteableIndexerModel indexModel = new IndexerModelImpl(zk, zkRoot);
+        indexerModel = new IndexerModelImpl(zk, zkRoot);
 
-        SepModel sepModel = new SepModelImpl(zk, conf);
+        sepModel = new SepModelImpl(zk, conf);
 
-        IndexerMaster master = new IndexerMaster(zk, indexModel, null, null, conf, zkConnectString, zkSessionTimeout,
+        indexerMaster = new IndexerMaster(zk, indexerModel, null, null, conf, zkConnectString, zkSessionTimeout,
                 sepModel, hostname);
-        master.start();
+        indexerMaster.start();
 
         IndexerRegistry indexerRegistry = new IndexerRegistry();
-        IndexerSupervisor supervisor = new IndexerSupervisor(indexModel, zk, hostname, indexerRegistry,
+        indexerSupervisor = new IndexerSupervisor(indexerModel, zk, hostname, indexerRegistry,
                 tablePool, conf);
 
-        supervisor.init();
-      
-        while (true) {
-            Thread.sleep(Long.MAX_VALUE);
+        indexerSupervisor.init();
+    }
+
+    void stopServices() {
+        log.debug("Stopping indexer supervisor");
+        Closer.close(indexerSupervisor);
+        log.debug("Stopping indexer master");
+        Closer.close(indexerMaster);
+        log.debug("Stopping indexer model");
+        Closer.close(indexerModel);
+        log.debug("Stopping HBase table pool");
+        Closer.close(tablePool);
+        log.debug("Stopping ZooKeeper connection");
+        Closer.close(zk);
+    }
+
+    public class ShutdownHandler implements  Runnable {
+        @Override
+        public void run() {
+            stopServices();
         }
     }
 }
