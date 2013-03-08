@@ -2,5 +2,7 @@
 <index table="table1">
 
   <field name="field1" value="col:qual1"/>
+  
+  <extract value="col:qual2"/>
 
 </index>

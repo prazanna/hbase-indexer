@@ -15,14 +15,15 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
-import com.ngdata.hbaseindexer.HexUniqueKeyFormatter;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.Lists;
+import com.ngdata.hbaseindexer.HexUniqueKeyFormatter;
+import org.junit.Test;
 
 public class XmlIndexConfReaderTest {
     @Test
@@ -50,13 +51,15 @@ public class XmlIndexConfReaderTest {
         assertEquals(HexUniqueKeyFormatter.class, conf.getUniqueKeyFormatterClass());
 
         List<FieldDefinition> fieldDefs = conf.getFieldDefinitions();
-        assertEquals(2, fieldDefs.size());
-        assertEquals("field1", fieldDefs.get(0).getName());
-        assertEquals("col:qual1", fieldDefs.get(0).getValueExpression());
-        assertEquals(ValueSource.QUALIFIER, fieldDefs.get(0).getValueSource());
-        assertEquals("float", fieldDefs.get(0).getTypeName());
-
-        assertEquals(ValueSource.VALUE, fieldDefs.get(1).getValueSource());
+        List<FieldDefinition> expectedFieldDefs = Lists.newArrayList(
+                new FieldDefinition("field1", "col:qual1", ValueSource.QUALIFIER, "float"),
+                new FieldDefinition("field2", "col:qual2", ValueSource.VALUE, "long"));
+        assertEquals(expectedFieldDefs, fieldDefs);
+        
+        List<DocumentExtractDefinition> extractDefs = conf.getDocumentExtractDefinitions();
+        List<DocumentExtractDefinition> expectedExtractDefs = Lists.newArrayList(
+                new DocumentExtractDefinition("testprefix_", "col:qual3", ValueSource.QUALIFIER, "text/html"));
+        assertEquals(expectedExtractDefs, extractDefs);
     }
 
     @Test
@@ -70,10 +73,13 @@ public class XmlIndexConfReaderTest {
         assertEquals(IndexConf.DEFAULT_UNIQUE_KEY_FORMATTER, conf.getUniqueKeyFormatterClass());
 
         List<FieldDefinition> fieldDefs = conf.getFieldDefinitions();
-        assertEquals(1, fieldDefs.size());
-        assertEquals("field1", fieldDefs.get(0).getName());
-        assertEquals("col:qual1", fieldDefs.get(0).getValueExpression());
-        assertEquals(FieldDefinition.DEFAULT_VALUE_SOURCE, fieldDefs.get(0).getValueSource());
-        assertEquals(FieldDefinition.DEFAULT_TYPE_NAME, fieldDefs.get(0).getTypeName());
+        List<FieldDefinition> expectedFieldDefs = Lists.newArrayList(
+                new FieldDefinition("field1", "col:qual1", IndexConf.DEFAULT_VALUE_SOURCE, IndexConf.DEFAULT_FIELD_TYPE));
+        assertEquals(expectedFieldDefs, fieldDefs);
+
+        List<DocumentExtractDefinition> extractDefs = conf.getDocumentExtractDefinitions();
+        List<DocumentExtractDefinition> expectedExtractDefs = Lists.newArrayList(
+                new DocumentExtractDefinition(null, "col:qual2", ValueSource.VALUE, "application/octet-stream"));
+        assertEquals(expectedExtractDefs, extractDefs);
     }
 }

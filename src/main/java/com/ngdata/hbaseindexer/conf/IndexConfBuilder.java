@@ -32,6 +32,7 @@ public class IndexConfBuilder {
     private IndexConf.RowReadMode rowReadMode = IndexConf.RowReadMode.ALWAYS;
     private IndexConf.MappingType mappingType = IndexConf.MappingType.ROW;
     private List<FieldDefinition> fieldDefinitions = Lists.newArrayList();
+    private List<DocumentExtractDefinition> documentExtractDefinitions = Lists.newArrayList();
 
     public IndexConfBuilder table(String table) {
         this.table = table;
@@ -60,7 +61,17 @@ public class IndexConfBuilder {
 
     public IndexConfBuilder addFieldDefinition(String name, String valueExpression,
             ValueSource valueSource, String typeName) {
-        fieldDefinitions.add(new FieldDefinition(name, valueExpression, valueSource, typeName));
+        fieldDefinitions.add(new FieldDefinition(name, valueExpression,
+                valueSource == null ? IndexConf.DEFAULT_VALUE_SOURCE : valueSource,
+                typeName == null ? IndexConf.DEFAULT_FIELD_TYPE : typeName));
+        return this;
+    }
+    
+    public IndexConfBuilder addDocumentExtractDefinition(String prefix, String valueExpression,
+            ValueSource valueSource, String type) {
+        documentExtractDefinitions.add(new DocumentExtractDefinition(prefix, valueExpression,
+                valueSource == null ? IndexConf.DEFAULT_VALUE_SOURCE : valueSource,
+                type == null ? IndexConf.DEFAULT_EXTRACT_TYPE : type));
         return this;
     }
 
@@ -73,6 +84,7 @@ public class IndexConfBuilder {
         conf.setUniqueKeyFormatterClass(uniqueKeyFormatterClass != null ?
                 uniqueKeyFormatterClass : IndexConf.DEFAULT_UNIQUE_KEY_FORMATTER);
         conf.setFieldDefinitions(fieldDefinitions);
+        conf.setDocumentExtractDefinitions(documentExtractDefinitions);
         return conf;
     }
 }

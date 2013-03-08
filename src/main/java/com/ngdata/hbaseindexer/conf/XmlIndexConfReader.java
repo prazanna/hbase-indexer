@@ -77,6 +77,16 @@ public class XmlIndexConfReader {
 
             builder.addFieldDefinition(name, value, source, type);
         }
+        
+        List<Element> extractEls = evalXPathAsElementList("extract", indexEl);
+        for (Element extractEl : extractEls) {
+            String prefix = getAttribute(extractEl, "prefix", false);
+            String value = getAttribute(extractEl, "value", true);
+            ValueSource source = getEnumAttribute(ValueSource.class, extractEl, "source", null);
+            String type = getAttribute(extractEl, "type", false);
+            
+            builder.addDocumentExtractDefinition(prefix, value, source, type);
+        }
 
         return builder.create();
     }

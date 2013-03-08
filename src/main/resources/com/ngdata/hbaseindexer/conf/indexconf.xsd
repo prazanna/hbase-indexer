@@ -5,6 +5,7 @@
       <xs:sequence>
         <xs:choice maxOccurs="unbounded">
           <xs:element minOccurs="0" ref="field"/>
+          <xs:element minOccurs="0" ref="extract"/>
           <xs:element minOccurs="0" ref="param"/>
         </xs:choice>
       </xs:sequence>
@@ -34,7 +35,15 @@
     <xs:complexType>
       <xs:attribute name="name" type="xs:string"/>
       <xs:attribute name="value" type="xs:string"/>
-      <xs:attribute name="source" type="xs:string"/>
+      <xs:attribute name="source" type="xs:string" use="optional"/>
+      <xs:attribute name="type" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="extract">
+    <xs:complexType>
+      <xs:attribute name="prefix" type="xs:string" use="optional"/>
+      <xs:attribute name="value" type="xs:string"/>
+      <xs:attribute name="source" type="xs:string" use="optional"/>
       <xs:attribute name="type" type="xs:string"/>
     </xs:complexType>
   </xs:element>

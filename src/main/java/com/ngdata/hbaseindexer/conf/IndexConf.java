@@ -36,6 +36,7 @@ public class IndexConf {
     private String uniqueKeyField;
     private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
     private List<FieldDefinition> fieldDefinitions;
+    private List<DocumentExtractDefinition> extractDefinitions;
 
     public enum MappingType { ROW, COLUMN }
     public enum RowReadMode { ALWAYS, NEVER }
@@ -44,6 +45,9 @@ public class IndexConf {
     public static final RowReadMode DEFAULT_ROW_READ_MODE = RowReadMode.ALWAYS;
     public static final String DEFAULT_UNIQUE_KEY_FIELD = "id";
     public static final Class<? extends UniqueKeyFormatter> DEFAULT_UNIQUE_KEY_FORMATTER = StringUniqueKeyFormatter.class;
+    public static final ValueSource DEFAULT_VALUE_SOURCE = ValueSource.VALUE;
+    public static final String DEFAULT_FIELD_TYPE = "string";
+    public static final String DEFAULT_EXTRACT_TYPE = "application/octet-stream";
 
     IndexConf(String table) {
         this.table = table;
@@ -72,6 +76,10 @@ public class IndexConf {
     public List<FieldDefinition> getFieldDefinitions() {
         return fieldDefinitions;
     }
+    
+    public List<DocumentExtractDefinition> getDocumentExtractDefinitions() {
+        return extractDefinitions;
+    }
 
     void setMappingType(MappingType mappingType) {
         this.mappingType = mappingType;
@@ -88,8 +96,14 @@ public class IndexConf {
     void setFieldDefinitions(List<FieldDefinition> fieldDefinitions) {
         this.fieldDefinitions = Collections.unmodifiableList(fieldDefinitions);
     }
+    
+    void setDocumentExtractDefinitions(List<DocumentExtractDefinition> extractDefinitions) {
+        this.extractDefinitions = Collections.unmodifiableList(extractDefinitions);
+    }
 
     void setUniqueKeyFormatterClass(Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass) {
         this.uniqueKeyFormatterClass = uniqueKeyFormatterClass;
     }
+
+   
 }

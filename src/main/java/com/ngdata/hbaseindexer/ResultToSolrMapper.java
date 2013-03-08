@@ -56,16 +56,6 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      */
     private List<ByteArrayExtractor> extractors;
     
-    
-    /**
-     * Instantiate with {@code FieldDefinition}s.
-     * 
-     * @param fieldDefinitions
-     */
-    public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions) {
-        this(fieldDefinitions, Collections.<DocumentExtractDefinition>emptyList());
-    }
-
     /**
      * Instantiate with {@code FieldDefinitions}s and {@code DocumentExtractDefinition}s.
      * 

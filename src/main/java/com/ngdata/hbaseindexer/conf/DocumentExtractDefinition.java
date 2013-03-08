@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 package com.ngdata.hbaseindexer.conf;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 
 /**
  * Represents a document extractor that functions on the content of one or more cells in an HBase {@code Result}.
@@ -25,7 +31,10 @@ public class DocumentExtractDefinition {
     private String valueExpression;
     private String mimeType;
 
-    public DocumentExtractDefinition(String prefix, ValueSource valueSource, String valueExpression, String mimeType) {
+    public DocumentExtractDefinition(String prefix, String valueExpression, ValueSource valueSource, String mimeType) {
+        checkNotNull(valueExpression, "valueExpression");
+        checkNotNull(valueSource, "valueSource");
+        checkNotNull(mimeType, "mimeType");
         this.prefix = prefix == null ? "" : prefix;
         this.valueSource = valueSource;
         this.valueExpression = valueExpression;
@@ -61,6 +70,21 @@ public class DocumentExtractDefinition {
      */
     public String getMimeType() {
         return mimeType;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        return EqualsBuilder.reflectionEquals(this, obj);
+    }
+    
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
+    
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
 
 }

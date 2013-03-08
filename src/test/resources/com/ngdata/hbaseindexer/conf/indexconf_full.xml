@@ -8,6 +8,10 @@
     >
 
   <field name="field1" value="col:qual1" source="qualifier" type="float"/>
+  
   <field name="field2" value="col:qual2" source="value" type="long"/>
+  
+  <extract prefix="testprefix_" value="col:qual3" source="qualifier" type="text/html"/>
+  
 
 </index>

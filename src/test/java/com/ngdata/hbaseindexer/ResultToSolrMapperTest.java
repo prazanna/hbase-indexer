@@ -15,8 +15,10 @@
  */
 package com.ngdata.hbaseindexer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -70,8 +72,8 @@ public class ResultToSolrMapperTest {
 
     @Test
     public void testMap_WithExtractDefinitions() {
-        DocumentExtractDefinition extractDefinition = new DocumentExtractDefinition("testprefix_", ValueSource.VALUE,
-                "cfA:qualifierA", "text/plain");
+        DocumentExtractDefinition extractDefinition = new DocumentExtractDefinition("testprefix_", "cfA:qualifierA",
+                ValueSource.VALUE, "text/plain");
         ResultToSolrMapper resultMapper = new ResultToSolrMapper(Collections.<FieldDefinition> emptyList(),
                 Lists.newArrayList(extractDefinition));
 
@@ -126,7 +128,8 @@ public class ResultToSolrMapperTest {
     public void testGetGet_SingleCellFieldDefinition() {
         FieldDefinition fieldDef = new FieldDefinition("fieldname", "cf:qualifier", ValueSource.VALUE, "int");
         
-        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef));
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef),
+                        Collections.<DocumentExtractDefinition>emptyList());
         Get get = resultMapper.getGet(ROW);
         
         assertArrayEquals(ROW, get.getRow());
@@ -142,7 +145,8 @@ public class ResultToSolrMapperTest {
     public void testGetGet_WildcardFieldDefinition() {
         FieldDefinition fieldDef = new FieldDefinition("fieldname", "cf:qual*", ValueSource.VALUE, "int");
         
-        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef));
+        ResultToSolrMapper resultMapper = new ResultToSolrMapper(Lists.newArrayList(fieldDef),
+                        Collections.<DocumentExtractDefinition>emptyList());
         Get get = resultMapper.getGet(ROW);
         
         assertArrayEquals(ROW, get.getRow());

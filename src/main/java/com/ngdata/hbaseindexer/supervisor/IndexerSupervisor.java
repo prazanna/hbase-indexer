@@ -135,7 +135,8 @@ public class IndexerSupervisor {
             HttpSolrServer solr = new HttpSolrServer("http://localhost:8983/solr", httpClient);
 
             // create and register the indexer
-            HBaseToSolrMapper mapper = new ResultToSolrMapper(indexConf.getFieldDefinitions());
+            HBaseToSolrMapper mapper = new ResultToSolrMapper(
+                    indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions());
             Indexer indexer = new Indexer(indexConf, mapper, htablePool, solr);
             indexerRegistry.register(index.getName(), indexer);
 

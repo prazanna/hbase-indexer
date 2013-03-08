@@ -15,9 +15,13 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
-import com.ngdata.hbaseindexer.parse.ByteArrayValueMapper;
-
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.ngdata.hbaseindexer.parse.ByteArrayValueMapper;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 
 /**
  * Defines a single field in an index definition;
@@ -32,17 +36,15 @@ public class FieldDefinition {
 
     private final String typeName;
 
-    public static final ValueSource DEFAULT_VALUE_SOURCE = ValueSource.VALUE;
-
-    public static final String DEFAULT_TYPE_NAME = "string";
-
     public FieldDefinition(String name, String valueExpression, ValueSource valueSource, String typeName) {
         checkNotNull(name, "name");
         checkNotNull(name, "valueExpression");
+        checkNotNull(valueSource);
+        checkNotNull(typeName);
         this.name = name;
         this.valueExpression = valueExpression;
-        this.valueSource = valueSource != null ? valueSource : DEFAULT_VALUE_SOURCE;
-        this.typeName = typeName != null ? typeName : DEFAULT_TYPE_NAME;
+        this.valueSource = valueSource;
+        this.typeName = typeName;
     }
 
     /**
@@ -77,5 +79,21 @@ public class FieldDefinition {
     public String getTypeName() {
         return typeName;
     }
+    
+    @Override
+    public boolean equals(Object obj) {
+        return EqualsBuilder.reflectionEquals(this, obj);
+    }
+    
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
+    
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+    }
+    
 
 }
