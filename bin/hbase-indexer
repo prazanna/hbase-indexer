@@ -70,7 +70,7 @@ if [ $# = 0 ]; then
   echo "where <command> an option from one of these categories:"
   echo ""
   echo "TOOLS"
-  echo "  todo!"
+  echo "  add-index"
   echo ""
   echo "PROCESS MANAGEMENT"
   echo "  server           run the HBase Indexer server node"
@@ -254,7 +254,7 @@ fi
 if [ "$COMMAND" = "server" ] ; then
   CLASS='com.ngdata.hbaseindexer.Main'
 elif [ "$COMMAND" = "add-index" ] ; then
-  CLASS='com.ngdata.hbaseindexer.cli.AddIndex'
+  CLASS='com.ngdata.hbaseindexer.cli.AddIndexCli'
 elif [ "$COMMAND" = "classpath" ] ; then
   echo $CLASSPATH
   exit 0

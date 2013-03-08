@@ -25,13 +25,11 @@
     <name>hbaseindexer.zookeeper.session.timeout</name>
     <value>30000</value>
   </property>
-  <!-- TODO it might be a good idea to have something like this - should also propagate to sep
   <property>
     <name>hbaseindexer.zookeeper.znode.parent</name>
     <value>/hbaseindexer</value>
     <description>Root ZNode for HBase Indexer in ZooKeeper.</description>
   </property>
-  -->
 
   <property>
     <name>hbaseindexer.defaults.for.version</name>

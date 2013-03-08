@@ -70,10 +70,6 @@ public class Main {
 
         supervisor.init();
       
-//        IndexDefinition definition = indexModel.newIndex("index6");
-//        definition.setConfiguration("<index table='sep-user-demo'><field name='features' value='info:*' source='value' type='string'/></index>".getBytes());
-//        indexModel.addIndex(definition);
-
         while (true) {
             Thread.sleep(Long.MAX_VALUE);
         }
