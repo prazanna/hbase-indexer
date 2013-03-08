@@ -16,6 +16,7 @@
 package com.ngdata.hbaseindexer.cli;
 
 import com.google.common.collect.Lists;
+import com.ngdata.hbaseindexer.ConfKeys;
 import com.ngdata.hbaseindexer.HBaseIndexerConfiguration;
 import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
 import com.ngdata.hbaseindexer.model.impl.IndexerModelImpl;
@@ -76,7 +77,7 @@ public abstract class BaseIndexCli extends BaseCli {
 
         connectWithZooKeeper();
 
-        model = new IndexerModelImpl(zk);
+        model = new IndexerModelImpl(zk, conf.get(ConfKeys.ZK_ROOT_NODE));
     }
 
     @Override

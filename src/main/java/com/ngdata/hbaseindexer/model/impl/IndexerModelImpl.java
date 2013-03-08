@@ -123,16 +123,21 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private static final String INDEX_COLLECTION_PATH = "/lily/indexer/index";
+    private final String indexCollectionPath;
 
-    private static final String INDEX_TRASH_PATH = "/lily/indexer/index-trash";
+    private final String indexTrashPath;
 
-    private static final String INDEX_COLLECTION_PATH_SLASH = INDEX_COLLECTION_PATH + "/";
+    private final String indexCollectionPathSlash;
 
-    public IndexerModelImpl(ZooKeeperItf zk) throws InterruptedException, KeeperException {
+    public IndexerModelImpl(ZooKeeperItf zk, String zkRoot) throws InterruptedException, KeeperException {
         this.zk = zk;
-        ZkUtil.createPath(zk, INDEX_COLLECTION_PATH);
-        ZkUtil.createPath(zk, INDEX_TRASH_PATH);
+
+        this.indexCollectionPath = zkRoot + "/index";
+        this.indexCollectionPathSlash = indexCollectionPath + "/";
+        this.indexTrashPath = zkRoot + "index-trash";
+
+        ZkUtil.createPath(zk, indexCollectionPath);
+        ZkUtil.createPath(zk, indexTrashPath);
 
         zk.addDefaultWatcher(connectStateWatcher);
 
@@ -159,7 +164,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
         if (index.getUpdateState() != IndexUpdateState.DO_NOT_SUBSCRIBE) {
             index.setSubscriptionTimestamp(System.currentTimeMillis());
         }
-        final String indexPath = INDEX_COLLECTION_PATH + "/" + index.getName();
+        final String indexPath = indexCollectionPath + "/" + index.getName();
         final byte[] data = IndexDefinitionConverter.INSTANCE.toJsonBytes(index);
 
         try {
@@ -283,7 +288,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             zk.retryOperation(new ZooKeeperOperation<Stat>() {
                 @Override
                 public Stat execute() throws KeeperException, InterruptedException {
-                    return zk.setData(INDEX_COLLECTION_PATH_SLASH + index.getName(), newData, index.getZkDataVersion());
+                    return zk.setData(indexCollectionPathSlash + index.getName(), newData, index.getZkDataVersion());
                 }
             });
         } catch (KeeperException.NoNodeException e) {
@@ -337,7 +342,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
     @Override
     public void deleteIndex(final String indexName) throws IndexModelException {
-        final String indexPath = INDEX_COLLECTION_PATH_SLASH + indexName;
+        final String indexPath = indexCollectionPathSlash + indexName;
         final String indexLockPath = indexPath + "/lock";
 
         try {
@@ -347,7 +352,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 public Object execute() throws KeeperException, InterruptedException {
                     byte[] data = zk.getData(indexPath, false, null);
 
-                    String trashPath = INDEX_TRASH_PATH + "/" + indexName;
+                    String trashPath = indexTrashPath + "/" + indexName;
 
                     // An index with the same name might have existed before and hence already exist
                     // in the index trash, handle this by appending a sequence number until a unique
@@ -436,7 +441,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             }
         }
 
-        final String lockPath = INDEX_COLLECTION_PATH_SLASH + indexName + "/lock";
+        final String lockPath = indexCollectionPathSlash + indexName + "/lock";
 
         //
         // Create the lock path if necessary
@@ -469,7 +474,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
         //
         // Take the actual lock
         //
-        return ZkLock.lock(zk, INDEX_COLLECTION_PATH_SLASH + indexName + "/lock");
+        return ZkLock.lock(zk, indexCollectionPathSlash + indexName + "/lock");
 
     }
 
@@ -524,7 +529,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
     private IndexDefinitionImpl loadIndex(String indexName, boolean forCache)
             throws InterruptedException, KeeperException, IndexNotFoundException {
-        final String childPath = INDEX_COLLECTION_PATH + "/" + indexName;
+        final String childPath = indexCollectionPath + "/" + indexName;
         final Stat stat = new Stat();
 
         byte[] data;
@@ -578,10 +583,10 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             }
 
             try {
-                if (NodeChildrenChanged.equals(event.getType()) && event.getPath().equals(INDEX_COLLECTION_PATH)) {
+                if (NodeChildrenChanged.equals(event.getType()) && event.getPath().equals(indexCollectionPath)) {
                     indexCacheRefresher.triggerRefreshAllIndexes();
-                } else if (NodeDataChanged.equals(event.getType()) && event.getPath().startsWith(INDEX_COLLECTION_PATH_SLASH)) {
-                    String indexName = event.getPath().substring(INDEX_COLLECTION_PATH_SLASH.length());
+                } else if (NodeDataChanged.equals(event.getType()) && event.getPath().startsWith(indexCollectionPathSlash)) {
+                    String indexName = event.getPath().substring(indexCollectionPathSlash.length());
                     indexCacheRefresher.triggerIndexToRefresh(indexName);
                 }
             } catch (Throwable t) {
@@ -727,7 +732,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
         }
 
         private void refreshIndexes(List<IndexerModelEvent> events) throws InterruptedException, KeeperException {
-            List<String> indexNames = zk.getChildren(INDEX_COLLECTION_PATH, watcher);
+            List<String> indexNames = zk.getChildren(indexCollectionPath, watcher);
 
             Set<String> indexNameSet = new HashSet<String>();
             indexNameSet.addAll(indexNames);

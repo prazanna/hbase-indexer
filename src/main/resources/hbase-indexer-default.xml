@@ -27,7 +27,7 @@
   </property>
   <property>
     <name>hbaseindexer.zookeeper.znode.parent</name>
-    <value>/hbaseindexer</value>
+    <value>/ngdata/hbaseindexer</value>
     <description>Root ZNode for HBase Indexer in ZooKeeper.</description>
   </property>
 

@@ -27,7 +27,6 @@ import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.util.Strings;
 import org.apache.hadoop.net.DNS;
@@ -50,13 +49,15 @@ public class Main {
 
         log.debug("Using hostname " + hostname);
 
-        String zkConnectString = conf.get("hbaseindexer.zookeeper.connectstring");
-        int zkSessionTimeout = conf.getInt("hbaseindexer.zookeeper.session.timeout", 30000);
+        String zkConnectString = conf.get(ConfKeys.ZK_CONNECT_STRING);
+        int zkSessionTimeout = conf.getInt(ConfKeys.ZK_SESSION_TIMEOUT, 30000);
         ZooKeeperItf zk = ZkUtil.connect(zkConnectString, zkSessionTimeout);
 
         HTablePool tablePool = new HTablePool(conf, 10 /* TODO configurable */);
 
-        WriteableIndexerModel indexModel = new IndexerModelImpl(zk);
+        String zkRoot = conf.get(ConfKeys.ZK_ROOT_NODE);
+
+        WriteableIndexerModel indexModel = new IndexerModelImpl(zk, zkRoot);
 
         SepModel sepModel = new SepModelImpl(zk, conf);
 
