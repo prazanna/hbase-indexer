@@ -16,18 +16,47 @@
 package com.ngdata.hbaseindexer;
 
 import com.ngdata.hbaseindexer.conf.IndexConf;
+import org.apache.hadoop.hbase.KeyValue;
 
 /**
- *
+ * Format row keys or {@code KeyValue}s into a human-readable form. The reverse
+ * encoding is also provided.
  */
 public interface UniqueKeyFormatter {
     /**
+     * Format a row key into a human-readable form.
+     * <p>
      * Called in case of row-based mapping, {@link IndexConf.MappingType#ROW}.
+     * 
+     * @param row row key to be formatted
      */
-    String format(byte[] row);
+    String formatRow(byte[] row);
 
     /**
+     * Format a {@code KeyValue} into a human-readable form. Only the row, column family, and qualifier
+     * of the {@code KeyValue} will be encoded.
+     * <p>
      * Called in case of column-based mapping, {@link IndexConf.MappingType#COLUMN}.
+     * 
+     * @param keyValue value to be formatted
      */
-    String format(byte[] row, byte[] family, byte[] qualifier);
+    String formatKeyValue(KeyValue keyValue);
+    
+    /**
+     * Perform the reverse formatting of a row key.
+     * 
+     * @param keyString the formatted row key
+     * @return the unformatted row key
+     */
+    byte[] unformatRow(String keyString);
+    
+    /**
+     * Perform the reverse formatting of a {@code KeyValue}.
+     * <p>
+     * The returned KeyValue will only have the row key, column family, and column qualifier filled in.
+     * 
+     * @param keyValueString the formatted {@code KeyValue}
+     * @return the unformatted {@code KeyValue}
+     */
+    KeyValue unformatKeyValue(String keyValueString);
 }

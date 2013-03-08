@@ -15,24 +15,30 @@
  */
 package com.ngdata.hbaseindexer;
 
+import static org.junit.Assert.assertEquals;
+
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+public class StringUniqueKeyFormatterTest extends BaseUniqueKeyFormatterTest {
 
-public class UniqueKeyFormatterTest {
-    @Test
-    public void testStringFormatter() {
-        UniqueKeyFormatter formatter = new StringUniqueKeyFormatter();
-        assertEquals("row", formatter.format(Bytes.toBytes("row")));
-        assertEquals("row-column-qualifier", formatter.format(Bytes.toBytes("row"), Bytes.toBytes("column"),
-                Bytes.toBytes("qualifier")));
+    @Override
+    protected UniqueKeyFormatter createFormatter() {
+        return new StringUniqueKeyFormatter();
     }
 
     @Test
-    public void testHexFormatter() {
-        UniqueKeyFormatter formatter = new HexUniqueKeyFormatter();
-        assertEquals("0102", formatter.format(new byte[] {1, 2}));
-        assertEquals("a1-b1-c1", formatter.format(new byte[] {(byte)161}, new byte[] {(byte)177}, new byte[] {(byte)193}));
+    public void testFormatRow_SimpleString() {
+        assertEquals("row", createFormatter().formatRow(Bytes.toBytes("row")));
     }
+
+    @Test
+    public void testFormatKeyValue_SimpleString() {
+        assertEquals(
+                "row-column-qualifier",
+                createFormatter().formatKeyValue(
+                        new KeyValue(Bytes.toBytes("row"), Bytes.toBytes("column"), Bytes.toBytes("qualifier"))));
+    }
+
 }

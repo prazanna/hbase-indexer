@@ -15,16 +15,54 @@
  */
 package com.ngdata.hbaseindexer;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
 
-public class StringUniqueKeyFormatter implements UniqueKeyFormatter {
+/**
+ * Performs encoding and decoding to and from simple strings representations of byte arrays.
+ */
+public class StringUniqueKeyFormatter extends BaseUniqueKeyFormatter implements UniqueKeyFormatter {
+
+    private static final HyphenEscapingUniqueKeyFormatter hyphenEscapingFormatter = new HyphenEscapingUniqueKeyFormatter();
+
     @Override
-    public String format(byte[] row) {
-        return Bytes.toString(row);
+    public String formatKeyValue(KeyValue keyValue) {
+        return hyphenEscapingFormatter.formatKeyValue(keyValue);
     }
 
     @Override
-    public String format(byte[] row, byte[] family, byte[] qualifier) {
-        return Bytes.toString(row) + "-" + Bytes.toString(family) + "-" + Bytes.toString(qualifier);
+    public KeyValue unformatKeyValue(String keyValueString) {
+        return hyphenEscapingFormatter.unformatKeyValue(keyValueString);
     }
+
+    @Override
+    protected String encodeAsString(byte[] bytes) {
+        return Bytes.toString(bytes);
+    }
+
+    @Override
+    protected byte[] decodeFromString(String value) {
+        return Bytes.toBytes(value);
+    }
+
+    private static class HyphenEscapingUniqueKeyFormatter  extends BaseUniqueKeyFormatter {
+        @Override
+        protected String encodeAsString(byte[] bytes) {
+            String encoded = Bytes.toString(bytes);
+            if (encoded.indexOf('-') > -1) {
+                encoded = encoded.replace("-", "\\-");
+            }
+            return encoded;
+        }
+        
+        @Override
+        protected byte[] decodeFromString(String value) {
+            if (value.contains("\\-")) {
+                value = value.replace("\\-", "-");
+            }
+            return Bytes.toBytes(value);
+        }
+
+    }
+
 }

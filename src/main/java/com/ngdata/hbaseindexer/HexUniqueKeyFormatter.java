@@ -15,25 +15,22 @@
  */
 package com.ngdata.hbaseindexer;
 
-public class HexUniqueKeyFormatter implements UniqueKeyFormatter {
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+
+public class HexUniqueKeyFormatter extends BaseUniqueKeyFormatter implements UniqueKeyFormatter {
+
     @Override
-    public String format(byte[] row) {
-        return toHexString(row);
+    protected String encodeAsString(byte[] bytes) {
+        return Hex.encodeHexString(bytes);
     }
 
     @Override
-    public String format(byte[] row, byte[] family, byte[] qualifier) {
-        return toHexString(row) + "-" + toHexString(family) + "-" + toHexString(qualifier);
-    }
-
-    private static String toHexString(byte[] b) {
-        StringBuilder sb = new StringBuilder(b.length * 2);
-        for (int i = 0; i < b.length; i++) {
-            sb.append(hexChar[(b[i] & 0xf0) >>> 4]);
-            sb.append(hexChar[b[i] & 0x0f]);
+    protected byte[] decodeFromString(String value) {
+        try {
+            return Hex.decodeHex(value.toCharArray());
+        } catch (DecoderException e) {
+            throw new IllegalArgumentException("Value '" + value + "' can't be decoded as hex", e);
         }
-        return sb.toString();
     }
-
-    private final static char[] hexChar = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 }

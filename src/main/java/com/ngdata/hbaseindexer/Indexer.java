@@ -116,13 +116,13 @@ public class Indexer implements EventListener {
 
         if (rowDeleted) {
             // Delete row from Solr as well
-            solr.deleteById(uniqueKeyFormatter.format(event.getRow()));
+            solr.deleteById(uniqueKeyFormatter.formatRow(event.getRow()));
             if (log.isDebugEnabled()) {
                 log.debug("Row " + Bytes.toString(event.getRow()) + ": deleted from Solr");
             }
         } else {
             SolrInputDocument document = mapper.map(result);
-            document.addField(conf.getUniqueKeyField(), uniqueKeyFormatter.format(event.getRow()));
+            document.addField(conf.getUniqueKeyField(), uniqueKeyFormatter.formatRow(event.getRow()));
             // TODO there should probably some way for the mapper to indicate there was no useful content to map,
             // e.g. if there are no fields in the solr document (and should we then perform a delete instead?)
             solr.add(document);
@@ -135,7 +135,7 @@ public class Indexer implements EventListener {
     private void performColumnBasedMapping(SepEvent event) throws IOException, SolrServerException {
         for (KeyValue kv : event.getKeyValues()) {
             if (mapper.isRelevantKV(kv)) {
-                String id = uniqueKeyFormatter.format(kv.getRow(), kv.getFamily(), kv.getQualifier());
+                String id = uniqueKeyFormatter.formatKeyValue(kv);
                 if (kv.isDeleteType()) { // TODO what to do in case of the various delete types (e.g. delete family?)
                     solr.deleteById(id);
                 } else {
