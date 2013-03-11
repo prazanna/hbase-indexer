@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer.parse;
+package com.ngdata.hbaseindexer.parse.tika;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
+import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
+import com.ngdata.hbaseindexer.parse.SolrInputDocumentBuilder;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.solr.common.SolrInputDocument;
@@ -26,6 +30,7 @@ import org.apache.solr.core.SolrConfig;
 import org.apache.solr.handler.extraction.ExtractingMetadataConstants;
 import org.apache.solr.handler.extraction.SolrContentHandler;
 import org.apache.solr.schema.IndexSchema;
+import org.apache.tika.detect.Detector;
 import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
@@ -61,6 +66,8 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
         this.fieldNamePrefix = fieldNamePrefix == null ? "" : fieldNamePrefix ;
         this.mimeType = mimeType;
         parser = new AutoDetectParser();
+        Detector detector = new LiteralMimeDetector(parser.getDetector());
+        parser.setDetector(detector);
     }
 
     @Override
@@ -73,8 +80,7 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
 
     private SolrInputDocument extractInternal(byte[] input) {
         Metadata metadata = new Metadata();
-        metadata.add(HttpHeaders.CONTENT_TYPE, mimeType);
-        metadata.add(ExtractingMetadataConstants.STREAM_CONTENT_TYPE, mimeType);
+        metadata.add(LiteralMimeDetector.MIME_TYPE, mimeType);
 
         // TODO Need to check which parameters (if any) need to be given
         Map<String, String> cellParams = new HashMap<String, String>();

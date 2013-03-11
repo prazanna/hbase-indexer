@@ -1,1 +1,1 @@
-com.ngdata.hbaseindexer.parse.TikaSolrDocumentExtractorTest$DummyParser
+com.ngdata.hbaseindexer.parse.tika.TikaSolrDocumentExtractorTest$DummyParser

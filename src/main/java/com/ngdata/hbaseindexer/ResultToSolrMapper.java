@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 
+import com.ngdata.hbaseindexer.parse.tika.TikaSolrDocumentExtractor;
+
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
 import com.ngdata.hbaseindexer.conf.FieldDefinition;
@@ -28,7 +30,6 @@ import com.ngdata.hbaseindexer.parse.ByteArrayValueMapper;
 import com.ngdata.hbaseindexer.parse.ByteArrayValueMappers;
 import com.ngdata.hbaseindexer.parse.HBaseSolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
-import com.ngdata.hbaseindexer.parse.TikaSolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.extract.ByteArrayExtractors;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;

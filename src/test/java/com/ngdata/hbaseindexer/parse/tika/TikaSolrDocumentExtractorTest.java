@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer.parse;
+package com.ngdata.hbaseindexer.parse.tika;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.Set;
+
+import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
 
 import com.ngdata.hbaseindexer.parse.extract.SingleCellExtractor;
 import org.apache.hadoop.hbase.KeyValue;
@@ -76,7 +78,7 @@ public class TikaSolrDocumentExtractorTest {
         Result result = new Result(new KeyValue[] { kv });
 
         SolrDocumentExtractor documentExtractor = TikaSolrDocumentExtractor.createInstance(new SingleCellExtractor(
-                columnFamily, columnQualifier), null, "text/dummy");
+                columnFamily, columnQualifier), null, "application/dummy");
         SolrInputDocument solrInputDocument = new SolrInputDocument();
         documentExtractor.extractDocument(result, solrInputDocument);
 
@@ -87,8 +89,8 @@ public class TikaSolrDocumentExtractorTest {
     
     public static class DummyParser implements Parser {
         
-        public static final MediaType DUMMY_MEDIA_TYPE = MediaType.text("dummy");
-        public static final String DUMMY_MIME_TYPE = "text/dummy";
+        public static final MediaType DUMMY_MEDIA_TYPE = MediaType.application("dummy");
+        public static final String DUMMY_MIME_TYPE = "application/dummy";
 
         public static final String INDEX_FIELD = "_index_field_";
         public static final String INDEX_VALUE = "_index_value_";
@@ -103,7 +105,6 @@ public class TikaSolrDocumentExtractorTest {
         public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext context)
                 throws IOException, SAXException, TikaException {
             
-            metadata.set(Metadata.CONTENT_TYPE, DUMMY_MIME_TYPE);
             metadata.set(INDEX_FIELD, INDEX_VALUE);
 
             XHTMLContentHandler xhtml = new XHTMLContentHandler(handler, metadata);
