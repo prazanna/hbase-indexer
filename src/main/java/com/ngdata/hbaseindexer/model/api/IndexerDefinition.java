@@ -21,12 +21,25 @@ import org.apache.commons.lang.builder.EqualsBuilder;
  * Defines an indexer within the {@link IndexerModel}.
  *
  * <p>This object is immutable, use {@link IndexerDefinitionBuilder} to construct instances.</p>
+ *
+ * <p>Operations for loading & storing IndexerDefinition's can be found on {@link IndexerModel}.</p>
+ *
+ * <p>An important aspect of an indexer definition are the state flags:</p>
+ *
+ * <ul>
+ *     <li>{@link LifecycleState}</li>
+ *     <li>{@link BatchIndexingState}</li>
+ *     <li>{@link IncrementalIndexingState}</li>
+ * </ul>
+ *
+ * <p>Some operations, like triggering a batch index rebuild or deleting an index or done
+ * by changing these state flags, rather than by direct method/rpc calls.</p>
  */
 public class IndexerDefinition {
     private String name;
-    private IndexGeneralState generalState = IndexGeneralState.ACTIVE;
-    private IndexBatchBuildState batchBuildState = IndexBatchBuildState.INACTIVE;
-    private IndexUpdateState updateState = IndexUpdateState.SUBSCRIBE_AND_LISTEN;
+    private LifecycleState lifecycleState = LifecycleState.ACTIVE;
+    private BatchIndexingState batchIndexingState = BatchIndexingState.INACTIVE;
+    private IncrementalIndexingState incrementalIndexingState = IncrementalIndexingState.SUBSCRIBE_AND_CONSUME;
     private String subscriptionId;
     private byte[] configuration;
     private byte[] connectionConfiguration;
@@ -35,15 +48,15 @@ public class IndexerDefinition {
     private BatchBuildInfo lastBatchBuildInfo;
     private ActiveBatchBuildInfo activeBatchBuildInfo;
     private long subscriptionTimestamp;
-    private int zkDataVersion = -1;
+    private int occVersion = -1;
 
     /**
      * Use {@link IndexerDefinitionBuilder} to make instances of this class.
      */
     IndexerDefinition(String name,
-            IndexGeneralState generalState,
-            IndexBatchBuildState batchBuildState,
-            IndexUpdateState updateState,
+            LifecycleState lifecycleState,
+            BatchIndexingState batchIndexingState,
+            IncrementalIndexingState incrementalIndexingState,
             String subscriptionId,
             byte[] configuration,
             byte[] connectionConfiguration,
@@ -52,11 +65,11 @@ public class IndexerDefinition {
             BatchBuildInfo lastBatchBuildInfo,
             ActiveBatchBuildInfo activeBatchBuildInfo,
             long subscriptionTimestamp,
-            int zkDataVersion) {
+            int occVersion) {
         this.name = name;
-        this.generalState = generalState;
-        this.batchBuildState = batchBuildState;
-        this.updateState = updateState;
+        this.lifecycleState = lifecycleState;
+        this.batchIndexingState = batchIndexingState;
+        this.incrementalIndexingState = incrementalIndexingState;
         this.subscriptionId = subscriptionId;
         this.configuration = configuration;
         this.connectionConfiguration = connectionConfiguration;
@@ -65,64 +78,122 @@ public class IndexerDefinition {
         this.lastBatchBuildInfo = lastBatchBuildInfo;
         this.activeBatchBuildInfo = activeBatchBuildInfo;
         this.subscriptionTimestamp = subscriptionTimestamp;
-        this.zkDataVersion = zkDataVersion;
+        this.occVersion = occVersion;
     }
 
     public String getName() {
         return name;
     }
 
-    public IndexGeneralState getGeneralState() {
-        return generalState;
+    public LifecycleState getLifecycleState() {
+        return lifecycleState;
     }
 
-    public IndexBatchBuildState getBatchBuildState() {
-        return batchBuildState;
+    public BatchIndexingState getBatchIndexingState() {
+        return batchIndexingState;
     }
 
-    public IndexUpdateState getUpdateState() {
-        return updateState;
+    public IncrementalIndexingState getIncrementalIndexingState() {
+        return incrementalIndexingState;
     }
 
+    /**
+     * The ID of a subscription on an event stream.
+     *
+     * <p>Typically this will be a subscription on the HBase SEP (Side Effect Processor), but it could be
+     * another system as well, for the IndexerDefinition this is just a string.</p>
+     */
     public String getSubscriptionId() {
         return subscriptionId;
     }
 
     /**
-     * The XML configuration for the Indexer.
+     * The configuration for the indexer process, typically defines how to indexing algorithm should
+     * behave and how it should map input records to the index. From the point of view of the IndexerDefinition,
+     * this is an opaque byte array.
+     *
+     * <p>Callers should not modify the returned byte array.</p>
      */
     public byte[] getConfiguration() {
-        // Note that while one could modify the returned byte array, it is very unlikely to do this
-        // by accident, and we assume cooperating users.
         return configuration;
     }
 
+    /**
+     * Configuration related to how to connect to the indexing system.
+     *
+     * <p>For example, in case Solr is used, this could contain the URLs of the Solr instances, possibly
+     * with configuration on how to shard among them, or in case of SolrCloud it could just a zookeeper
+     * connection string and a collection name.</p>
+     *
+     * <p>For other indexing systems it will be other parameters. For the IndexerDefinition this is just
+     * an opaque byte array, the content can be anything.</p>
+     */
     public byte[] getConnectionConfiguration() {
         return connectionConfiguration;
     }
 
-    public int getZkDataVersion() {
-        return zkDataVersion;
+    /**
+     * Get the version number used for optimistic concurrency control (OCC).
+     *
+     * <p>Practically speaking, in the current implementation this is the version of the ZooKeeper node
+     * in which the data is stored. When using a read-alter-write cycle, this will unsure nobody else
+     * modified the IndexerDefinition concurrently.</p>
+     *
+     * <p>Setting the version to -1 will disable the OCC check.</p>
+     */
+    public int getOccVersion() {
+        return occVersion;
     }
 
+    /**
+     * Status information on the last run batch indexing build. This can be null if no batch index build ever ran.
+     *
+     * <p>This information is written by the system, not by clients.</p>
+     */
     public BatchBuildInfo getLastBatchBuildInfo() {
         return lastBatchBuildInfo;
     }
 
+    /**
+     * Status information on the currently running batch indexing build, if any, otherwise this returns null.
+     *
+     * <p>This information is written by the system, not by clients.</p>
+     */
     public ActiveBatchBuildInfo getActiveBatchBuildInfo() {
         return activeBatchBuildInfo;
     }
 
+    /**
+     * Parameters for the next batch index build.
+     *
+     * <p>These parameters are used once. Typically you will set these parameters together with updating
+     * the {@link #getBatchIndexingState() batch indexing state} to {@link BatchIndexingState#BUILD_REQUESTED}.
+     * After the system started the batch index build, it will reset this property to null.</p>
+     *
+     * <p>There are also {@link #getDefaultBatchIndexConfiguration() default parameters} that are used in case
+     * this is not set.</p>
+     */
     public byte[] getBatchIndexConfiguration() {
         return batchIndexConfiguration;
     }
 
+    /**
+     * Default parameters for batch index builds.
+     *
+     * <p>These parameters can be overridden for individual batch indexing runs by the ones in
+     * {@link #getBatchIndexConfiguration()}.</p>
+     */
     public byte[] getDefaultBatchIndexConfiguration() {
         return defaultBatchIndexConfiguration;
     }
 
     /**
-     * Get the timestamp of when this index's update subscription started.
+     * The timestamp of when this indexer's subscription started. Only record updates that have
+     * occurred after this timestamp will be consumed by this index.
+
+     * <p>This is useful for certain subscription implementations, such as the HBase SEP, which can possibly
+     * play back older events (in the case of the HBase SEP, events from the start of the current HLog are
+     * delivered).</p>
      * 
      * @return Number of milliseconds since the epoch
      */
@@ -132,5 +203,80 @@ public class IndexerDefinition {
 
     public boolean equals(Object obj) {
         return EqualsBuilder.reflectionEquals(this, obj);
+    }
+
+    public static enum LifecycleState {
+        /**
+         * The indexer exists. This is the default lifecycle state.
+         */
+        ACTIVE,
+
+        /**
+         * A client puts the LifecyleState to DELETE_REQUESTED to request deletion of an indexer.
+         */
+        DELETE_REQUESTED,
+
+        /**
+         * Indicates the delete request is being processed.
+         *
+         * <p>This state is set by the server, not by clients.</p>
+         */
+        DELETING,
+
+        /**
+         * Indicates a delete request failed, in which case more information can be found in the logs,
+         * set again to {@link #DELETE_REQUESTED} to retry.
+         *
+         * <p>This state is set by the server, not by clients.</p>
+         */
+        DELETE_FAILED;
+
+        public boolean isDeleteState() {
+            return this == LifecycleState.DELETE_REQUESTED
+                    || this == LifecycleState.DELETING
+                    || this == LifecycleState.DELETE_FAILED;
+        }
+    }
+
+    public static enum IncrementalIndexingState {
+        /**
+         * An event subscription is taken, and the events are consumed, in other words, the incremental
+         * indexing is enabled. This is the most common state.
+         */
+        SUBSCRIBE_AND_CONSUME,
+
+        /**
+         * An event subscription is taken, but the events are not consumed. The events will queue up until
+         * the state is moved to {@link #SUBSCRIBE_AND_CONSUME}. This state can be used when you want to
+         * temporarily disable indexing without loosing any events. Typically should only be used during
+         * short durations (depends on the characteristics of the underlying event queueing mechanism).
+         */
+        SUBSCRIBE_DO_NOT_CONSUME,
+
+        /**
+         * No event subscription is taken, incremental indexing is disabled.
+         */
+        DO_NOT_SUBSCRIBE
+    }
+
+    public static enum BatchIndexingState {
+        /**
+         * A client puts the BatchIndexingState to BUILD_REQUESTED to request the startup of a batch indexing
+         * job.
+         */
+        BUILD_REQUESTED,
+
+        /**
+         * Indicates a batch indexing job is running. More information on the running job can be found in
+         * {@link IndexerDefinition#getActiveBatchBuildInfo()}.
+         *
+         * <p>This state is set by the server, not by clients.</p>
+         */
+        BUILDING,
+
+        /**
+         * No batch indexing job is running or requested to run.
+         */
+        INACTIVE
     }
 }

@@ -17,19 +17,19 @@ package com.ngdata.hbaseindexer.model.api;
 
 public class IndexerModelEvent {
     private IndexerModelEventType type;
-    private String indexName;
+    private String indexerName;
 
-    public IndexerModelEvent(IndexerModelEventType type, String indexName) {
+    public IndexerModelEvent(IndexerModelEventType type, String indexerName) {
         this.type = type;
-        this.indexName = indexName;
+        this.indexerName = indexerName;
     }
 
     public IndexerModelEventType getType() {
         return type;
     }
 
-    public String getIndexName() {
-        return indexName;
+    public String getIndexerName() {
+        return indexerName;
     }
 
     @Override
@@ -37,7 +37,7 @@ public class IndexerModelEvent {
         final int prime = 31;
         int result = 1;
         result = prime * result + type.hashCode();
-        result = prime * result + indexName.hashCode();
+        result = prime * result + indexerName.hashCode();
         return result;
     }
 
@@ -50,11 +50,11 @@ public class IndexerModelEvent {
         if (getClass() != obj.getClass())
             return false;
         IndexerModelEvent other = (IndexerModelEvent) obj;
-        return other.type == type && other.indexName.equals(indexName);
+        return other.type == type && other.indexerName.equals(indexerName);
     }
 
     @Override
     public String toString() {
-        return "Indexer model event [type = " + type + ", index = " + indexName + "]";
+        return "Indexer model event [type = " + type + ", indexer = " + indexerName + "]";
     }
 }

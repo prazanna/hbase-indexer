@@ -15,6 +15,10 @@
  */
 package com.ngdata.hbaseindexer.model.api;
 
-public enum IndexUpdateState {
-    SUBSCRIBE_AND_LISTEN, SUBSCRIBE_DO_NOT_LISTEN, DO_NOT_SUBSCRIBE
+public class IndexerNotFoundException extends Exception {
+
+    public IndexerNotFoundException(String name) {
+        super("Index does not exist: " + name);
+    }
+
 }

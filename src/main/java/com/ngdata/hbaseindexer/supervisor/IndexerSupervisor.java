@@ -1,15 +1,13 @@
 package com.ngdata.hbaseindexer.supervisor;
 
 
-import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.HBaseToSolrMapper;
 import com.ngdata.hbaseindexer.Indexer;
 import com.ngdata.hbaseindexer.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
-import com.ngdata.hbaseindexer.model.api.IndexNotFoundException;
-import com.ngdata.hbaseindexer.model.api.IndexUpdateState;
+import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
@@ -95,7 +93,7 @@ public class IndexerSupervisor {
         eventWorkerThread.start();
 
         synchronized (indexUpdatersLock) {
-            Collection<IndexerDefinition> indexes = indexerModel.getIndexes(listener);
+            Collection<IndexerDefinition> indexes = indexerModel.getIndexers(listener);
 
             for (IndexerDefinition index : indexes) {
                 if (shouldRunIndexUpdater(index)) {
@@ -174,7 +172,7 @@ public class IndexerSupervisor {
     private void updateIndexUpdater(IndexerDefinition index) {
         IndexUpdaterHandle handle = indexUpdaters.get(index.getName());
 
-        if (handle.indexDef.getZkDataVersion() >= index.getZkDataVersion()) {
+        if (handle.indexDef.getOccVersion() >= index.getOccVersion()) {
             return;
         }
 
@@ -225,9 +223,9 @@ public class IndexerSupervisor {
     }
 
     private boolean shouldRunIndexUpdater(IndexerDefinition index) {
-        return index.getUpdateState() == IndexUpdateState.SUBSCRIBE_AND_LISTEN &&
+        return index.getIncrementalIndexingState() == IndexerDefinition.IncrementalIndexingState.SUBSCRIBE_AND_CONSUME &&
                 index.getSubscriptionId() != null &&
-                !index.getGeneralState().isDeleteState();
+                !index.getLifecycleState().isDeleteState();
     }
 
     private class IndexUpdaterHandle {
@@ -269,9 +267,9 @@ public class IndexerSupervisor {
                     }
 
                     IndexerModelEvent event = eventQueue.take();
-                    if (event.getType() == INDEX_ADDED || event.getType() == INDEX_UPDATED) {
+                    if (event.getType() == INDEXER_ADDED || event.getType() == INDEXER_UPDATED) {
                         try {
-                            IndexerDefinition index = indexerModel.getIndex(event.getIndexName());
+                            IndexerDefinition index = indexerModel.getIndexer(event.getIndexerName());
                             if (shouldRunIndexUpdater(index)) {
                                 if (indexUpdaters.containsKey(index.getName())) {
                                     updateIndexUpdater(index);
@@ -281,13 +279,13 @@ public class IndexerSupervisor {
                             } else {
                                 removeIndexUpdater(index.getName());
                             }
-                        } catch (IndexNotFoundException e) {
-                            removeIndexUpdater(event.getIndexName());
+                        } catch (IndexerNotFoundException e) {
+                            removeIndexUpdater(event.getIndexerName());
                         } catch (Throwable t) {
                             log.error("Error in IndexerWorker's IndexerModelListener.", t);
                         }
-                    } else if (event.getType() == INDEX_REMOVED) {
-                        removeIndexUpdater(event.getIndexName());
+                    } else if (event.getType() == INDEXER_REMOVED) {
+                        removeIndexUpdater(event.getIndexerName());
                     }
                 } catch (InterruptedException e) {
                     log.info("IndexerWorker.EventWorker interrupted.");

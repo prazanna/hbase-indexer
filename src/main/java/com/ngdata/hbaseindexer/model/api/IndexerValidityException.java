@@ -15,8 +15,15 @@
  */
 package com.ngdata.hbaseindexer.model.api;
 
-public class IndexConcurrentModificationException extends Exception {
-    public IndexConcurrentModificationException(String indexName) {
-        super("The index is modified since it was read. Index: " + indexName);
+/**
+ * Thrown when trying to update an {@link IndexerDefinition} to an invalid state.
+ */
+public class IndexerValidityException extends Exception {
+    public IndexerValidityException(String message) {
+        super(message);
+    }
+
+    public IndexerValidityException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

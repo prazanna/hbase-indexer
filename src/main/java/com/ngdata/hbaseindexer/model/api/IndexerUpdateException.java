@@ -15,6 +15,8 @@
  */
 package com.ngdata.hbaseindexer.model.api;
 
-public enum IndexBatchBuildState {
-    BUILD_REQUESTED, BUILDING, INACTIVE
+public class IndexerUpdateException extends Exception {
+    public IndexerUpdateException(String message) {
+        super(message);
+    }
 }

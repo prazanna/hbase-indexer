@@ -2,13 +2,13 @@ package com.ngdata.hbaseindexer.model.impl;
 
 import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfoBuilder;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfoBuilder;
-import com.ngdata.hbaseindexer.model.api.IndexBatchBuildState;
-import com.ngdata.hbaseindexer.model.api.IndexGeneralState;
-import com.ngdata.hbaseindexer.model.api.IndexUpdateState;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import org.junit.Test;
 
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -32,9 +32,9 @@ public class IndexerDefinitionJsonSerDeserTest {
     public void testFull() {
         IndexerDefinition indexer = new IndexerDefinitionBuilder()
                 .name("index1")
-                .generalState(IndexGeneralState.DELETE_REQUESTED)
-                .batchBuildState(IndexBatchBuildState.BUILDING)
-                .updateState(IndexUpdateState.SUBSCRIBE_DO_NOT_LISTEN)
+                .lifecycleState(LifecycleState.DELETE_REQUESTED)
+                .batchIndexingState(BatchIndexingState.BUILDING)
+                .incrementalIndexingState(IncrementalIndexingState.SUBSCRIBE_DO_NOT_CONSUME)
                 .configuration("config1".getBytes())
                 .connectionConfiguration("config2".getBytes())
                 .subscriptionId("my-subscription")
@@ -57,7 +57,7 @@ public class IndexerDefinitionJsonSerDeserTest {
                         .counter("counter-1", 1)
                         .counter("counter-2", 2)
                         .build())
-                .zkDataVersion(5).build();
+                .occVersion(5).build();
 
         IndexerDefinitionJsonSerDeser serdeser = new IndexerDefinitionJsonSerDeser();
         byte[] json = serdeser.toJsonBytes(indexer);
@@ -65,9 +65,9 @@ public class IndexerDefinitionJsonSerDeserTest {
         IndexerDefinition indexer2 = serdeser.fromJsonBytes(json).build();
 
         assertEquals("index1", indexer2.getName());
-        assertEquals(IndexGeneralState.DELETE_REQUESTED, indexer2.getGeneralState());
-        assertEquals(IndexBatchBuildState.BUILDING, indexer2.getBatchBuildState());
-        assertEquals(IndexUpdateState.SUBSCRIBE_DO_NOT_LISTEN, indexer2.getUpdateState());
+        assertEquals(LifecycleState.DELETE_REQUESTED, indexer2.getLifecycleState());
+        assertEquals(BatchIndexingState.BUILDING, indexer2.getBatchIndexingState());
+        assertEquals(IncrementalIndexingState.SUBSCRIBE_DO_NOT_CONSUME, indexer2.getIncrementalIndexingState());
         assertArrayEquals("config1".getBytes(), indexer2.getConfiguration());
         assertArrayEquals("config2".getBytes(), indexer2.getConnectionConfiguration());
         assertEquals("my-subscription", indexer2.getSubscriptionId());
@@ -91,7 +91,7 @@ public class IndexerDefinitionJsonSerDeserTest {
         assertEquals(Long.valueOf(1L), indexer2.getLastBatchBuildInfo().getCounters().get("counter-1"));
         assertEquals(Long.valueOf(2L), indexer2.getLastBatchBuildInfo().getCounters().get("counter-2"));
 
-        assertEquals(5, indexer2.getZkDataVersion());
+        assertEquals(5, indexer2.getOccVersion());
 
         assertEquals(indexer, indexer2);
     }

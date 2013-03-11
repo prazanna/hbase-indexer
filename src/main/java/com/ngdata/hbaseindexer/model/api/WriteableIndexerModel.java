@@ -19,52 +19,69 @@ import com.ngdata.hbaseindexer.util.zookeeper.ZkLockException;
 import org.apache.zookeeper.KeeperException;
 
 public interface WriteableIndexerModel extends IndexerModel {
-    void addIndex(IndexerDefinition index) throws IndexExistsException, IndexModelException, IndexValidityException;
-
     /**
-     * Loads an index definition and returns it in a mutable way.
-     *
-     * <p>This differs from {@link #getIndex(String)} in that the returned index definition
-     * is mutable (updateable) and it is also freshly loaded from storage.
+     * Creates a new indexer.
      */
-    IndexerDefinition getMutableIndex(String name) throws InterruptedException, KeeperException, IndexNotFoundException;
+    void addIndexer(IndexerDefinition indexer) throws IndexerExistsException, IndexerModelException, IndexerValidityException;
 
     /**
-     * Updates an index.
-     *
-     * <p>The update will only succeed if it was not modified since it was read. This situation can be avoided
-     * by taking a lock on the index before reading it. In fact, you are obliged to do so, and to pass your lock,
-     * of which it will be validated that it really is the owner of the index lock.
+     * Loads an indexer definition bypassing the internal cache.
      */
-    void updateIndex(final IndexerDefinition index, String lock) throws InterruptedException, KeeperException,
-            IndexNotFoundException, IndexConcurrentModificationException, ZkLockException, IndexUpdateException, IndexValidityException;
+    IndexerDefinition getFreshIndexer(String name) throws InterruptedException, KeeperException, IndexerNotFoundException;
 
     /**
-     * Internal index update method, <b>this method is only intended for internal Lily components</b>. It
+     * Updates an indexer.
+     *
+     * <p>Due to the optimistic concurrency control (see {@link IndexerDefinition#getOccVersion()}, the update will
+     * only succeed if it was not modified since it was read. This situation can be avoided either by disabling
+     * the occ check (by setting the OCC version to -1), but also by taking a lock on the index before
+     * reading it. In fact, usage of the lock is obliged.</p>
+     *
+     * <p>The canonical flow to update an indexer is:</p>
+     * <ul>
+     *     <li>Obtain a lock by calling {@link #lockIndexer(String)}</li>
+     *     <li>Read existing state using {@link #getFreshIndexer(String)}</li>
+     *     <li>Create an updated IndexerDefinition using the {@link IndexerDefinitionBuilder}</li>
+     *     <li>Call this update method</li>
+     *     <li>In a finally block, release the lock using {@link #unlockIndexer(String)}. Note that the lock
+     *     will expire in case the client process gets killed (it's a ZooKeeper ephemeral node).</li>
+     * </ul>
+     */
+    void updateIndexer(final IndexerDefinition index, String lock) throws InterruptedException, KeeperException,
+            IndexerNotFoundException, IndexerConcurrentModificationException, ZkLockException, IndexerUpdateException, IndexerValidityException;
+
+    /**
+     * Internal indexer update method, <b>this method is only intended for internal HBase-indexer components</b>. It
      * is similar to the update method but bypasses some checks.
+     *
+     * <p>Ordinary clients should use {@link #updateIndexer(IndexerDefinition, String)} instead.</p>
      */
-    void updateIndexInternal(final IndexerDefinition index) throws InterruptedException, KeeperException,
-            IndexNotFoundException, IndexConcurrentModificationException, IndexValidityException;
-
-    void deleteIndex(final String indexName) throws IndexModelException;
+    void updateIndexerInternal(final IndexerDefinition indexer) throws InterruptedException, KeeperException,
+            IndexerNotFoundException, IndexerConcurrentModificationException, IndexerValidityException;
 
     /**
-     * Takes a lock on this index.
+     * Internal indexer delete method, <b>this method is only intended for internal HBase-indexer components</b>.
      *
-     * <p>Taking a lock can avoid concurrent modification exceptions when updating the index.
-     *
-     * <p>TODO: can/should clients use this lock for their own purposes?
+     * <p>To delete an indexer from an ordinary client, update the indexer with the
+     * {@link IndexerDefinition#getLifecycleState() life cycle state} set to
+     * {@link IndexerDefinition.LifecycleState#DELETE_REQUESTED}. The system will then react asynchronously
+     * to this (first stopping related processes) and eventually delete the indexer.</p>
      */
-    String lockIndex(String indexName) throws ZkLockException, IndexNotFoundException, InterruptedException,
-            KeeperException, IndexModelException;
+    void deleteIndexerInternal(final String indexerName) throws IndexerModelException;
 
-    void unlockIndex(String lock) throws ZkLockException;
+    /**
+     * Takes a lock on this indexer.
+     */
+    String lockIndexer(String indexerName) throws ZkLockException, IndexerNotFoundException, InterruptedException,
+            KeeperException, IndexerModelException;
 
-    void unlockIndex(String lock, boolean ignoreMissing) throws ZkLockException;
+    void unlockIndexer(String lock) throws ZkLockException;
+
+    void unlockIndexer(String lock, boolean ignoreMissing) throws ZkLockException;
 
     /**
      * Internal index lock method, <b>this method is only intended for internal Lily components</b>.
      */
-    String lockIndexInternal(String indexName, boolean checkDeleted) throws ZkLockException, IndexNotFoundException,
-            InterruptedException, KeeperException, IndexModelException;
+    String lockIndexerInternal(String indexerName, boolean checkDeleted) throws ZkLockException, IndexerNotFoundException,
+            InterruptedException, KeeperException, IndexerModelException;
 }

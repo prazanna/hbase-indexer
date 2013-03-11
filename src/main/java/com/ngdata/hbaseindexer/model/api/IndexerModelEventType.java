@@ -16,5 +16,5 @@
 package com.ngdata.hbaseindexer.model.api;
 
 public enum IndexerModelEventType {
-    INDEX_UPDATED, INDEX_ADDED, INDEX_REMOVED;
+    INDEXER_UPDATED, INDEXER_ADDED, INDEXER_REMOVED;
 }

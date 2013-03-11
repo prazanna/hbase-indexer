@@ -17,11 +17,15 @@ package com.ngdata.hbaseindexer.model.api;
 
 import com.google.common.base.Preconditions;
 
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
+
 public class IndexerDefinitionBuilder {
     private String name;
-    private IndexGeneralState generalState = IndexGeneralState.ACTIVE;
-    private IndexBatchBuildState batchBuildState = IndexBatchBuildState.INACTIVE;
-    private IndexUpdateState updateState = IndexUpdateState.SUBSCRIBE_AND_LISTEN;
+    private LifecycleState lifecycleState = LifecycleState.ACTIVE;
+    private BatchIndexingState batchIndexingState = BatchIndexingState.INACTIVE;
+    private IncrementalIndexingState incrementalIndexingState = IncrementalIndexingState.SUBSCRIBE_AND_CONSUME;
     private String subscriptionId;
     private byte[] configuration;
     private byte[] connectionConfiguration;
@@ -30,13 +34,13 @@ public class IndexerDefinitionBuilder {
     private BatchBuildInfo lastBatchBuildInfo;
     private ActiveBatchBuildInfo activeBatchBuildInfo;
     private long subscriptionTimestamp;
-    private int zkDataVersion = -1;
+    private int occVersion = -1;
 
     public IndexerDefinitionBuilder startFrom(IndexerDefinition existingDefinition) {
         this.name = existingDefinition.getName();
-        this.generalState = existingDefinition.getGeneralState();
-        this.batchBuildState = existingDefinition.getBatchBuildState();
-        this.updateState = existingDefinition.getUpdateState();
+        this.lifecycleState = existingDefinition.getLifecycleState();
+        this.batchIndexingState = existingDefinition.getBatchIndexingState();
+        this.incrementalIndexingState = existingDefinition.getIncrementalIndexingState();
         this.subscriptionId = existingDefinition.getSubscriptionId();
         this.configuration = existingDefinition.getConfiguration();
         this.connectionConfiguration = existingDefinition.getConnectionConfiguration();
@@ -45,89 +49,122 @@ public class IndexerDefinitionBuilder {
         this.lastBatchBuildInfo = existingDefinition.getLastBatchBuildInfo();
         this.activeBatchBuildInfo = existingDefinition.getActiveBatchBuildInfo();
         this.subscriptionTimestamp = existingDefinition.getSubscriptionTimestamp();
-        this.zkDataVersion = existingDefinition.getZkDataVersion();
+        this.occVersion = existingDefinition.getOccVersion();
         return this;
     }
 
+    /**
+     * @see IndexerDefinition#getName()
+     */
     public IndexerDefinitionBuilder name(String name) {
         this.name = name;
         return this;
     }
 
-    public IndexerDefinitionBuilder generalState(IndexGeneralState state) {
-        this.generalState = state;
+    /**
+     * @see IndexerDefinition#getLifecycleState()
+     */
+    public IndexerDefinitionBuilder lifecycleState(LifecycleState state) {
+        this.lifecycleState = state;
         return this;
     }
 
-    public IndexerDefinitionBuilder updateState(IndexUpdateState state) {
-        this.updateState = state;
+    /**
+     * @see IndexerDefinition#getIncrementalIndexingState()
+     */
+    public IndexerDefinitionBuilder incrementalIndexingState(IncrementalIndexingState state) {
+        this.incrementalIndexingState = state;
         return this;
     }
 
-    public IndexerDefinitionBuilder batchBuildState(IndexBatchBuildState state) {
-        this.batchBuildState = state;
+    /**
+     * @see IndexerDefinition#getBatchIndexingState()
+     */
+    public IndexerDefinitionBuilder batchIndexingState(BatchIndexingState state) {
+        this.batchIndexingState = state;
         return this;
     }
 
-    public IndexerDefinitionBuilder subscriptionId(String queueSubscriptionId) {
-        this.subscriptionId = queueSubscriptionId;
+    /**
+     * @see IndexerDefinition#subscriptionId
+     */
+    public IndexerDefinitionBuilder subscriptionId(String subscriptionId) {
+        this.subscriptionId = subscriptionId;
         return this;
     }
 
+    /**
+     * @see IndexerDefinition#getConfiguration()
+     */
     public IndexerDefinitionBuilder configuration(byte[] configuration) {
         this.configuration = configuration;
         return this;
     }
 
+    /**
+     * @see IndexerDefinition#connectionConfiguration
+     */
     public IndexerDefinitionBuilder connectionConfiguration(byte[] configuration) {
         this.connectionConfiguration = configuration;
         return this;
     }
 
+    /**
+     * @see IndexerDefinition#lastBatchBuildInfo
+     */
     public IndexerDefinitionBuilder lastBatchBuildInfo(BatchBuildInfo info) {
         this.lastBatchBuildInfo = info;
         return this;
     }
 
+    /**
+     * @see IndexerDefinition#activeBatchBuildInfo
+     */
     public IndexerDefinitionBuilder activeBatchBuildInfo(ActiveBatchBuildInfo info) {
         this.activeBatchBuildInfo = info;
         return this;
     }
 
+    /**
+     * @see IndexerDefinition#defaultBatchIndexConfiguration
+     */
     public IndexerDefinitionBuilder defaultBatchIndexConfiguration(byte[] defaultBatchIndexConfiguration) {
         this.defaultBatchIndexConfiguration = defaultBatchIndexConfiguration;
         return this;
     }
 
+    /**
+     * @see IndexerDefinition#batchIndexConfiguration
+     */
     public IndexerDefinitionBuilder batchIndexConfiguration(byte[] batchIndexConfiguration) {
         this.batchIndexConfiguration = batchIndexConfiguration;
         return this;
     }
 
     /**
-     * Set the timestamp of when this index's update subscription started. Only record updates that have
-     * occurred after this timestamp will be consumed by this index.
-     *
-     * @param timestamp Number of milliseconds since the epoch
+     * @see IndexerDefinition#subscriptionTimestamp
      */
     public IndexerDefinitionBuilder subscriptionTimestamp(long timestamp) {
         this.subscriptionTimestamp = timestamp;
         return this;
     }
 
-    public IndexerDefinitionBuilder zkDataVersion(int zkDataVersion) {
-        this.zkDataVersion = zkDataVersion;
+    /**
+     * @see IndexerDefinition#occVersion
+     */
+    public IndexerDefinitionBuilder occVersion(int occVersion) {
+        this.occVersion = occVersion;
         return this;
     }
 
     public IndexerDefinition build() {
         Preconditions.checkNotNull(name, "name");
-        Preconditions.checkNotNull(generalState, "generalState");
-        Preconditions.checkNotNull(batchBuildState, "batchBuildState");
-        Preconditions.checkNotNull(updateState, "updateState");
+        Preconditions.checkNotNull(lifecycleState, "lifecycleState");
+        Preconditions.checkNotNull(batchIndexingState, "batchIndexingState");
+        Preconditions.checkNotNull(incrementalIndexingState, "incrementalIndexingState");
 
-        return new IndexerDefinition(name, generalState, batchBuildState, updateState, subscriptionId,
+        return new IndexerDefinition(name, lifecycleState, batchIndexingState, incrementalIndexingState, subscriptionId,
                 configuration, connectionConfiguration, defaultBatchIndexConfiguration, batchIndexConfiguration,
-                lastBatchBuildInfo, activeBatchBuildInfo, subscriptionTimestamp, zkDataVersion);
+                lastBatchBuildInfo, activeBatchBuildInfo, subscriptionTimestamp, occVersion);
     }
 }

@@ -15,8 +15,6 @@
  */
 package com.ngdata.hbaseindexer.model.impl;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,9 +31,14 @@ import javax.annotation.PreDestroy;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-import com.ngdata.hbaseindexer.model.api.IndexUpdateState;
+import com.ngdata.hbaseindexer.model.api.IndexerConcurrentModificationException;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
+import com.ngdata.hbaseindexer.model.api.IndexerExistsException;
+import com.ngdata.hbaseindexer.model.api.IndexerModelException;
+import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
+import com.ngdata.hbaseindexer.model.api.IndexerUpdateException;
+import com.ngdata.hbaseindexer.model.api.IndexerValidityException;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import com.ngdata.sep.util.zookeeper.ZooKeeperOperation;
@@ -50,20 +53,14 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfo;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfo;
-import com.ngdata.hbaseindexer.model.api.IndexBatchBuildState;
-import com.ngdata.hbaseindexer.model.api.IndexConcurrentModificationException;
-import com.ngdata.hbaseindexer.model.api.IndexExistsException;
-import com.ngdata.hbaseindexer.model.api.IndexGeneralState;
-import com.ngdata.hbaseindexer.model.api.IndexModelException;
-import com.ngdata.hbaseindexer.model.api.IndexNotFoundException;
-import com.ngdata.hbaseindexer.model.api.IndexUpdateException;
-import com.ngdata.hbaseindexer.model.api.IndexValidityException;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
 import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
 import com.ngdata.hbaseindexer.util.zookeeper.ZkLock;
 import com.ngdata.hbaseindexer.util.zookeeper.ZkLockException;
 
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
 import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.*;
 import static org.apache.zookeeper.Watcher.Event.EventType.NodeChildrenChanged;
 import static org.apache.zookeeper.Watcher.Event.EventType.NodeDataChanged;
@@ -106,18 +103,18 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
     /**
      * Cache of the indexers as they are stored in ZK. Updated based on ZK watcher events. People who update
-     * this cache should synchronize on {@link #indexes_lock}.
+     * this cache should synchronize on {@link #indexers_lock}.
      *
      * <p>We don't really need a cache for performance reasons. It does however allow to figure out what
      * indexers have been added or removed when receiving a children-changed ZK event. It also makes that
      * someone who reads IndexerDefinitions doesn't have to worry about ZK connection issues.</p>
      */
-    private final Map<String, IndexerDefinition> indexes = new ConcurrentHashMap<String, IndexerDefinition>(16, 0.75f, 1);
+    private final Map<String, IndexerDefinition> indexers = new ConcurrentHashMap<String, IndexerDefinition>(16, 0.75f, 1);
 
     /**
-     * Lock that should be obtained when making changes to {@link #indexes}.
+     * Lock that should be obtained when making changes to {@link #indexers}.
      */
-    private final Object indexes_lock = new Object();
+    private final Object indexers_lock = new Object();
 
     private final Set<IndexerModelListener> listeners = Collections.newSetFromMap(new IdentityHashMap<IndexerModelListener, Boolean>());
 
@@ -125,85 +122,85 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
     private final Watcher connectStateWatcher = new ConnectStateWatcher();
 
-    private final IndexCacheRefresher indexCacheRefresher = new IndexCacheRefresher();
+    private final IndexerCacheRefresher indexerCacheRefresher = new IndexerCacheRefresher();
 
     private boolean stopped = false;
 
     private final Log log = LogFactory.getLog(getClass());
 
-    private final String indexCollectionPath;
+    private final String indexerCollectionPath;
 
-    private final String indexTrashPath;
+    private final String indexerTrashPath;
 
-    private final String indexCollectionPathSlash;
+    private final String indexerCollectionPathSlash;
 
     public IndexerModelImpl(ZooKeeperItf zk, String zkRoot) throws InterruptedException, KeeperException {
         this.zk = zk;
 
-        this.indexCollectionPath = zkRoot + "/index";
-        this.indexCollectionPathSlash = indexCollectionPath + "/";
-        this.indexTrashPath = zkRoot + "index-trash";
+        this.indexerCollectionPath = zkRoot + "/indexer";
+        this.indexerCollectionPathSlash = indexerCollectionPath + "/";
+        this.indexerTrashPath = zkRoot + "indexer-trash";
 
-        ZkUtil.createPath(zk, indexCollectionPath);
-        ZkUtil.createPath(zk, indexTrashPath);
+        ZkUtil.createPath(zk, indexerCollectionPath);
+        ZkUtil.createPath(zk, indexerTrashPath);
 
         zk.addDefaultWatcher(connectStateWatcher);
 
-        indexCacheRefresher.start();
-        indexCacheRefresher.waitUntilStarted();
+        indexerCacheRefresher.start();
+        indexerCacheRefresher.waitUntilStarted();
     }
 
     @PreDestroy
     public void stop() throws InterruptedException {
         stopped = true;
         zk.removeDefaultWatcher(connectStateWatcher);
-        indexCacheRefresher.shutdown();
+        indexerCacheRefresher.shutdown();
     }
 
     @Override
-    public void addIndex(IndexerDefinition index) throws IndexExistsException, IndexModelException, IndexValidityException {
-        assertValid(index);
+    public void addIndexer(IndexerDefinition indexer) throws IndexerExistsException, IndexerModelException, IndexerValidityException {
+        assertValid(indexer);
 
-        if (index.getUpdateState() != IndexUpdateState.DO_NOT_SUBSCRIBE) {
-            index = new IndexerDefinitionBuilder().startFrom(index).subscriptionTimestamp(System.currentTimeMillis()).build();
+        if (indexer.getIncrementalIndexingState() != IndexerDefinition.IncrementalIndexingState.DO_NOT_SUBSCRIBE) {
+            indexer = new IndexerDefinitionBuilder().startFrom(indexer).subscriptionTimestamp(System.currentTimeMillis()).build();
         }
-        final String indexPath = indexCollectionPath + "/" + index.getName();
-        final byte[] data = IndexerDefinitionJsonSerDeser.INSTANCE.toJsonBytes(index);
+        final String indexerPath = indexerCollectionPath + "/" + indexer.getName();
+        final byte[] data = IndexerDefinitionJsonSerDeser.INSTANCE.toJsonBytes(indexer);
 
         try {
             zk.retryOperation(new ZooKeeperOperation<String>() {
                 @Override
                 public String execute() throws KeeperException, InterruptedException {
-                    return zk.create(indexPath, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    return zk.create(indexerPath, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                 }
             });
         } catch (KeeperException.NodeExistsException e) {
-            throw new IndexExistsException(index.getName());
+            throw new IndexerExistsException(indexer.getName());
         } catch (Exception e) {
-            throw new IndexModelException("Error creating index.", e);
+            throw new IndexerModelException("Error creating indexer.", e);
         }
     }
 
-    private void assertValid(IndexerDefinition index) throws IndexValidityException {
-        if (index.getName() == null || index.getName().length() == 0)
-            throw new IndexValidityException("Name should not be null or zero-length");
+    private void assertValid(IndexerDefinition indexer) throws IndexerValidityException {
+        if (indexer.getName() == null || indexer.getName().length() == 0)
+            throw new IndexerValidityException("Name should not be null or zero-length");
 
-        if (index.getConfiguration() == null)
-            throw new IndexValidityException("Configuration should not be null.");
+        if (indexer.getConfiguration() == null)
+            throw new IndexerValidityException("Configuration should not be null.");
 
-        if (index.getGeneralState() == null)
-            throw new IndexValidityException("General state should not be null.");
+        if (indexer.getLifecycleState() == null)
+            throw new IndexerValidityException("General state should not be null.");
 
-        if (index.getBatchBuildState() == null)
-            throw new IndexValidityException("Build state should not be null.");
+        if (indexer.getBatchIndexingState() == null)
+            throw new IndexerValidityException("Build state should not be null.");
 
-        if (index.getUpdateState() == null)
-            throw new IndexValidityException("Update state should not be null.");
+        if (indexer.getIncrementalIndexingState() == null)
+            throw new IndexerValidityException("Update state should not be null.");
 
-        if (index.getActiveBatchBuildInfo() != null) {
-            ActiveBatchBuildInfo info = index.getActiveBatchBuildInfo();
+        if (indexer.getActiveBatchBuildInfo() != null) {
+            ActiveBatchBuildInfo info = indexer.getActiveBatchBuildInfo();
             if (info.getJobId() == null)
-                throw new IndexValidityException("Job id of active batch build cannot be null.");
+                throw new IndexerValidityException("Job id of active batch build cannot be null.");
         }
 
 
@@ -227,12 +224,12 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 //                   "a shard or a zookeeper connection string.");
 //       }
 
-        if (index.getLastBatchBuildInfo() != null) {
-            BatchBuildInfo info = index.getLastBatchBuildInfo();
+        if (indexer.getLastBatchBuildInfo() != null) {
+            BatchBuildInfo info = indexer.getLastBatchBuildInfo();
             if (info.getJobId() == null)
-                throw new IndexValidityException("Job id of last batch build cannot be null.");
+                throw new IndexerValidityException("Job id of last batch build cannot be null.");
             if (info.getJobState() == null)
-                throw new IndexValidityException("Job state of last batch build cannot be null.");
+                throw new IndexerValidityException("Job state of last batch build cannot be null.");
         }
 
 //        for (String shard : index.getSolrShards().values()) {
@@ -280,85 +277,85 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     }
 
     @Override
-    public void updateIndexInternal(final IndexerDefinition index) throws InterruptedException, KeeperException,
-            IndexNotFoundException, IndexConcurrentModificationException, IndexValidityException {
+    public void updateIndexerInternal(final IndexerDefinition indexer) throws InterruptedException, KeeperException,
+            IndexerNotFoundException, IndexerConcurrentModificationException, IndexerValidityException {
 
-        assertValid(index);
+        assertValid(indexer);
 
-        final byte[] newData = IndexerDefinitionJsonSerDeser.INSTANCE.toJsonBytes(index);
+        final byte[] newData = IndexerDefinitionJsonSerDeser.INSTANCE.toJsonBytes(indexer);
 
         try {
             zk.retryOperation(new ZooKeeperOperation<Stat>() {
                 @Override
                 public Stat execute() throws KeeperException, InterruptedException {
-                    return zk.setData(indexCollectionPathSlash + index.getName(), newData, index.getZkDataVersion());
+                    return zk.setData(indexerCollectionPathSlash + indexer.getName(), newData, indexer.getOccVersion());
                 }
             });
         } catch (KeeperException.NoNodeException e) {
-            throw new IndexNotFoundException(index.getName());
+            throw new IndexerNotFoundException(indexer.getName());
         } catch (KeeperException.BadVersionException e) {
-            throw new IndexConcurrentModificationException(index.getName());
+            throw new IndexerConcurrentModificationException(indexer.getName());
         }
     }
 
     @Override
-    public void updateIndex(final IndexerDefinition index, String lock) throws InterruptedException, KeeperException,
-            IndexNotFoundException, IndexConcurrentModificationException, ZkLockException, IndexUpdateException,
-            IndexValidityException {
+    public void updateIndexer(final IndexerDefinition indexer, String lock) throws InterruptedException, KeeperException,
+            IndexerNotFoundException, IndexerConcurrentModificationException, ZkLockException, IndexerUpdateException,
+            IndexerValidityException {
 
         if (!ZkLock.ownsLock(zk, lock)) {
-            throw new IndexUpdateException("You are not owner of the indexes lock, your lock path is: " + lock);
+            throw new IndexerUpdateException("You are not owner of the indexer's lock, the lock path is: " + lock);
         }
 
-        assertValid(index);
+        assertValid(indexer);
 
-        IndexerDefinition currentIndex = getMutableIndex(index.getName());
+        IndexerDefinition currentIndexer = getFreshIndexer(indexer.getName());
 
-        if (currentIndex.getGeneralState() == IndexGeneralState.DELETE_REQUESTED ||
-                currentIndex.getGeneralState() == IndexGeneralState.DELETING) {
-            throw new IndexUpdateException("An index in state " + index.getGeneralState() + " cannot be modified.");
+        if (currentIndexer.getLifecycleState() == LifecycleState.DELETE_REQUESTED ||
+                currentIndexer.getLifecycleState() == LifecycleState.DELETING) {
+            throw new IndexerUpdateException("An indexer in state " + indexer.getLifecycleState() + " cannot be modified.");
         }
 
-        if (index.getBatchBuildState() == IndexBatchBuildState.BUILD_REQUESTED &&
-                currentIndex.getBatchBuildState() != IndexBatchBuildState.INACTIVE &&
-                currentIndex.getBatchBuildState() != IndexBatchBuildState.BUILD_REQUESTED) {
-            throw new IndexUpdateException("Cannot move index build state from " + currentIndex.getBatchBuildState() +
-                    " to " + index.getBatchBuildState());
+        if (indexer.getBatchIndexingState() == BatchIndexingState.BUILD_REQUESTED &&
+                currentIndexer.getBatchIndexingState() != BatchIndexingState.INACTIVE &&
+                currentIndexer.getBatchIndexingState() != BatchIndexingState.BUILD_REQUESTED) {
+            throw new IndexerUpdateException("Cannot move batch indexing state from " + currentIndexer.getBatchIndexingState() +
+                    " to " + indexer.getBatchIndexingState());
         }
 
-        if (currentIndex.getGeneralState() == IndexGeneralState.DELETE_REQUESTED) {
-            throw new IndexUpdateException("An index in the state " + IndexGeneralState.DELETE_REQUESTED +
+        if (currentIndexer.getLifecycleState() == LifecycleState.DELETE_REQUESTED) {
+            throw new IndexerUpdateException("An indexer in the state " + LifecycleState.DELETE_REQUESTED +
                     " cannot be updated.");
         }
 
-        if (!Objects.equal(currentIndex.getActiveBatchBuildInfo(), index.getActiveBatchBuildInfo())) {
-            throw new IndexUpdateException("The active batch build info cannot be modified by users.");
+        if (!Objects.equal(currentIndexer.getActiveBatchBuildInfo(), indexer.getActiveBatchBuildInfo())) {
+            throw new IndexerUpdateException("The active batch build info cannot be modified by users.");
         }
 
-        if (!Objects.equal(currentIndex.getLastBatchBuildInfo(), index.getLastBatchBuildInfo())) {
-            throw new IndexUpdateException("The last batch build info cannot be modified by users.");
+        if (!Objects.equal(currentIndexer.getLastBatchBuildInfo(), indexer.getLastBatchBuildInfo())) {
+            throw new IndexerUpdateException("The last batch build info cannot be modified by users.");
         }
 
-        updateIndexInternal(index);
+        updateIndexerInternal(indexer);
 
     }
 
     @Override
-    public void deleteIndex(final String indexName) throws IndexModelException {
-        final String indexPath = indexCollectionPathSlash + indexName;
-        final String indexLockPath = indexPath + "/lock";
+    public void deleteIndexerInternal(final String indexerName) throws IndexerModelException {
+        final String indexerPath = indexerCollectionPathSlash + indexerName;
+        final String indexerLockPath = indexerPath + "/lock";
 
         try {
             // Make a copy of the index data in the index trash
             zk.retryOperation(new ZooKeeperOperation<Object>() {
                 @Override
                 public Object execute() throws KeeperException, InterruptedException {
-                    byte[] data = zk.getData(indexPath, false, null);
+                    byte[] data = zk.getData(indexerPath, false, null);
 
-                    String trashPath = indexTrashPath + "/" + indexName;
+                    String trashPath = indexerTrashPath + "/" + indexerName;
 
-                    // An index with the same name might have existed before and hence already exist
-                    // in the index trash, handle this by appending a sequence number until a unique
+                    // An indexer with the same name might have existed before and hence already exist
+                    // in the indexer trash, handle this by appending a sequence number until a unique
                     // name is found.
                     String baseTrashpath = trashPath;
                     int count = 0;
@@ -373,7 +370,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 }
             });
 
-            // The loop below is normally not necessary, since we disallow taking new locks on indexes
+            // The loop below is normally not necessary, since we disallow taking new locks on indexers
             // which are being deleted.
             int tryCount = 0;
             while (true) {
@@ -381,36 +378,35 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                     @Override
                     public Boolean execute() throws KeeperException, InterruptedException {
                         try {
-                            // Delete the index lock if it exists
-                            if (zk.exists(indexLockPath, false) != null) {
+                            // Delete the indexer lock if it exists
+                            if (zk.exists(indexerLockPath, false) != null) {
                                 List<String> children = Collections.emptyList();
                                 try {
-                                    children = zk.getChildren(indexLockPath, false);
+                                    children = zk.getChildren(indexerLockPath, false);
                                 } catch (KeeperException.NoNodeException e) {
                                     // ok
                                 }
 
                                 for (String child : children) {
                                     try {
-                                        zk.delete(indexLockPath + "/" + child, -1);
+                                        zk.delete(indexerLockPath + "/" + child, -1);
                                     } catch (KeeperException.NoNodeException e) {
                                         // ignore, node was already removed
                                     }
                                 }
 
                                 try {
-                                    zk.delete(indexLockPath, -1);
+                                    zk.delete(indexerLockPath, -1);
                                 } catch (KeeperException.NoNodeException e) {
                                     // ignore
                                 }
                             }
 
-
-                            zk.delete(indexPath, -1);
+                            zk.delete(indexerPath, -1);
 
                             return true;
                         } catch (KeeperException.NotEmptyException e) {
-                            // Someone again took a lock on the index, retry
+                            // Someone again took a lock on the indexer, retry
                         }
                         return false;
                     }
@@ -421,30 +417,31 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
                 tryCount++;
                 if (tryCount > 10) {
-                    throw new IndexModelException("Failed to delete index because it still has child data. Index: " + indexName);
+                    throw new IndexerModelException("Failed to delete indexer because it still has child data. Indexer: "
+                            + indexerName);
                 }
             }
         } catch (Throwable t) {
             if (t instanceof InterruptedException)
                 Thread.currentThread().interrupt();
-            throw new IndexModelException("Failed to delete index " + indexName, t);
+            throw new IndexerModelException("Failed to delete indexer " + indexerName, t);
         }
     }
 
     @Override
-    public String lockIndexInternal(String indexName, boolean checkDeleted) throws ZkLockException, IndexNotFoundException, InterruptedException,
-            KeeperException, IndexModelException {
+    public String lockIndexerInternal(String indexerName, boolean checkDeleted) throws ZkLockException,
+            IndexerNotFoundException, InterruptedException, KeeperException, IndexerModelException {
 
-        IndexerDefinition index = getIndex(indexName);
+        IndexerDefinition indexer = getIndexer(indexerName);
 
         if (checkDeleted) {
-            if (index.getGeneralState() == IndexGeneralState.DELETE_REQUESTED ||
-                    index.getGeneralState() == IndexGeneralState.DELETING) {
-                throw new IndexModelException("An index in state " + index.getGeneralState() + " cannot be locked.");
+            if (indexer.getLifecycleState() == LifecycleState.DELETE_REQUESTED ||
+                    indexer.getLifecycleState() == LifecycleState.DELETING) {
+                throw new IndexerModelException("An indexer in state " + indexer.getLifecycleState() + " cannot be locked.");
             }
         }
 
-        final String lockPath = indexCollectionPathSlash + indexName + "/lock";
+        final String lockPath = indexerCollectionPathSlash + indexerName + "/lock";
 
         //
         // Create the lock path if necessary
@@ -458,8 +455,8 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
         if (stat == null) {
             // We do not make use of ZkUtil.createPath (= recursive path creation) on purpose,
-            // because if the parent path does not exist, this means the index does not exist,
-            // and we do not want to create an index path (with null data) like that.
+            // because if the parent path does not exist, this means the indexer does not exist,
+            // and we do not want to create an indexer path (with null data) like that.
             try {
                 zk.retryOperation(new ZooKeeperOperation<String>() {
                     @Override
@@ -470,69 +467,69 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             } catch (KeeperException.NodeExistsException e) {
                 // ok, someone created it since we checked
             } catch (KeeperException.NoNodeException e) {
-                throw new IndexNotFoundException(indexName);
+                throw new IndexerNotFoundException(indexerName);
             }
         }
 
         //
         // Take the actual lock
         //
-        return ZkLock.lock(zk, indexCollectionPathSlash + indexName + "/lock");
+        return ZkLock.lock(zk, indexerCollectionPathSlash + indexerName + "/lock");
 
     }
 
 
     @Override
-    public String lockIndex(String indexName) throws ZkLockException, IndexNotFoundException, InterruptedException,
-            KeeperException, IndexModelException {
-        return lockIndexInternal(indexName, true);
+    public String lockIndexer(String indexerName) throws ZkLockException, IndexerNotFoundException, InterruptedException,
+            KeeperException, IndexerModelException {
+        return lockIndexerInternal(indexerName, true);
     }
 
     @Override
-    public void unlockIndex(String lock) throws ZkLockException {
+    public void unlockIndexer(String lock) throws ZkLockException {
         ZkLock.unlock(zk, lock);
     }
 
     @Override
-    public void unlockIndex(String lock, boolean ignoreMissing) throws ZkLockException {
+    public void unlockIndexer(String lock, boolean ignoreMissing) throws ZkLockException {
         ZkLock.unlock(zk, lock, ignoreMissing);
     }
 
     @Override
-    public IndexerDefinition getIndex(String name) throws IndexNotFoundException {
-        IndexerDefinition index = indexes.get(name);
+    public IndexerDefinition getIndexer(String name) throws IndexerNotFoundException {
+        IndexerDefinition index = indexers.get(name);
         if (index == null) {
-            throw new IndexNotFoundException(name);
+            throw new IndexerNotFoundException(name);
         }
         return index;
     }
 
     @Override
-    public boolean hasIndex(String name) {
-        return indexes.containsKey(name);
+    public boolean hasIndexer(String name) {
+        return indexers.containsKey(name);
     }
 
     @Override
-    public IndexerDefinition getMutableIndex(String name) throws InterruptedException, KeeperException, IndexNotFoundException {
-        return loadIndex(name, false);
+    public IndexerDefinition getFreshIndexer(String name) throws InterruptedException, KeeperException, IndexerNotFoundException {
+        return loadIndexer(name, false);
     }
 
     @Override
-    public Collection<IndexerDefinition> getIndexes() {
-        return new ArrayList<IndexerDefinition>(indexes.values());
+    public Collection<IndexerDefinition> getIndexers() {
+        return new ArrayList<IndexerDefinition>(indexers.values());
     }
 
     @Override
-    public Collection<IndexerDefinition> getIndexes(IndexerModelListener listener) {
-        synchronized (indexes_lock) {
+    public Collection<IndexerDefinition> getIndexers(IndexerModelListener listener) {
+        synchronized (indexers_lock) {
             registerListener(listener);
-            return new ArrayList<IndexerDefinition>(indexes.values());
+            return new ArrayList<IndexerDefinition>(indexers.values());
         }
     }
 
-    private IndexerDefinition loadIndex(String indexName, boolean forCache)
-            throws InterruptedException, KeeperException, IndexNotFoundException {
-        final String childPath = indexCollectionPath + "/" + indexName;
+    private IndexerDefinition loadIndexer(String indexerName, boolean forCache)
+            throws InterruptedException, KeeperException, IndexerNotFoundException {
+        final String childPath = indexerCollectionPath + "/" + indexerName;
         final Stat stat = new Stat();
 
         byte[] data;
@@ -550,12 +547,12 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 });
             }
         } catch (KeeperException.NoNodeException e) {
-            throw new IndexNotFoundException(indexName);
+            throw new IndexerNotFoundException(indexerName);
         }
 
         IndexerDefinitionBuilder builder = IndexerDefinitionJsonSerDeser.INSTANCE.fromJsonBytes(data);
-        builder.name(indexName);
-        builder.zkDataVersion(stat.getVersion());
+        builder.name(indexerName);
+        builder.occVersion(stat.getVersion());
         return builder.build();
     }
 
@@ -585,11 +582,11 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             }
 
             try {
-                if (NodeChildrenChanged.equals(event.getType()) && event.getPath().equals(indexCollectionPath)) {
-                    indexCacheRefresher.triggerRefreshAllIndexes();
-                } else if (NodeDataChanged.equals(event.getType()) && event.getPath().startsWith(indexCollectionPathSlash)) {
-                    String indexName = event.getPath().substring(indexCollectionPathSlash.length());
-                    indexCacheRefresher.triggerIndexToRefresh(indexName);
+                if (NodeChildrenChanged.equals(event.getType()) && event.getPath().equals(indexerCollectionPath)) {
+                    indexerCacheRefresher.triggerRefreshAllIndexes();
+                } else if (NodeDataChanged.equals(event.getType()) && event.getPath().startsWith(indexerCollectionPathSlash)) {
+                    String indexerName = event.getPath().substring(indexerCollectionPathSlash.length());
+                    indexerCacheRefresher.triggerIndexToRefresh(indexerName);
                 }
             } catch (Throwable t) {
                 log.error("Indexer Model: error handling event from ZooKeeper. Event: " + event, t);
@@ -607,19 +604,19 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             if (event.getType() == Event.EventType.None && event.getState() == Event.KeeperState.SyncConnected) {
                 // Each time the connection is established, we trigger refreshing, since the previous refresh
                 // might have failed with a ConnectionLoss exception
-                indexCacheRefresher.triggerRefreshAllIndexes();
+                indexerCacheRefresher.triggerRefreshAllIndexes();
             }
         }
     }
 
     /**
-     * Responsible for updating our internal cache of IndexDefinition's. Should be triggered upon each related
+     * Responsible for updating our internal cache of IndexerDefinition's. Should be triggered upon each related
      * change on ZK, as well as on ZK connection established, since this refresher simply fails on ZK connection
      * loss exceptions, rather than retrying.
      */
-    private class IndexCacheRefresher implements Runnable {
-        private volatile Set<String> indexesToRefresh = new HashSet<String>();
-        private volatile boolean refreshAllIndexes;
+    private class IndexerCacheRefresher implements Runnable {
+        private volatile Set<String> indexersToRefresh = new HashSet<String>();
+        private volatile boolean refreshAllIndexers;
         private final Object refreshLock = new Object();
         private Thread thread;
         private final Object startedLock = new Object();
@@ -637,7 +634,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
         public synchronized void start() {
             // Upon startup, be sure to run a refresh of all indexes
-            this.refreshAllIndexes = true;
+            this.refreshAllIndexers = true;
 
             thread = new Thread(this, "Indexer model refresher");
             // Set as daemon thread: IndexerModel can be used in tools like the indexer admin CLI tools,
@@ -663,27 +660,27 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 try {
                     List<IndexerModelEvent> events = new ArrayList<IndexerModelEvent>();
                     try {
-                        Set<String> indexesToRefresh = null;
-                        boolean refreshAllIndexes = false;
+                        Set<String> indexersToRefresh = null;
+                        boolean refreshAllIndexers = false;
 
                         synchronized (refreshLock) {
-                            if (this.refreshAllIndexes || this.indexesToRefresh.isEmpty()) {
-                                refreshAllIndexes = true;
+                            if (this.refreshAllIndexers || this.indexersToRefresh.isEmpty()) {
+                                refreshAllIndexers = true;
                             } else {
-                                indexesToRefresh = new HashSet<String>(this.indexesToRefresh);
+                                indexersToRefresh = new HashSet<String>(this.indexersToRefresh);
                             }
-                            this.refreshAllIndexes = false;
-                            this.indexesToRefresh.clear();
+                            this.refreshAllIndexers = false;
+                            this.indexersToRefresh.clear();
                         }
 
-                        if (refreshAllIndexes) {
-                            synchronized (indexes_lock) {
-                                refreshIndexes(events);
+                        if (refreshAllIndexers) {
+                            synchronized (indexers_lock) {
+                                refreshIndexers(events);
                             }
                         } else {
-                            synchronized (indexes_lock) {
-                                for (String indexName : indexesToRefresh) {
-                                    refreshIndex(indexName, events);
+                            synchronized (indexers_lock) {
+                                for (String indexerName : indexersToRefresh) {
+                                    refreshIndexer(indexerName, events);
                                 }
                             }
                         }
@@ -704,7 +701,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                     }
 
                     synchronized (refreshLock) {
-                        if (!this.refreshAllIndexes && this.indexesToRefresh.isEmpty()) {
+                        if (!this.refreshAllIndexers && this.indexersToRefresh.isEmpty()) {
                             refreshLock.wait();
                         }
                     }
@@ -721,84 +718,84 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
         public void triggerIndexToRefresh(String indexName) {
             synchronized (refreshLock) {
-                indexesToRefresh.add(indexName);
+                indexersToRefresh.add(indexName);
                 refreshLock.notifyAll();
             }
         }
 
         public void triggerRefreshAllIndexes() {
             synchronized (refreshLock) {
-                refreshAllIndexes = true;
+                refreshAllIndexers = true;
                 refreshLock.notifyAll();
             }
         }
 
-        private void refreshIndexes(List<IndexerModelEvent> events) throws InterruptedException, KeeperException {
-            List<String> indexNames = zk.getChildren(indexCollectionPath, watcher);
+        private void refreshIndexers(List<IndexerModelEvent> events) throws InterruptedException, KeeperException {
+            List<String> indexerNames = zk.getChildren(indexerCollectionPath, watcher);
 
-            Set<String> indexNameSet = new HashSet<String>();
-            indexNameSet.addAll(indexNames);
+            Set<String> indexerNameSet = new HashSet<String>();
+            indexerNameSet.addAll(indexerNames);
 
-            // Remove indexes which no longer exist in ZK
-            Iterator<String> currentIndexNamesIt = indexes.keySet().iterator();
-            while (currentIndexNamesIt.hasNext()) {
-                String indexName = currentIndexNamesIt.next();
-                if (!indexNameSet.contains(indexName)) {
-                    currentIndexNamesIt.remove();
-                    events.add(new IndexerModelEvent(INDEX_REMOVED, indexName));
+            // Remove indexers which no longer exist in ZK
+            Iterator<String> currentIndexerNamesIt = indexers.keySet().iterator();
+            while (currentIndexerNamesIt.hasNext()) {
+                String indexerName = currentIndexerNamesIt.next();
+                if (!indexerNameSet.contains(indexerName)) {
+                    currentIndexerNamesIt.remove();
+                    events.add(new IndexerModelEvent(INDEXER_REMOVED, indexerName));
                 }
             }
 
-            // Add/update the other indexes
-            for (String indexName : indexNames) {
-                refreshIndex(indexName, events);
+            // Add/update the other indexers
+            for (String indexerName : indexerNames) {
+                refreshIndexer(indexerName, events);
             }
         }
 
         /**
          * Adds or updates the given index to the internal cache.
          */
-        private void refreshIndex(final String indexName, List<IndexerModelEvent> events)
+        private void refreshIndexer(final String indexerName, List<IndexerModelEvent> events)
                 throws InterruptedException, KeeperException {
             try {
-                IndexerDefinition index = loadIndex(indexName, true);
+                IndexerDefinition indexer = loadIndexer(indexerName, true);
 
-                IndexerDefinition oldIndex = indexes.get(indexName);
+                IndexerDefinition oldIndexer = indexers.get(indexerName);
 
-                if (oldIndex != null && oldIndex.getZkDataVersion() == index.getZkDataVersion()) {
+                if (oldIndexer != null && oldIndexer.getOccVersion() == indexer.getOccVersion()) {
                     // nothing changed
                 } else {
-                    final boolean isNew = oldIndex == null;
-                    indexes.put(indexName, index);
-                    events.add(new IndexerModelEvent(isNew ? INDEX_ADDED : INDEX_UPDATED, indexName));
+                    final boolean isNew = oldIndexer == null;
+                    indexers.put(indexerName, indexer);
+                    events.add(new IndexerModelEvent(isNew ? INDEXER_ADDED : INDEXER_UPDATED, indexerName));
                 }
-            } catch (IndexNotFoundException e) {
-                Object oldIndex = indexes.remove(indexName);
+            } catch (IndexerNotFoundException e) {
+                Object oldIndexer = indexers.remove(indexerName);
 
-                if (oldIndex != null) {
-                    events.add(new IndexerModelEvent(INDEX_REMOVED, indexName));
+                if (oldIndexer != null) {
+                    events.add(new IndexerModelEvent(INDEXER_REMOVED, indexerName));
                 }
             }
         }
     }
 
     /**
-     * Check the validity of an index name.
+     * Check the validity of an indexer name.
      * <p>
-     * An index name can be any string of printable unicode characters that has a length greater than 0. Printable
+     * An indexer name can be any string of printable unicode characters that has a length greater than 0. Printable
      * characters in this context are considered to be anything that is not an ISO control character as defined by
      * {@link Character#isISOControl(int)}.
      * 
-     * @param indexName The name to validate
+     * @param indexerName The name to validate
      */
-    public static void validateIndexName(String indexName) {
-        Preconditions.checkNotNull(indexName);
-        if (indexName.length() == 0) {
-            throw new IllegalArgumentException("Index name is empty");
+    public static void validateIndexerName(String indexerName) {
+        Preconditions.checkNotNull(indexerName);
+        if (indexerName.length() == 0) {
+            throw new IllegalArgumentException("Indexer name is empty");
         }
-        for (int charIdx = 0; charIdx < indexName.length(); charIdx++) {
-            if (Character.isISOControl(indexName.codePointAt(charIdx))) {
-                throw new IllegalArgumentException("Index names may only consist of printable characters");
+        for (int charIdx = 0; charIdx < indexerName.length(); charIdx++) {
+            if (Character.isISOControl(indexerName.codePointAt(charIdx))) {
+                throw new IllegalArgumentException("Indexer names may only consist of printable characters");
             }
         }
     }

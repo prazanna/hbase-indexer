@@ -20,7 +20,7 @@ import com.google.common.base.Objects;
 import java.util.Arrays;
 
 /**
- * Information about a currently running batch index build, stored as part of the {@link IndexerDefinition}.
+ * Information about a currently running batch indexing build, stored as part of the {@link IndexerDefinition}.
  *
  * <p>This object is immutable, construct it using {@link ActiveBatchBuildInfoBuilder}.</p>
  */

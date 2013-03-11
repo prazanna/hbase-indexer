@@ -15,10 +15,13 @@
  */
 package com.ngdata.hbaseindexer.model.api;
 
-public class IndexNotFoundException extends Exception {
+import java.util.Comparator;
 
-    public IndexNotFoundException(String name) {
-        super("Index does not exist: " + name);
+public class IndexerDefinitionNameComparator implements Comparator<IndexerDefinition> {
+    public final static IndexerDefinitionNameComparator INSTANCE = new IndexerDefinitionNameComparator();
+
+    @Override
+    public int compare(IndexerDefinition o1, IndexerDefinition o2) {
+        return o1.getName().compareTo(o2.getName());
     }
-
 }

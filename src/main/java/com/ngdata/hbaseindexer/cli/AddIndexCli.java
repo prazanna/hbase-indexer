@@ -38,7 +38,7 @@ public class AddIndexCli extends BaseIndexCli {
                 .name(nameOption.value(options))
                 .configuration(getIndexerConf(options, indexConfOption));
 
-        model.addIndex(builder.build());
+        model.addIndexer(builder.build());
 
         System.out.println("Index added");
     }

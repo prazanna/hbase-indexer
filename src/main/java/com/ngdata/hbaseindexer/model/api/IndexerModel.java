@@ -17,24 +17,50 @@ package com.ngdata.hbaseindexer.model.api;
 
 import java.util.Collection;
 
-public interface IndexerModel {    
-    Collection<IndexerDefinition> getIndexes();
+/**
+ * The repository of {@link IndexerDefinition}s.
+ *
+ * <p>This interface only contains read-related methods, to modify the indexer model please see
+ * the sub-interface {@link WriteableIndexerModel}.</p>
+ */
+public interface IndexerModel {
+    /**
+     * Returns all defined indexers.
+     */
+    Collection<IndexerDefinition> getIndexers();
 
     /**
-     * Gets the list of indexes, and registers a listener for future changes to the indexes. It guarantees
+     * Gets the list of indexers, and registers a listener for future changes to the indexers. It guarantees
      * that the listener will receive events for all updates that happened after the returned snapshot
-     * of the indexes.
+     * of the indexers.
      *
      * <p>In case you are familiar with ZooKeeper, note that the listener does not work like the watcher
      * in ZooKeeper: listeners are not one-time only.
      */
-    Collection<IndexerDefinition> getIndexes(IndexerModelListener listener);
+    Collection<IndexerDefinition> getIndexers(IndexerModelListener listener);
 
-    IndexerDefinition getIndex(String name) throws IndexNotFoundException;
+    /**
+     * Retrieves the definition of the indexer with the given name.
+     *
+     * <p>This throws an exception in case an indexer with this name does not exist, use {@link #hasIndexer(String)}
+     * if you want to check this.</p>
+     */
+    IndexerDefinition getIndexer(String name) throws IndexerNotFoundException;
 
-    boolean hasIndex(String name);
+    /**
+     * Checks if an indexer with the given name exists.
+     */
+    boolean hasIndexer(String name);
 
+    /**
+     * Register a listener that will be notified of changes to the indexer model.
+     */
     void registerListener(IndexerModelListener listener);
 
+    /**
+     * Unregister a listener previously registered via {@link #registerListener(IndexerModelListener)}.
+     *
+     * <p>In case the listeners would not exist, this method will silently return.</p>
+     */
     void unregisterListener(IndexerModelListener listener);
 }

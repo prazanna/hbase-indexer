@@ -15,13 +15,12 @@
  */
 package com.ngdata.hbaseindexer.model.api;
 
-import java.util.Comparator;
-
-public class IndexDefinitionNameComparator implements Comparator<IndexerDefinition> {
-    public final static IndexDefinitionNameComparator INSTANCE = new IndexDefinitionNameComparator();
-
-    @Override
-    public int compare(IndexerDefinition o1, IndexerDefinition o2) {
-        return o1.getName().compareTo(o2.getName());
+/**
+ * Thrown when trying to update an IndexerDefinition for which the {@link IndexerDefinition#getOccVersion()}
+ * didn't match.
+ */
+public class IndexerConcurrentModificationException extends Exception {
+    public IndexerConcurrentModificationException(String indexerName) {
+        super("The indexer definition was modified since it was read. Indexer: " + indexerName);
     }
 }

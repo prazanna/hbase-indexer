@@ -31,9 +31,10 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfo;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfo;
-import com.ngdata.hbaseindexer.model.api.IndexBatchBuildState;
-import com.ngdata.hbaseindexer.model.api.IndexGeneralState;
-import com.ngdata.hbaseindexer.model.api.IndexUpdateState;
+
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
 
 public class IndexerDefinitionJsonSerDeser {
     public static IndexerDefinitionJsonSerDeser INSTANCE = new IndexerDefinitionJsonSerDeser();
@@ -43,16 +44,16 @@ public class IndexerDefinitionJsonSerDeser {
         try {
             node = (ObjectNode)new ObjectMapper().readTree(new ByteArrayInputStream(json));
         } catch (IOException e) {
-            throw new RuntimeException("Error parsing index definition JSON.", e);
+            throw new RuntimeException("Error parsing indexer definition JSON.", e);
         }
         return fromJson(node);
     }
 
     public IndexerDefinitionBuilder fromJson(ObjectNode node) {
         String name = JsonUtil.getString(node, "name");
-        IndexGeneralState state = IndexGeneralState.valueOf(JsonUtil.getString(node, "generalState"));
-        IndexUpdateState updateState = IndexUpdateState.valueOf(JsonUtil.getString(node, "updateState"));
-        IndexBatchBuildState buildState = IndexBatchBuildState.valueOf(JsonUtil.getString(node, "batchBuildState"));
+        LifecycleState lifecycleState = LifecycleState.valueOf(JsonUtil.getString(node, "lifecycleState"));
+        IncrementalIndexingState incrementalIndexingState = IncrementalIndexingState.valueOf(JsonUtil.getString(node, "incrementalIndexingState"));
+        BatchIndexingState batchIndexingState = BatchIndexingState.valueOf(JsonUtil.getString(node, "batchIndexingState"));
 
         String queueSubscriptionId = JsonUtil.getString(node, "subscriptionId", null);
         long subscriptionTimestamp = JsonUtil.getLong(node, "subscriptionTimestamp", 0L);
@@ -95,13 +96,13 @@ public class IndexerDefinitionJsonSerDeser {
         byte[] batchIndexConfiguration = getByteArrayProperty(node, "batchIndexConfiguration");
         byte[] defaultBatchIndexConfiguration = getByteArrayProperty(node, "defaultBatchIndexConfiguration");
 
-        int zkDataVersion = JsonUtil.getInt(node, "zkDataVersion");
+        int occVersion = JsonUtil.getInt(node, "occVersion");
 
         IndexerDefinitionBuilder builder = new IndexerDefinitionBuilder();
         builder.name(name);
-        builder.generalState(state);
-        builder.updateState(updateState);
-        builder.batchBuildState(buildState);
+        builder.lifecycleState(lifecycleState);
+        builder.incrementalIndexingState(incrementalIndexingState);
+        builder.batchIndexingState(batchIndexingState);
         builder.subscriptionId(queueSubscriptionId);
         builder.subscriptionTimestamp(subscriptionTimestamp);
         builder.configuration(configuration);
@@ -110,7 +111,7 @@ public class IndexerDefinitionJsonSerDeser {
         builder.lastBatchBuildInfo(lastBatchBuild);
         builder.batchIndexConfiguration(batchIndexConfiguration);
         builder.defaultBatchIndexConfiguration(defaultBatchIndexConfiguration);
-        builder.zkDataVersion(zkDataVersion);
+        builder.occVersion(occVersion);
         return builder;
     }
 
@@ -135,34 +136,34 @@ public class IndexerDefinitionJsonSerDeser {
         }
     }
 
-    public byte[] toJsonBytes(IndexerDefinition index) {
+    public byte[] toJsonBytes(IndexerDefinition indexer) {
         try {
-            return new ObjectMapper().writeValueAsBytes(toJson(index));
+            return new ObjectMapper().writeValueAsBytes(toJson(indexer));
         } catch (IOException e) {
-            throw new RuntimeException("Error serializing index definition to JSON.", e);
+            throw new RuntimeException("Error serializing indexer definition to JSON.", e);
         }
     }
 
-    public ObjectNode toJson(IndexerDefinition index) {
+    public ObjectNode toJson(IndexerDefinition indexer) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
 
-        node.put("name", index.getName());
-        node.put("generalState", index.getGeneralState().toString());
-        node.put("batchBuildState", index.getBatchBuildState().toString());
-        node.put("updateState", index.getUpdateState().toString());
+        node.put("name", indexer.getName());
+        node.put("lifecycleState", indexer.getLifecycleState().toString());
+        node.put("batchIndexingState", indexer.getBatchIndexingState().toString());
+        node.put("incrementalIndexingState", indexer.getIncrementalIndexingState().toString());
 
-        node.put("zkDataVersion", index.getZkDataVersion());
+        node.put("occVersion", indexer.getOccVersion());
 
-        if (index.getSubscriptionId() != null)
-            node.put("subscriptionId", index.getSubscriptionId());
+        if (indexer.getSubscriptionId() != null)
+            node.put("subscriptionId", indexer.getSubscriptionId());
         
-        node.put("subscriptionTimestamp", index.getSubscriptionTimestamp());
+        node.put("subscriptionTimestamp", indexer.getSubscriptionTimestamp());
 
-        setByteArrayProperty(node, "configuration", index.getConfiguration());
-        setByteArrayProperty(node, "connectionConfiguration", index.getConnectionConfiguration());
+        setByteArrayProperty(node, "configuration", indexer.getConfiguration());
+        setByteArrayProperty(node, "connectionConfiguration", indexer.getConnectionConfiguration());
 
-        if (index.getActiveBatchBuildInfo() != null) {
-            ActiveBatchBuildInfo buildInfo = index.getActiveBatchBuildInfo();
+        if (indexer.getActiveBatchBuildInfo() != null) {
+            ActiveBatchBuildInfo buildInfo = indexer.getActiveBatchBuildInfo();
             ObjectNode batchNode = node.putObject("activeBatchBuild");
             batchNode.put("jobId", buildInfo.getJobId());
             batchNode.put("submitTime", buildInfo.getSubmitTime());
@@ -170,8 +171,8 @@ public class IndexerDefinitionJsonSerDeser {
             setByteArrayProperty(batchNode, "batchIndexConfiguration", buildInfo.getBatchIndexConfiguration());
         }
 
-        if (index.getLastBatchBuildInfo() != null) {
-            BatchBuildInfo buildInfo = index.getLastBatchBuildInfo();
+        if (indexer.getLastBatchBuildInfo() != null) {
+            BatchBuildInfo buildInfo = indexer.getLastBatchBuildInfo();
             ObjectNode batchNode = node.putObject("lastBatchBuild");
             batchNode.put("jobId", buildInfo.getJobId());
             batchNode.put("submitTime", buildInfo.getSubmitTime());
@@ -186,8 +187,8 @@ public class IndexerDefinitionJsonSerDeser {
             setByteArrayProperty(batchNode, "batchIndexConfiguration", buildInfo.getBatchIndexConfiguration());
         }
 
-        setByteArrayProperty(node, "batchIndexConfiguration", index.getBatchIndexConfiguration());
-        setByteArrayProperty(node, "defaultBatchIndexConfiguration", index.getDefaultBatchIndexConfiguration());
+        setByteArrayProperty(node, "batchIndexConfiguration", indexer.getBatchIndexConfiguration());
+        setByteArrayProperty(node, "defaultBatchIndexConfiguration", indexer.getDefaultBatchIndexConfiguration());
 
         return node;
     }

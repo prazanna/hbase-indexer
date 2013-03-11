@@ -15,20 +15,10 @@
  */
 package com.ngdata.hbaseindexer.model.api;
 
-public class IndexModelException extends Exception {
-    public IndexModelException() {
-        super();
+public class IndexerExistsException extends Exception {
+
+    public IndexerExistsException(String name) {
+        super("Indexer already exists: " + name);
     }
 
-    public IndexModelException(String message) {
-        super(message);
-    }
-
-    public IndexModelException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public IndexModelException(Throwable cause) {
-        super(cause);
-    }
 }
