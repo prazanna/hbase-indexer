@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.ngdata.hbaseindexer.conf.IndexConf.RowReadMode;
+
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.sep.EventListener;
@@ -100,18 +102,13 @@ public class Indexer implements EventListener {
             return;
         }
 
-        Result result;
-        switch (conf.getRowReadMode()) {
-            case ALWAYS:
+        Result result = makeResult(event.getKeyValues());
+        if (conf.getRowReadMode() == RowReadMode.DYNAMIC) {
+            if (!mapper.containsRequiredData(result)) {
                 result = readRow(event.getRow());
-                break;
-            case NEVER:
-                result = makeResult(event.getKeyValues());
-                break;
-            default:
-                throw new RuntimeException("Unexpected row read mode: " + conf.getRowReadMode());
+            }
         }
-
+       
         boolean rowDeleted = result.isEmpty();
 
         if (rowDeleted) {

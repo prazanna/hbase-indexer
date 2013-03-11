@@ -29,7 +29,7 @@ public class IndexConfBuilder {
     private String table;
     private String uniqueKeyField = "id";
     private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
-    private IndexConf.RowReadMode rowReadMode = IndexConf.RowReadMode.ALWAYS;
+    private IndexConf.RowReadMode rowReadMode = IndexConf.RowReadMode.DYNAMIC;
     private IndexConf.MappingType mappingType = IndexConf.MappingType.ROW;
     private List<FieldDefinition> fieldDefinitions = Lists.newArrayList();
     private List<DocumentExtractDefinition> documentExtractDefinitions = Lists.newArrayList();

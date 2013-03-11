@@ -39,10 +39,27 @@ public class IndexConf {
     private List<DocumentExtractDefinition> extractDefinitions;
 
     public enum MappingType { ROW, COLUMN }
-    public enum RowReadMode { ALWAYS, NEVER }
+
+    /**
+     * Mode for deciding if a row should be re-read after a mutation event occurs on it. This mode setting is only
+     * applicable for row-based indexing.
+     */
+    public enum RowReadMode {
+
+        /**
+         * Re-read a row to be indexed after a mutation event has occurred on the row if the mutation event itself does
+         * not include sufficient information to perform indexing.
+         */
+        DYNAMIC,
+
+        /**
+         * Never re-read a row to be indexed after a mutation event.
+         */
+        NEVER
+    }
 
     public static final MappingType DEFAULT_MAPPING_TYPE = MappingType.ROW;
-    public static final RowReadMode DEFAULT_ROW_READ_MODE = RowReadMode.ALWAYS;
+    public static final RowReadMode DEFAULT_ROW_READ_MODE = RowReadMode.DYNAMIC;
     public static final String DEFAULT_UNIQUE_KEY_FIELD = "id";
     public static final Class<? extends UniqueKeyFormatter> DEFAULT_UNIQUE_KEY_FORMATTER = StringUniqueKeyFormatter.class;
     public static final ValueSource DEFAULT_VALUE_SOURCE = ValueSource.VALUE;

@@ -97,6 +97,16 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
         }
         familyMap = get.getFamilyMap();
     }
+    
+    @Override
+    public boolean containsRequiredData(Result result) {
+        for (ByteArrayExtractor extractor : extractors) {
+            if (!extractor.containsTarget(result)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     @Override
     public boolean isRelevantKV(KeyValue kv) {

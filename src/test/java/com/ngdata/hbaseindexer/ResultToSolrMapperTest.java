@@ -156,6 +156,29 @@ public class ResultToSolrMapperTest {
         NavigableSet<byte[]> qualifiers = get.getFamilyMap().get(Bytes.toBytes("cf"));
         assertNull(qualifiers);
     }
+    
+    @Test
+    public void testContainsRequiredData_True() {
+        ResultToSolrMapper resultToSolrMapper = new ResultToSolrMapper(
+                Lists.newArrayList(new FieldDefinition("fieldname", "cfA:qualifierA", ValueSource.VALUE, "int")),
+                        Collections.<DocumentExtractDefinition>emptyList());
+        
+        Result result = new Result(Lists.newArrayList(new KeyValue(ROW, COLUMN_FAMILY_A, QUALIFIER_A, Bytes.toBytes("value"))));
+        
+        assertTrue(resultToSolrMapper.containsRequiredData(result));
+    }
+    
+    @Test
+    public void testContainsRequiredData_False() {
+        // With a wildcard we can never know if a Result contains all required data to perform indexing
+        ResultToSolrMapper resultToSolrMapper = new ResultToSolrMapper(
+                Lists.newArrayList(new FieldDefinition("fieldname", "cfA:quali*", ValueSource.VALUE, "int")),
+                        Collections.<DocumentExtractDefinition>emptyList());
+        
+        Result result = new Result(Lists.newArrayList(new KeyValue(ROW, COLUMN_FAMILY_A, QUALIFIER_A, Bytes.toBytes("value"))));
+        
+        assertFalse(resultToSolrMapper.containsRequiredData(result));
+    }
 
     public static class DummyValueMapper implements ByteArrayValueMapper {
 

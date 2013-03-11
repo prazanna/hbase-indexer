@@ -61,4 +61,9 @@ public class SingleCellExtractor implements ByteArrayExtractor {
         return keyValue.matchingColumn(columnFamily, columnQualifier);
     }
 
+    @Override
+    public boolean containsTarget(Result result) {
+        return result.containsColumn(columnFamily, columnQualifier);
+    }
+
 }

@@ -32,6 +32,17 @@ public interface ByteArrayExtractor {
      * @return extracted values, can be an empty collection
      */
     Collection<byte[]> extract(Result result);
+    
+    
+    /**
+     * Determine if the given {@code Result} contains all target information required by this extractor.
+     * <p>
+     * This method is required in order to perform optimizations in terms of re-reading rows during row-based indexing.
+     * 
+     * @param result the {@code Result} object to be checked for inclusion of target information
+     * @return true if all cases of this extractor can be satisfied by the data contained in the given result, otherwise false
+     */
+    boolean containsTarget(Result result);
 
     /**
      * Returns the column family used by this extractor.

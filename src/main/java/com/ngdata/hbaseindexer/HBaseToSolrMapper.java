@@ -39,6 +39,17 @@ public interface HBaseToSolrMapper {
      * <p>This call only applies to row-based indexing ({@link IndexConf.MappingType#ROW}).</p>
      */
     Get getGet(byte[] row);
+    
+    /**
+     * Determine if the given Result object contains sufficient information to perform indexing.
+     * <p>
+     * This method is needed in order to determine whether or not to re-read an updated row when performing
+     * row-based indexing.
+     * 
+     * @param result contains all KeyValues of the updated row
+     * @return true if all data required for indexing is included in the row, otherwise false
+     */
+    boolean containsRequiredData(Result result);
 
     /**
      * Creates a Solr document out of the supplied HBase row.

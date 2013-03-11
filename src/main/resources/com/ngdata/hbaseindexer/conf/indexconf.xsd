@@ -21,7 +21,7 @@
       <xs:attribute name="read-row" use="optional">
         <xs:simpleType>
           <xs:restriction base="xs:string">
-            <xs:enumeration value="always"/>
+            <xs:enumeration value="dynamic"/>
             <xs:enumeration value="never"/>
           </xs:restriction>
         </xs:simpleType>

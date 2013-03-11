@@ -83,4 +83,11 @@ public abstract class AbstractPrefixMatchingExtractor implements ByteArrayExtrac
     public byte[] getColumnQualifier() {
         return null;
     }
+    
+    @Override
+    public boolean containsTarget(Result result) {
+        // We're matching multiple potential inputs, so we can never be sure if all possibly-matching situations
+        // are included in the given result, so we just always return false.
+        return false;
+    }
 }
