@@ -17,81 +17,62 @@ package com.ngdata.hbaseindexer.model.api;
 
 import com.google.common.base.Objects;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Information about the last run batch index build, stored as part of an {@link IndexerDefinition}.
+ *
+ * <p>This object is immutable, construct it using {@link BatchBuildInfoBuilder}.</p>
+ */
 public class BatchBuildInfo {
     private String jobId;
     private long submitTime;
     private boolean success;
     private String jobState;
-    private boolean immutable;
     private String trackingUrl;
     private byte[] batchIndexConfiguration;
     private Map<String, Long> counters = new HashMap<String, Long>();
 
-    public String getJobId() {
-        return jobId;
+    BatchBuildInfo(String jobId, long submitTime, boolean success, String jobState,
+            String trackingUrl, byte[] batchIndexConfiguration, Map<String, Long> counters) {
+        this.jobId = jobId;
+        this.submitTime = submitTime;
+        this.success = success;
+        this.jobState = jobState;
+        this.trackingUrl = trackingUrl;
+        this.batchIndexConfiguration = batchIndexConfiguration;
+        this.counters = counters;
     }
 
-    public void setJobId(String jobId) {
-        checkIfMutable();
-        this.jobId = jobId;
+    public String getJobId() {
+        return jobId;
     }
 
     public long getSubmitTime() {
         return submitTime;
     }
 
-    public void setSubmitTime(long submitTime) {
-        checkIfMutable();
-        this.submitTime = submitTime;
-    }
-
     public boolean getSuccess() {
         return success;
-    }
-
-    public void setSuccess(boolean success) {
-        checkIfMutable();
-        this.success = success;
     }
 
     public String getJobState() {
         return jobState;
     }
 
-    public void setJobState(String jobState) {
-        checkIfMutable();
-        this.jobState = jobState;
-    }
-
     public String getTrackingUrl() {
         return trackingUrl;
-    }
-
-    public void setTrackingUrl(String trackingUrl) {
-        checkIfMutable();
-        this.trackingUrl = trackingUrl;
     }
 
     public Map<String, Long> getCounters() {
         return Collections.unmodifiableMap(counters);
     }
 
-    public void addCounter(String key, long value) {
-        checkIfMutable();
-        counters.put(key, value);
-    }
-
-    public void makeImmutable() {
-        this.immutable = true;
-    }
-
-    private void checkIfMutable() {
-        if (immutable)
-            throw new RuntimeException("This IndexDefinition is immutable");
+    public byte[] getBatchIndexConfiguration() {
+        return batchIndexConfiguration;
     }
 
     @Override
@@ -122,6 +103,9 @@ public class BatchBuildInfo {
         if (!Objects.equal(counters, other.counters))
             return false;
 
+        if (!Arrays.equals(this.batchIndexConfiguration, batchIndexConfiguration))
+            return false;
+
         return true;
     }
 
@@ -133,14 +117,7 @@ public class BatchBuildInfo {
         result = 31 * result + (jobState != null ? jobState.hashCode() : 0);
         result = 31 * result + (trackingUrl != null ? trackingUrl.hashCode() : 0);
         result = 31 * result + (counters != null ? counters.hashCode() : 0);
+        result = 31 * result + (batchIndexConfiguration != null ? Arrays.hashCode(batchIndexConfiguration) : 0);
         return result;
-    }
-
-    public byte[] getBatchIndexConfiguration() {
-        return batchIndexConfiguration;
-    }
-
-    public void setBatchIndexConfiguration(byte[] batchIndexConfiguration) {
-        this.batchIndexConfiguration = batchIndexConfiguration;
     }
 }

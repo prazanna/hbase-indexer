@@ -15,6 +15,9 @@
  */
 package com.ngdata.hbaseindexer.model.api;
 
+/**
+ * Thrown when trying to update an {@link IndexerDefinition} to an invalid state.
+ */
 public class IndexValidityException extends Exception {
     public IndexValidityException(String message) {
         super(message);

@@ -7,7 +7,7 @@ import com.ngdata.hbaseindexer.Indexer;
 import com.ngdata.hbaseindexer.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
-import com.ngdata.hbaseindexer.model.api.IndexDefinition;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexNotFoundException;
 import com.ngdata.hbaseindexer.model.api.IndexUpdateState;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
@@ -41,7 +41,7 @@ import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.*;
 
 /**
  * Responsible for starting, stopping and restarting {@link Indexer}s for the indexes defined in the
- * {@link IndexModel}.
+ * {@link IndexerModel}.
  */
 public class IndexerSupervisor {
     private final IndexerModel indexerModel;
@@ -95,9 +95,9 @@ public class IndexerSupervisor {
         eventWorkerThread.start();
 
         synchronized (indexUpdatersLock) {
-            Collection<IndexDefinition> indexes = indexerModel.getIndexes(listener);
+            Collection<IndexerDefinition> indexes = indexerModel.getIndexes(listener);
 
-            for (IndexDefinition index : indexes) {
+            for (IndexerDefinition index : indexes) {
                 if (shouldRunIndexUpdater(index)) {
                     addIndexUpdater(index);
                 }
@@ -126,7 +126,7 @@ public class IndexerSupervisor {
         connectionManager.shutdown();
     }
 
-    private void addIndexUpdater(IndexDefinition index) {
+    private void addIndexUpdater(IndexerDefinition index) {
         IndexUpdaterHandle handle = null;
         try {
             IndexConf indexConf = new XmlIndexConfReader().read(new ByteArrayInputStream(index.getConfiguration()));
@@ -140,7 +140,7 @@ public class IndexerSupervisor {
             Indexer indexer = new Indexer(indexConf, mapper, htablePool, solr);
             indexerRegistry.register(index.getName(), indexer);
 
-            SepConsumer sepConsumer = new SepConsumer(index.getQueueSubscriptionId(),
+            SepConsumer sepConsumer = new SepConsumer(index.getSubscriptionId(),
                     index.getSubscriptionTimestamp(), indexer, 10 /* TODO make configurable */, hostName,
                     zk, hbaseConf, null);
             handle = new IndexUpdaterHandle(index, sepConsumer);
@@ -171,7 +171,7 @@ public class IndexerSupervisor {
         }
     }
 
-    private void updateIndexUpdater(IndexDefinition index) {
+    private void updateIndexUpdater(IndexerDefinition index) {
         IndexUpdaterHandle handle = indexUpdaters.get(index.getName());
 
         if (handle.indexDef.getZkDataVersion() >= index.getZkDataVersion()) {
@@ -179,9 +179,7 @@ public class IndexerSupervisor {
         }
 
         boolean relevantChanges = !Arrays.equals(handle.indexDef.getConfiguration(), index.getConfiguration()) ||
-                !handle.indexDef.getSolrShards().equals(index.getSolrShards()) ||
-                !Objects.equal(handle.indexDef.getShardingConfiguration(), index.getShardingConfiguration()) ||
-                handle.indexDef.isEnableDerefMap() != index.isEnableDerefMap();
+                !Arrays.equals(handle.indexDef.getConnectionConfiguration(), index.getConnectionConfiguration());
 
         if (!relevantChanges) {
             return;
@@ -226,17 +224,17 @@ public class IndexerSupervisor {
         }
     }
 
-    private boolean shouldRunIndexUpdater(IndexDefinition index) {
+    private boolean shouldRunIndexUpdater(IndexerDefinition index) {
         return index.getUpdateState() == IndexUpdateState.SUBSCRIBE_AND_LISTEN &&
-                index.getQueueSubscriptionId() != null &&
+                index.getSubscriptionId() != null &&
                 !index.getGeneralState().isDeleteState();
     }
 
     private class IndexUpdaterHandle {
-        private final IndexDefinition indexDef;
+        private final IndexerDefinition indexDef;
         private final SepConsumer sepConsumer;
 
-        public IndexUpdaterHandle(IndexDefinition indexDef, SepConsumer sepEventSlave) {
+        public IndexUpdaterHandle(IndexerDefinition indexDef, SepConsumer sepEventSlave) {
             this.indexDef = indexDef;
             this.sepConsumer = sepEventSlave;
         }
@@ -273,7 +271,7 @@ public class IndexerSupervisor {
                     IndexerModelEvent event = eventQueue.take();
                     if (event.getType() == INDEX_ADDED || event.getType() == INDEX_UPDATED) {
                         try {
-                            IndexDefinition index = indexerModel.getIndex(event.getIndexName());
+                            IndexerDefinition index = indexerModel.getIndex(event.getIndexName());
                             if (shouldRunIndexUpdater(index)) {
                                 if (indexUpdaters.containsKey(index.getName())) {
                                     updateIndexUpdater(index);

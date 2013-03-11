@@ -19,14 +19,7 @@ import com.ngdata.hbaseindexer.util.zookeeper.ZkLockException;
 import org.apache.zookeeper.KeeperException;
 
 public interface WriteableIndexerModel extends IndexerModel {
-
-    /**
-     * Instantiates an IndexDefinition object, but does not register it yet, you should
-     * do this using {@link #addIndex}.
-     */
-    IndexDefinition newIndex(String name);
-
-    void addIndex(IndexDefinition index) throws IndexExistsException, IndexModelException, IndexValidityException;
+    void addIndex(IndexerDefinition index) throws IndexExistsException, IndexModelException, IndexValidityException;
 
     /**
      * Loads an index definition and returns it in a mutable way.
@@ -34,7 +27,7 @@ public interface WriteableIndexerModel extends IndexerModel {
      * <p>This differs from {@link #getIndex(String)} in that the returned index definition
      * is mutable (updateable) and it is also freshly loaded from storage.
      */
-    IndexDefinition getMutableIndex(String name) throws InterruptedException, KeeperException, IndexNotFoundException;
+    IndexerDefinition getMutableIndex(String name) throws InterruptedException, KeeperException, IndexNotFoundException;
 
     /**
      * Updates an index.
@@ -43,14 +36,14 @@ public interface WriteableIndexerModel extends IndexerModel {
      * by taking a lock on the index before reading it. In fact, you are obliged to do so, and to pass your lock,
      * of which it will be validated that it really is the owner of the index lock.
      */
-    void updateIndex(final IndexDefinition index, String lock) throws InterruptedException, KeeperException,
+    void updateIndex(final IndexerDefinition index, String lock) throws InterruptedException, KeeperException,
             IndexNotFoundException, IndexConcurrentModificationException, ZkLockException, IndexUpdateException, IndexValidityException;
 
     /**
      * Internal index update method, <b>this method is only intended for internal Lily components</b>. It
      * is similar to the update method but bypasses some checks.
      */
-    void updateIndexInternal(final IndexDefinition index) throws InterruptedException, KeeperException,
+    void updateIndexInternal(final IndexerDefinition index) throws InterruptedException, KeeperException,
             IndexNotFoundException, IndexConcurrentModificationException, IndexValidityException;
 
     void deleteIndex(final String indexName) throws IndexModelException;

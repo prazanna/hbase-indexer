@@ -14,11 +14,13 @@ import javax.annotation.PreDestroy;
 
 import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfo;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfo;
+import com.ngdata.hbaseindexer.model.api.BatchBuildInfoBuilder;
 import com.ngdata.hbaseindexer.model.api.IndexBatchBuildState;
-import com.ngdata.hbaseindexer.model.api.IndexDefinition;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexGeneralState;
 import com.ngdata.hbaseindexer.model.api.IndexNotFoundException;
 import com.ngdata.hbaseindexer.model.api.IndexUpdateState;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEventType;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
@@ -143,12 +145,12 @@ public class IndexerMaster {
             eventWorker.start();
             jobStatusWatcher.start();
 
-            Collection<IndexDefinition> indexes = indexerModel.getIndexes(listener);
+            Collection<IndexerDefinition> indexes = indexerModel.getIndexes(listener);
 
             // Rather than performing any work that might to be done for the indexes here,
             // we push out fake events. This way there's only one place where these actions
             // need to be performed.
-            for (IndexDefinition index : indexes) {
+            for (IndexerDefinition index : indexes) {
                 eventWorker.putEvent(new IndexerModelEvent(IndexerModelEventType.INDEX_UPDATED, index.getName()));
             }
 
@@ -171,23 +173,19 @@ public class IndexerMaster {
         }
     }
 
-    private boolean needsSubscriptionIdAssigned(IndexDefinition index) {
+    private boolean needsSubscriptionIdAssigned(IndexerDefinition index) {
         return !index.getGeneralState().isDeleteState() &&
-                index.getUpdateState() != IndexUpdateState.DO_NOT_SUBSCRIBE && index.getQueueSubscriptionId() == null;
+                index.getUpdateState() != IndexUpdateState.DO_NOT_SUBSCRIBE && index.getSubscriptionId() == null;
     }
 
-    private boolean needsSubscriptionIdUnassigned(IndexDefinition index) {
-        return index.getUpdateState() == IndexUpdateState.DO_NOT_SUBSCRIBE && index.getQueueSubscriptionId() != null;
+    private boolean needsSubscriptionIdUnassigned(IndexerDefinition index) {
+        return index.getUpdateState() == IndexUpdateState.DO_NOT_SUBSCRIBE && index.getSubscriptionId() != null;
     }
 
-    private boolean needsBatchBuildStart(IndexDefinition index) {
+    private boolean needsBatchBuildStart(IndexerDefinition index) {
         return !index.getGeneralState().isDeleteState() &&
                 index.getBatchBuildState() == IndexBatchBuildState.BUILD_REQUESTED &&
                 index.getActiveBatchBuildInfo() == null;
-    }
-
-    private boolean needsDerefMapDeletion(IndexDefinition index) {
-        return !index.isEnableDerefMap();
     }
 
     private void assignSubscription(String indexName) {
@@ -195,23 +193,23 @@ public class IndexerMaster {
             String lock = indexerModel.lockIndex(indexName);
             try {
                 // Read current situation of record and assure it is still actual
-                IndexDefinition index = indexerModel.getMutableIndex(indexName);
-                if (needsSubscriptionIdAssigned(index)) {
+                IndexerDefinition indexer = indexerModel.getMutableIndex(indexName);
+                if (needsSubscriptionIdAssigned(indexer)) {
                     // We assume we are the only process which creates subscriptions which begin with the
                     // prefix "IndexUpdater:". This way we are sure there are no naming conflicts or conflicts
                     // due to concurrent operations (e.g. someone deleting this subscription right after we
                     // created it).
-                    String subscriptionId = subscriptionId(index.getName());
+                    String subscriptionId = subscriptionId(indexer.getName());
                     sepModel.addSubscription(subscriptionId);
-                    index.setQueueSubscriptionId(subscriptionId);
-                    indexerModel.updateIndexInternal(index);
-                    log.info("Assigned queue subscription ID '" + subscriptionId + "' to index '" + indexName + "'");
+                    indexer = new IndexerDefinitionBuilder().startFrom(indexer).subscriptionId(subscriptionId).build();
+                    indexerModel.updateIndexInternal(indexer);
+                    log.info("Assigned subscription ID '" + subscriptionId + "' to indexer '" + indexName + "'");
                 }
             } finally {
                 indexerModel.unlockIndex(lock);
             }
         } catch (Throwable t) {
-            log.error("Error trying to assign a queue subscription to index " + indexName, t);
+            log.error("Error trying to assign a subscription to index " + indexName, t);
         }
     }
 
@@ -220,18 +218,18 @@ public class IndexerMaster {
             String lock = indexerModel.lockIndex(indexName);
             try {
                 // Read current situation of record and assure it is still actual
-                IndexDefinition index = indexerModel.getMutableIndex(indexName);
-                if (needsSubscriptionIdUnassigned(index)) {
-                    sepModel.removeSubscription(index.getQueueSubscriptionId());
-                    log.info("Deleted queue subscription for index " + indexName);
-                    index.setQueueSubscriptionId(null);
-                    indexerModel.updateIndexInternal(index);
+                IndexerDefinition indexer = indexerModel.getMutableIndex(indexName);
+                if (needsSubscriptionIdUnassigned(indexer)) {
+                    sepModel.removeSubscription(indexer.getSubscriptionId());
+                    log.info("Deleted queue subscription for indexer " + indexName);
+                    indexer = new IndexerDefinitionBuilder().startFrom(indexer).subscriptionId(null).build();
+                    indexerModel.updateIndexInternal(indexer);
                 }
             } finally {
                 indexerModel.unlockIndex(lock);
             }
         } catch (Throwable t) {
-            log.error("Error trying to delete the queue subscription for index " + indexName, t);
+            log.error("Error trying to delete the subscription for index " + indexName, t);
         }
     }
 
@@ -301,7 +299,7 @@ public class IndexerMaster {
 //        }
     }
 
-    private byte[] getBatchIndexConfiguration(IndexDefinition index) {
+    private byte[] getBatchIndexConfiguration(IndexerDefinition index) {
         if (index.getBatchIndexConfiguration() != null) {
             return index.getBatchIndexConfiguration();
         } else if (index.getDefaultBatchIndexConfiguration() != null) {
@@ -311,55 +309,47 @@ public class IndexerMaster {
         }
     }
 
-    private List<String> getBatchTables(IndexDefinition index) {
-        if (index.getBatchTables() != null) {
-            return index.getBatchTables();
-        } else {
-            return index.getDefaultBatchTables();
-        }
-    }
-
     private void prepareDeleteIndex(String indexName) {
         // We do not have to take a lock on the index, since once in delete state the index cannot
         // be modified anymore by ordinary users.
         boolean canBeDeleted = false;
         try {
             // Read current situation of record and assure it is still actual
-            IndexDefinition index = indexerModel.getMutableIndex(indexName);
-            if (index.getGeneralState() == IndexGeneralState.DELETE_REQUESTED) {
+            IndexerDefinition indexer = indexerModel.getMutableIndex(indexName);
+            if (indexer.getGeneralState() == IndexGeneralState.DELETE_REQUESTED) {
                 canBeDeleted = true;
 
-                String queueSubscriptionId = index.getQueueSubscriptionId();
+                String queueSubscriptionId = indexer.getSubscriptionId();
                 if (queueSubscriptionId != null) {
-                    sepModel.removeSubscription(index.getQueueSubscriptionId());
-                    // We leave the subscription ID in the index definition FYI
+                    sepModel.removeSubscription(indexer.getSubscriptionId());
+                    // We leave the subscription ID in the indexer definition FYI
                 }
 
-                if (index.getActiveBatchBuildInfo() != null) {
+                if (indexer.getActiveBatchBuildInfo() != null) {
                     JobClient jobClient = getJobClient();
-                    String jobId = index.getActiveBatchBuildInfo().getJobId();
+                    String jobId = indexer.getActiveBatchBuildInfo().getJobId();
                     RunningJob job = jobClient.getJob(jobId);
                     if (job != null) {
                         job.killJob();
-                        log.info("Kill index build job for index " + indexName + ", job ID =  " + jobId);
+                        log.info("Kill indexer build job for indexer " + indexName + ", job ID =  " + jobId);
                     }
                     // Just to be sure...
-                    jobStatusWatcher.assureWatching(index.getName(), index.getActiveBatchBuildInfo().getJobId());
+                    jobStatusWatcher.assureWatching(indexer.getName(), indexer.getActiveBatchBuildInfo().getJobId());
                     canBeDeleted = false;
                 }
 
                 if (!canBeDeleted) {
-                    index.setGeneralState(IndexGeneralState.DELETING);
-                    indexerModel.updateIndexInternal(index);
+                    indexer = new IndexerDefinitionBuilder().startFrom(indexer).generalState(IndexGeneralState.DELETING).build();
+                    indexerModel.updateIndexInternal(indexer);
                 }
-            } else if (index.getGeneralState() == IndexGeneralState.DELETING) {
+            } else if (indexer.getGeneralState() == IndexGeneralState.DELETING) {
                 // Check if the build job is already finished, if so, allow delete
-                if (index.getActiveBatchBuildInfo() == null) {
+                if (indexer.getActiveBatchBuildInfo() == null) {
                     canBeDeleted = true;
                 }
             }
         } catch (Throwable t) {
-            log.error("Error preparing deletion of index " + indexName, t);
+            log.error("Error preparing deletion of indexer " + indexName, t);
         }
 
         if (canBeDeleted) {
@@ -373,17 +363,18 @@ public class IndexerMaster {
         try {
             indexerModel.deleteIndex(indexName);
         } catch (Throwable t) {
-            log.error("Failed to delete index " + indexName, t);
+            log.error("Failed to delete indexer " + indexName, t);
             failedToDeleteIndex = true;
         }
 
         if (failedToDeleteIndex) {
             try {
-                IndexDefinition index = indexerModel.getMutableIndex(indexName);
-                index.setGeneralState(IndexGeneralState.DELETE_FAILED);
-                indexerModel.updateIndexInternal(index);
+                IndexerDefinition indexer = indexerModel.getMutableIndex(indexName);
+                indexer = new IndexerDefinitionBuilder().startFrom(indexer)
+                        .generalState(IndexGeneralState.DELETE_FAILED).build();
+                indexerModel.updateIndexInternal(indexer);
             } catch (Throwable t) {
-                log.error("Failed to set index state to " + IndexGeneralState.DELETE_FAILED, t);
+                log.error("Failed to set indexer state to " + IndexGeneralState.DELETE_FAILED, t);
             }
         }
     }
@@ -466,7 +457,7 @@ public class IndexerMaster {
                     }
 
                     if (event.getType() == INDEX_ADDED || event.getType() == INDEX_UPDATED) {
-                        IndexDefinition index = null;
+                        IndexerDefinition index = null;
                         try {
                             index = indexerModel.getIndex(event.getIndexName());
                         } catch (IndexNotFoundException e) {
@@ -602,63 +593,64 @@ public class IndexerMaster {
                 String lock = indexerModel.lockIndexInternal(indexName, false);
                 try {
                     // Read current situation of record and assure it is still actual
-                    IndexDefinition index = indexerModel.getMutableIndex(indexName);
+                    IndexerDefinition indexer = indexerModel.getMutableIndex(indexName);
 
-                    ActiveBatchBuildInfo activeJobInfo = index.getActiveBatchBuildInfo();
+                    ActiveBatchBuildInfo activeJobInfo = indexer.getActiveBatchBuildInfo();
 
                     if (activeJobInfo == null) {
-                        // This might happen if we got some older update event on the index right after we
+                        // This might happen if we got some older update event on the indexer right after we
                         // marked this job as finished.
-                        log.error("Unexpected situation: index build job completed but index does not have an active" +
-                                " build job. Index: " + index.getName() + ", job: " + jobId + ". Ignoring this event.");
+                        log.error("Unexpected situation: indexer build job completed but indexer does not have an active" +
+                                " build job. Index: " + indexer.getName() + ", job: " + jobId + ". Ignoring this event.");
                         runningJobs.remove(indexName);
                         return;
                     } else if (!activeJobInfo.getJobId().equals(jobId)) {
                         // I don't think this should ever occur: a new job will never start before we marked
                         // this one as finished, especially since we lock when creating/updating indexes.
-                        log.error("Abnormal situation: index is associated with index build job " +
+                        log.error("Abnormal situation: indexer is associated with index build job " +
                                 activeJobInfo.getJobId() + " but expected job " + jobId + ". Will mark job as" +
                                 " done anyway.");
                     }
 
-                    BatchBuildInfo jobInfo = new BatchBuildInfo();
-                    jobInfo.setJobState(jobState);
-                    jobInfo.setSuccess(success);
-                    jobInfo.setJobId(jobId);
-                    jobInfo.setBatchIndexConfiguration(activeJobInfo.getBatchIndexConfiguration());
+                    BatchBuildInfoBuilder jobInfoBuilder = new BatchBuildInfoBuilder();
+                    jobInfoBuilder.jobState(jobState);
+                    jobInfoBuilder.success(success);
+                    jobInfoBuilder.jobId(jobId);
+                    jobInfoBuilder.batchIndexConfiguration(activeJobInfo.getBatchIndexConfiguration());
 
                     if (activeJobInfo != null) {
-                        jobInfo.setSubmitTime(activeJobInfo.getSubmitTime());
-                        jobInfo.setTrackingUrl(activeJobInfo.getTrackingUrl());
+                        jobInfoBuilder.submitTime(activeJobInfo.getSubmitTime());
+                        jobInfoBuilder.trackingUrl(activeJobInfo.getTrackingUrl());
                     }
 
                     if (counters != null) {
-                        jobInfo.addCounter(getCounterKey(Task.Counter.MAP_INPUT_RECORDS),
+                        jobInfoBuilder.counter(getCounterKey(Task.Counter.MAP_INPUT_RECORDS),
                                 counters.getCounter(Task.Counter.MAP_INPUT_RECORDS));
-                        jobInfo.addCounter(getCounterKey(JobInProgress.Counter.TOTAL_LAUNCHED_MAPS),
+                        jobInfoBuilder.counter(getCounterKey(JobInProgress.Counter.TOTAL_LAUNCHED_MAPS),
                                 counters.getCounter(JobInProgress.Counter.TOTAL_LAUNCHED_MAPS));
-                        jobInfo.addCounter(getCounterKey(JobInProgress.Counter.NUM_FAILED_MAPS),
+                        jobInfoBuilder.counter(getCounterKey(JobInProgress.Counter.NUM_FAILED_MAPS),
                                 counters.getCounter(JobInProgress.Counter.NUM_FAILED_MAPS));
                         // TODO
 //                        jobInfo.addCounter(getCounterKey(IndexBatchBuildCounters.NUM_FAILED_RECORDS),
 //                                counters.getCounter(IndexBatchBuildCounters.NUM_FAILED_RECORDS));
                     }
 
-                    index.setLastBatchBuildInfo(jobInfo);
-                    index.setActiveBatchBuildInfo(null);
-
-                    index.setBatchBuildState(IndexBatchBuildState.INACTIVE);
+                    indexer = new IndexerDefinitionBuilder()
+                        .lastBatchBuildInfo(jobInfoBuilder.build())
+                        .activeBatchBuildInfo(null)
+                        .batchBuildState(IndexBatchBuildState.INACTIVE)
+                        .build();
 
                     runningJobs.remove(indexName);
-                    indexerModel.updateIndexInternal(index);
+                    indexerModel.updateIndexInternal(indexer);
 
-                    log.info("Marked index build job as finished for index " + indexName + ", job ID =  " + jobId);
+                    log.info("Marked indexer build job as finished for indexer " + indexName + ", job ID =  " + jobId);
 
                 } finally {
                     indexerModel.unlockIndex(lock, true);
                 }
             } catch (Throwable t) {
-                log.error("Error trying to mark index build job as finished for index " + indexName, t);
+                log.error("Error trying to mark index build job as finished for indexer " + indexName, t);
             }
         }
 

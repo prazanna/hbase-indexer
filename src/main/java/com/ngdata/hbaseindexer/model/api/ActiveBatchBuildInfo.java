@@ -17,47 +17,40 @@ package com.ngdata.hbaseindexer.model.api;
 
 import com.google.common.base.Objects;
 
+import java.util.Arrays;
+
+/**
+ * Information about a currently running batch index build, stored as part of the {@link IndexerDefinition}.
+ *
+ * <p>This object is immutable, construct it using {@link ActiveBatchBuildInfoBuilder}.</p>
+ */
 public class ActiveBatchBuildInfo {
     private String jobId;
     private long submitTime;
-    private boolean immutable;
     private String trackingUrl;
     private byte[] batchIndexConfiguration;
 
-    public String getJobId() {
-        return jobId;
+    ActiveBatchBuildInfo(String jobId, long submitTime, String trackingUrl, byte[] batchIndexConfiguration) {
+        this.jobId = jobId;
+        this.submitTime = submitTime;
+        this.trackingUrl = trackingUrl;
+        this.batchIndexConfiguration = batchIndexConfiguration;
     }
 
-    public void setJobId(String jobId) {
-        checkIfMutable();
-        this.jobId = jobId;
+    public String getJobId() {
+        return jobId;
     }
 
     public long getSubmitTime() {
         return submitTime;
     }
 
-    public void setSubmitTime(long submitTime) {
-        checkIfMutable();
-        this.submitTime = submitTime;
-    }
-
     public String getTrackingUrl() {
         return trackingUrl;
     }
 
-    public void setTrackingUrl(String trackingUrl) {
-        checkIfMutable();
-        this.trackingUrl = trackingUrl;
-    }
-
-    public void makeImmutable() {
-        this.immutable = true;
-    }
-
-    private void checkIfMutable() {
-        if (immutable)
-            throw new RuntimeException("This IndexDefinition is immutable");
+    public byte[] getBatchIndexConfiguration() {
+        return batchIndexConfiguration;
     }
 
     @Override
@@ -79,6 +72,9 @@ public class ActiveBatchBuildInfo {
         if (!Objects.equal(trackingUrl, other.trackingUrl))
             return false;
 
+        if (!Arrays.equals(batchIndexConfiguration, other.batchIndexConfiguration))
+            return false;
+
         return true;
     }
 
@@ -87,14 +83,7 @@ public class ActiveBatchBuildInfo {
         int result = jobId != null ? jobId.hashCode() : 0;
         result = 31 * result + (int) (submitTime ^ (submitTime >>> 32));
         result = 31 * result + (trackingUrl != null ? trackingUrl.hashCode() : 0);
+        result = 31 * result + (batchIndexConfiguration != null ? Arrays.hashCode(batchIndexConfiguration) : 0);
         return result;
-    }
-
-    public byte[] getBatchIndexConfiguration() {
-        return batchIndexConfiguration;
-    }
-
-    public void setBatchIndexConfiguration(byte[] batchIndexConfiguration) {
-        this.batchIndexConfiguration = batchIndexConfiguration;
     }
 }

@@ -15,7 +15,7 @@
  */
 package com.ngdata.hbaseindexer.cli;
 
-import com.ngdata.hbaseindexer.model.api.IndexDefinition;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -34,9 +34,11 @@ public class AddIndexCli extends BaseIndexCli {
     public void run(OptionSet options) throws Exception {
         super.run(options);
 
-        IndexDefinition indexDef = model.newIndex(nameOption.value(options));
-        indexDef.setConfiguration(getIndexerConf(options, indexConfOption));
-        model.addIndex(indexDef);
+        IndexerDefinitionBuilder builder = new IndexerDefinitionBuilder()
+                .name(nameOption.value(options))
+                .configuration(getIndexerConf(options, indexConfOption));
+
+        model.addIndex(builder.build());
 
         System.out.println("Index added");
     }

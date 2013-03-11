@@ -34,6 +34,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
 import com.ngdata.hbaseindexer.model.api.IndexUpdateState;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import com.ngdata.sep.util.zookeeper.ZooKeeperOperation;
@@ -50,7 +52,6 @@ import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfo;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfo;
 import com.ngdata.hbaseindexer.model.api.IndexBatchBuildState;
 import com.ngdata.hbaseindexer.model.api.IndexConcurrentModificationException;
-import com.ngdata.hbaseindexer.model.api.IndexDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexExistsException;
 import com.ngdata.hbaseindexer.model.api.IndexGeneralState;
 import com.ngdata.hbaseindexer.model.api.IndexModelException;
@@ -104,11 +105,18 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     private final ZooKeeperItf zk;
 
     /**
-     * Cache of the indexes as they are stored in ZK. Updated based on ZK watcher events. People who update
+     * Cache of the indexers as they are stored in ZK. Updated based on ZK watcher events. People who update
      * this cache should synchronize on {@link #indexes_lock}.
+     *
+     * <p>We don't really need a cache for performance reasons. It does however allow to figure out what
+     * indexers have been added or removed when receiving a children-changed ZK event. It also makes that
+     * someone who reads IndexerDefinitions doesn't have to worry about ZK connection issues.</p>
      */
-    private final Map<String, IndexDefinition> indexes = new ConcurrentHashMap<String, IndexDefinition>(16, 0.75f, 1);
+    private final Map<String, IndexerDefinition> indexes = new ConcurrentHashMap<String, IndexerDefinition>(16, 0.75f, 1);
 
+    /**
+     * Lock that should be obtained when making changes to {@link #indexes}.
+     */
     private final Object indexes_lock = new Object();
 
     private final Set<IndexerModelListener> listeners = Collections.newSetFromMap(new IdentityHashMap<IndexerModelListener, Boolean>());
@@ -153,19 +161,14 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     }
 
     @Override
-    public IndexDefinition newIndex(String name) {
-        return new IndexDefinitionImpl(name);
-    }
-
-    @Override
-    public void addIndex(IndexDefinition index) throws IndexExistsException, IndexModelException, IndexValidityException {
+    public void addIndex(IndexerDefinition index) throws IndexExistsException, IndexModelException, IndexValidityException {
         assertValid(index);
 
         if (index.getUpdateState() != IndexUpdateState.DO_NOT_SUBSCRIBE) {
-            index.setSubscriptionTimestamp(System.currentTimeMillis());
+            index = new IndexerDefinitionBuilder().startFrom(index).subscriptionTimestamp(System.currentTimeMillis()).build();
         }
         final String indexPath = indexCollectionPath + "/" + index.getName();
-        final byte[] data = IndexDefinitionConverter.INSTANCE.toJsonBytes(index);
+        final byte[] data = IndexerDefinitionJsonSerDeser.INSTANCE.toJsonBytes(index);
 
         try {
             zk.retryOperation(new ZooKeeperOperation<String>() {
@@ -181,7 +184,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
         }
     }
 
-    private void assertValid(IndexDefinition index) throws IndexValidityException {
+    private void assertValid(IndexerDefinition index) throws IndexValidityException {
         if (index.getName() == null || index.getName().length() == 0)
             throw new IndexValidityException("Name should not be null or zero-length");
 
@@ -232,16 +235,16 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 throw new IndexValidityException("Job state of last batch build cannot be null.");
         }
 
-        for (String shard : index.getSolrShards().values()) {
-            try {
-                URI uri = new URI(shard);
-                if (!uri.isAbsolute()) {
-                    throw new IndexValidityException("Solr shard URI is not absolute: " + shard);
-                }
-            } catch (URISyntaxException e) {
-                throw new IndexValidityException("Invalid Solr shard URI: " + shard);
-            }
-        }
+//        for (String shard : index.getSolrShards().values()) {
+//            try {
+//                URI uri = new URI(shard);
+//                if (!uri.isAbsolute()) {
+//                    throw new IndexValidityException("Solr shard URI is not absolute: " + shard);
+//                }
+//            } catch (URISyntaxException e) {
+//                throw new IndexValidityException("Invalid Solr shard URI: " + shard);
+//            }
+//        }
 
         // TODO FIXME disabled this code (after copying from Lily)
 //        if (index.getShardingConfiguration() != null) {
@@ -277,12 +280,12 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     }
 
     @Override
-    public void updateIndexInternal(final IndexDefinition index) throws InterruptedException, KeeperException,
+    public void updateIndexInternal(final IndexerDefinition index) throws InterruptedException, KeeperException,
             IndexNotFoundException, IndexConcurrentModificationException, IndexValidityException {
 
         assertValid(index);
 
-        final byte[] newData = IndexDefinitionConverter.INSTANCE.toJsonBytes(index);
+        final byte[] newData = IndexerDefinitionJsonSerDeser.INSTANCE.toJsonBytes(index);
 
         try {
             zk.retryOperation(new ZooKeeperOperation<Stat>() {
@@ -299,7 +302,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     }
 
     @Override
-    public void updateIndex(final IndexDefinition index, String lock) throws InterruptedException, KeeperException,
+    public void updateIndex(final IndexerDefinition index, String lock) throws InterruptedException, KeeperException,
             IndexNotFoundException, IndexConcurrentModificationException, ZkLockException, IndexUpdateException,
             IndexValidityException {
 
@@ -309,7 +312,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
         assertValid(index);
 
-        IndexDefinition currentIndex = getMutableIndex(index.getName());
+        IndexerDefinition currentIndex = getMutableIndex(index.getName());
 
         if (currentIndex.getGeneralState() == IndexGeneralState.DELETE_REQUESTED ||
                 currentIndex.getGeneralState() == IndexGeneralState.DELETING) {
@@ -432,7 +435,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     public String lockIndexInternal(String indexName, boolean checkDeleted) throws ZkLockException, IndexNotFoundException, InterruptedException,
             KeeperException, IndexModelException {
 
-        IndexDefinition index = getIndex(indexName);
+        IndexerDefinition index = getIndex(indexName);
 
         if (checkDeleted) {
             if (index.getGeneralState() == IndexGeneralState.DELETE_REQUESTED ||
@@ -496,8 +499,8 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     }
 
     @Override
-    public IndexDefinition getIndex(String name) throws IndexNotFoundException {
-        IndexDefinition index = indexes.get(name);
+    public IndexerDefinition getIndex(String name) throws IndexNotFoundException {
+        IndexerDefinition index = indexes.get(name);
         if (index == null) {
             throw new IndexNotFoundException(name);
         }
@@ -510,24 +513,24 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     }
 
     @Override
-    public IndexDefinition getMutableIndex(String name) throws InterruptedException, KeeperException, IndexNotFoundException {
+    public IndexerDefinition getMutableIndex(String name) throws InterruptedException, KeeperException, IndexNotFoundException {
         return loadIndex(name, false);
     }
 
     @Override
-    public Collection<IndexDefinition> getIndexes() {
-        return new ArrayList<IndexDefinition>(indexes.values());
+    public Collection<IndexerDefinition> getIndexes() {
+        return new ArrayList<IndexerDefinition>(indexes.values());
     }
 
     @Override
-    public Collection<IndexDefinition> getIndexes(IndexerModelListener listener) {
+    public Collection<IndexerDefinition> getIndexes(IndexerModelListener listener) {
         synchronized (indexes_lock) {
             registerListener(listener);
-            return new ArrayList<IndexDefinition>(indexes.values());
+            return new ArrayList<IndexerDefinition>(indexes.values());
         }
     }
 
-    private IndexDefinitionImpl loadIndex(String indexName, boolean forCache)
+    private IndexerDefinition loadIndex(String indexName, boolean forCache)
             throws InterruptedException, KeeperException, IndexNotFoundException {
         final String childPath = indexCollectionPath + "/" + indexName;
         final Stat stat = new Stat();
@@ -550,11 +553,10 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             throw new IndexNotFoundException(indexName);
         }
 
-        IndexDefinitionImpl index = new IndexDefinitionImpl(indexName);
-        index.setZkDataVersion(stat.getVersion());
-        IndexDefinitionConverter.INSTANCE.fromJsonBytes(data, index);
-
-        return index;
+        IndexerDefinitionBuilder builder = IndexerDefinitionJsonSerDeser.INSTANCE.fromJsonBytes(data);
+        builder.name(indexName);
+        builder.zkDataVersion(stat.getVersion());
+        return builder.build();
     }
 
     private void notifyListeners(List<IndexerModelEvent> events) {
@@ -759,10 +761,9 @@ public class IndexerModelImpl implements WriteableIndexerModel {
         private void refreshIndex(final String indexName, List<IndexerModelEvent> events)
                 throws InterruptedException, KeeperException {
             try {
-                IndexDefinitionImpl index = loadIndex(indexName, true);
-                index.makeImmutable();
+                IndexerDefinition index = loadIndex(indexName, true);
 
-                IndexDefinition oldIndex = indexes.get(indexName);
+                IndexerDefinition oldIndex = indexes.get(indexName);
 
                 if (oldIndex != null && oldIndex.getZkDataVersion() == index.getZkDataVersion()) {
                     // nothing changed
