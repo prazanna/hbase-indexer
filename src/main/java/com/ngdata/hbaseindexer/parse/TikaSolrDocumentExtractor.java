@@ -58,7 +58,7 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
             String mimeType) {
         this.indexSchema = indexSchema;
         this.extractor = extractor;
-        this.fieldNamePrefix = fieldNamePrefix;
+        this.fieldNamePrefix = fieldNamePrefix == null ? "" : fieldNamePrefix ;
         this.mimeType = mimeType;
         parser = new AutoDetectParser();
     }

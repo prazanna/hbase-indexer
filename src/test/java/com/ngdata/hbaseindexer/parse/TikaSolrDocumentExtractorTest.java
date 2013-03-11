@@ -15,17 +15,29 @@
  */
 package com.ngdata.hbaseindexer.parse;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Set;
 
 import com.ngdata.hbaseindexer.parse.extract.SingleCellExtractor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.mime.MediaType;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.sax.XHTMLContentHandler;
 import org.junit.Test;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
 
 public class TikaSolrDocumentExtractorTest {
 
@@ -52,6 +64,53 @@ public class TikaSolrDocumentExtractorTest {
         assertTrue(solrInputDocument.get("prefix_content").getValues().toString().contains(applicableValue));
 
         assertFalse(solrInputDocument.get("prefix_content").getValues().toString().contains(nonApplicableValue));
+    }
+    
+    @Test
+    public void testExtractDocument_CustomTikaParser() throws IOException {
+        byte[] columnFamily = Bytes.toBytes("cf");
+        byte[] columnQualifier = Bytes.toBytes("qualifier");
+        final String applicableValue = "this is the test data";
+        KeyValue kv = new KeyValue(Bytes.toBytes("row"), columnFamily, columnQualifier,
+                Bytes.toBytes(applicableValue));
+        Result result = new Result(new KeyValue[] { kv });
+
+        SolrDocumentExtractor documentExtractor = TikaSolrDocumentExtractor.createInstance(new SingleCellExtractor(
+                columnFamily, columnQualifier), null, "text/dummy");
+        SolrInputDocument solrInputDocument = new SolrInputDocument();
+        documentExtractor.extractDocument(result, solrInputDocument);
+
+        // Just make sure that the data came through the dynamically-loaded Tika parser
+        assertEquals(DummyParser.INDEX_VALUE, solrInputDocument.get(DummyParser.INDEX_FIELD).getFirstValue());
+      
+    }
+    
+    public static class DummyParser implements Parser {
+        
+        public static final MediaType DUMMY_MEDIA_TYPE = MediaType.text("dummy");
+        public static final String DUMMY_MIME_TYPE = "text/dummy";
+
+        public static final String INDEX_FIELD = "_index_field_";
+        public static final String INDEX_VALUE = "_index_value_";
+        
+
+        @Override
+        public Set<MediaType> getSupportedTypes(ParseContext context) {
+            return Collections.singleton(DUMMY_MEDIA_TYPE);
+        }
+
+        @Override
+        public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext context)
+                throws IOException, SAXException, TikaException {
+            
+            metadata.set(Metadata.CONTENT_TYPE, DUMMY_MIME_TYPE);
+            metadata.set(INDEX_FIELD, INDEX_VALUE);
+
+            XHTMLContentHandler xhtml = new XHTMLContentHandler(handler, metadata);
+            xhtml.startDocument();
+            xhtml.endDocument();
+        }
+        
     }
 
 }
