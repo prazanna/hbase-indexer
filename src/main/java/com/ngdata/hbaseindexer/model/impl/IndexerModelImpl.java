@@ -432,7 +432,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
     public String lockIndexerInternal(String indexerName, boolean checkDeleted) throws ZkLockException,
             IndexerNotFoundException, InterruptedException, KeeperException, IndexerModelException {
 
-        IndexerDefinition indexer = getIndexer(indexerName);
+        IndexerDefinition indexer = getFreshIndexer(indexerName);
 
         if (checkDeleted) {
             if (indexer.getLifecycleState() == LifecycleState.DELETE_REQUESTED ||
