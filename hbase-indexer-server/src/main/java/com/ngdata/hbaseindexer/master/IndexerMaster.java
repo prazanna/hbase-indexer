@@ -148,7 +148,7 @@ public class IndexerMaster {
             // we push out fake events. This way there's only one place where these actions
             // need to be performed.
             for (IndexerDefinition index : indexers) {
-                eventWorker.putEvent(new IndexerModelEvent(IndexerModelEventType.INDEXER_UPDATED, index.getName()));
+                eventWorker.putEvent(new IndexerModelEvent(INDEXER_UPDATED, index.getName()));
             }
 
             log.info("Startup as indexer master successful.");

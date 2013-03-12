@@ -23,6 +23,7 @@
     <version.solr>4.1.0</version.solr>
     <version.guava>11.0.2</version.guava>
     <version.slf4j>1.7.2</version.slf4j>
+    <version.zookeeper>3.4.3</version.zookeeper>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -54,10 +55,40 @@
 
   <modules>
     <module>hbase-indexer-server</module>
+    <module>hbase-indexer-util</module>
+    <module>hbase-indexer-model</module>
+    <module>hbase-indexer-cli</module>
+    <module>hbase-indexer-all</module>
   </modules>
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.ngdata</groupId>
+        <artifactId>hbase-indexer-server</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.ngdata</groupId>
+        <artifactId>hbase-indexer-util</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.ngdata</groupId>
+        <artifactId>hbase-indexer-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.ngdata</groupId>
+        <artifactId>hbase-indexer-cli</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.8.1</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

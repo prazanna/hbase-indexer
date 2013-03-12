@@ -48,7 +48,7 @@ public class HBaseIndexerConfiguration {
     private static void checkDefaultsVersion(Configuration conf) {
         if (conf.getBoolean("hbaseindexer.defaults.for.version.skip", Boolean.FALSE)) return;
         String defaultsVersion = conf.get("hbaseindexer.defaults.for.version");
-        String thisVersion = Version.readVersion("com.ngdata", "hbase-indexer");
+        String thisVersion = Version.readVersion("com.ngdata", "hbase-indexer-util");
         if (!thisVersion.equals(defaultsVersion)) {
             throw new RuntimeException(
                     "hbase-indexer-default.xml file seems to be for and old version of HBase Indexer (" +

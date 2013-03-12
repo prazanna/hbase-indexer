@@ -7,6 +7,7 @@ import com.ngdata.hbaseindexer.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
+import com.ngdata.hbaseindexer.model.api.IndexerModelEventType;
 import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;

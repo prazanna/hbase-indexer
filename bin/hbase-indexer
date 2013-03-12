@@ -60,7 +60,7 @@ esac
 
 # Detect if we are in hbase-indexer sources dir
 in_dev_env=false
-if [ -d "${HBASE_INDEXER_HOME}/target" ]; then
+if [ -d "${HBASE_INDEXER_HOME}/hbase-indexer-all/target" ]; then
   in_dev_env=true
 fi
 
@@ -133,7 +133,7 @@ add_maven_deps_to_classpath() {
   # Need to generate classpath from maven pom. This is costly so generate it
   # and cache it. Save the file into our target dir so a mvn clean will get
   # clean it up and force us create a new one.
-  f="${HBASE_INDEXER_HOME}/target/cached_classpath.txt"
+  f="${HBASE_INDEXER_HOME}/hbase-indexer-all/target/cached_classpath.txt"
   if [ ! -f "${f}" ]
   then
       echo "As this is a development environment, we need ${f} to be generated from maven (command: mvn compile)"
@@ -142,15 +142,9 @@ add_maven_deps_to_classpath() {
   CLASSPATH=${CLASSPATH}:`cat "${f}"`
 }
 
-add_maven_main_classes_to_classpath() {
-  HBASE_INDEXER_VERSION=`cat $HBASE_INDEXER_HOME/pom.xml | grep -m 1 --only-matching \<version\>.*\</version\> | sed 's,<version>,,g' | sed 's,</version>,,g'`
-  CLASSPATH=${CLASSPATH}:$HBASE_INDEXER_HOME/target/hbase-indexer-${HBASE_INDEXER_VERSION}.jar
-}
-
 #Add the development env class path stuff
 if $in_dev_env; then
   add_maven_deps_to_classpath
-  add_maven_main_classes_to_classpath
 fi
 
 # hbase-indexer: disabled this, we'll see later if we'll have multiple modules
