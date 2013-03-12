@@ -18,8 +18,8 @@ package com.ngdata.hbaseindexer.model.api;
 /**
  * Reports changes to the {@link IndexerModel}.
  *
- * <p>The methods are called from within a ZooKeeper Watcher event callback, so be careful what
- * you do in the implementation (should be short-running + not wait for ZK events itself). 
+ * <p>Events are dispatched to all listeners from the same thread, so don't do anything too time-consuming
+ * from these callbacks.
  */
 public interface IndexerModelListener {
     void process(IndexerModelEvent event);

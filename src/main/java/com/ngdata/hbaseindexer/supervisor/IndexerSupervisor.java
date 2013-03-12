@@ -284,7 +284,7 @@ public class IndexerSupervisor {
                         } catch (Throwable t) {
                             log.error("Error in IndexerWorker's IndexerModelListener.", t);
                         }
-                    } else if (event.getType() == INDEXER_REMOVED) {
+                    } else if (event.getType() == INDEXER_DELETED) {
                         removeIndexUpdater(event.getIndexerName());
                     }
                 } catch (InterruptedException e) {

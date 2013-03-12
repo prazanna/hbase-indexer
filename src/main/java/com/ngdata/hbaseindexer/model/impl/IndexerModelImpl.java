@@ -742,7 +742,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 String indexerName = currentIndexerNamesIt.next();
                 if (!indexerNameSet.contains(indexerName)) {
                     currentIndexerNamesIt.remove();
-                    events.add(new IndexerModelEvent(INDEXER_REMOVED, indexerName));
+                    events.add(new IndexerModelEvent(INDEXER_DELETED, indexerName));
                 }
             }
 
@@ -773,7 +773,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
                 Object oldIndexer = indexers.remove(indexerName);
 
                 if (oldIndexer != null) {
-                    events.add(new IndexerModelEvent(INDEXER_REMOVED, indexerName));
+                    events.add(new IndexerModelEvent(INDEXER_DELETED, indexerName));
                 }
             }
         }
