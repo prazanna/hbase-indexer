@@ -1,4 +1,4 @@
-package com.ngdata.hbaseindexer.model.impl;
+package com.ngdata.hbaseindexer.impl;
 
 import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfoBuilder;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfoBuilder;
@@ -75,13 +75,13 @@ public class IndexerDefinitionJsonSerDeserTest {
         assertArrayEquals("batch-conf-default".getBytes(), indexer2.getDefaultBatchIndexConfiguration());
         assertArrayEquals("batch-conf-next".getBytes(), indexer2.getBatchIndexConfiguration());
 
-        assertNotNull(indexer2.getActiveBatchBuildInfo());
+        Assert.assertNotNull(indexer2.getActiveBatchBuildInfo());
         assertEquals("job-id-1", indexer2.getActiveBatchBuildInfo().getJobId());
         assertEquals(10L, indexer2.getActiveBatchBuildInfo().getSubmitTime());
         assertEquals("url-1", indexer2.getActiveBatchBuildInfo().getTrackingUrl());
         assertArrayEquals("batch-conf-1".getBytes(), indexer2.getActiveBatchBuildInfo().getBatchIndexConfiguration());
 
-        assertNotNull(indexer2.getLastBatchBuildInfo());
+        Assert.assertNotNull(indexer2.getLastBatchBuildInfo());
         assertEquals("job-id-2", indexer2.getLastBatchBuildInfo().getJobId());
         assertEquals(11L, indexer2.getLastBatchBuildInfo().getSubmitTime());
         assertEquals("url-2", indexer2.getLastBatchBuildInfo().getTrackingUrl());

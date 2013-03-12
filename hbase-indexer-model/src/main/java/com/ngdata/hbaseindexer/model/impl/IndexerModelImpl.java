@@ -61,7 +61,6 @@ import com.ngdata.hbaseindexer.util.zookeeper.ZkLockException;
 
 import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
 import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
-import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.*;
 import static org.apache.zookeeper.Watcher.Event.EventType.NodeChildrenChanged;
 import static org.apache.zookeeper.Watcher.Event.EventType.NodeDataChanged;
 

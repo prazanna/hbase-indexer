@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer.model.impl;
+package com.ngdata.hbaseindexer.impl;
 
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
@@ -91,7 +91,7 @@ public class IndexerModelImplTest {
             // Verify that a fresh indexer model has the index
             model2 = new IndexerModelImpl(zk2, "/test");
             assertEquals(1, model2.getIndexers().size());
-            assertTrue(model2.hasIndexer("indexer1"));
+            Assert.assertTrue(model2.hasIndexer("indexer1"));
 
             // Update the indexer -- verify INDEXER_UPDATED event
             indexer1 = new IndexerDefinitionBuilder()
@@ -127,7 +127,7 @@ public class IndexerModelImplTest {
 
             // Terminate ZK connections: clients should automatically re-establish the connection and things
             // should work as before
-            assertEquals(2, terminateZooKeeperConnections());
+            Assert.assertEquals(2, terminateZooKeeperConnections());
 
             // Do another index update and check we get an event
             IndexerDefinition indexer2 = new IndexerDefinitionBuilder()
@@ -177,10 +177,10 @@ public class IndexerModelImplTest {
 
             try {
                 model2.updateIndexer(indexer1, lock + "foo");
-                fail("Expected exception");
+                Assert.fail("Expected exception");
             } catch (IndexerUpdateException e) {
                 // verify the exception says something about locks
-                assertTrue(e.getMessage().contains("lock"));
+                Assert.assertTrue(e.getMessage().contains("lock"));
             }
 
             // First client should be able to do the update though
@@ -227,20 +227,20 @@ public class IndexerModelImplTest {
                     System.out.println("There are no events.");
                 }
 
-                assertEquals("Expected number of events", expectedEvents.length, events.size());
+                Assert.assertEquals("Expected number of events", expectedEvents.length, events.size());
             }
 
             Set<IndexerModelEvent> expectedEventsSet  = new HashSet<IndexerModelEvent>(Arrays.asList(expectedEvents));
 
             for (IndexerModelEvent event : expectedEvents) {
                 if (!events.contains(event)) {
-                    fail("Expected event not present among events: " + event);
+                    Assert.fail("Expected event not present among events: " + event);
                 }
             }
 
             for (IndexerModelEvent event : events) {
                 if (!expectedEventsSet.contains(event)) {
-                    fail("Got an event which is not among the expected events: " + event);
+                    Assert.fail("Got an event which is not among the expected events: " + event);
                 }
             }
 
