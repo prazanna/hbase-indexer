@@ -17,7 +17,9 @@ package com.ngdata.hbaseindexer.cli;
 
 import com.google.common.collect.Maps;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
+import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -26,15 +28,34 @@ import org.apache.hadoop.hbase.util.Pair;
 import java.util.Map;
 
 /**
- * CLI tool for adding new indexes.
+ * CLI tool to add a new {@link IndexerDefinition}s to the {@link IndexerModel}.
  */
-public class AddIndexCli extends BaseIndexCli {
+public class AddIndexerCli extends BaseIndexCli {
     private OptionSpec<String> nameOption;
     private OptionSpec<String> indexConfOption;
     private OptionSpec<Pair<String, String>> connectionParamOption;
 
     public static void main(String[] args) throws Exception {
-        new AddIndexCli().run(args);
+        new AddIndexerCli().run(args);
+    }
+
+    private AddIndexerCli() {
+    }
+
+    @Override
+    protected String getCmdName() {
+        return "add-indexer";
+    }
+
+    @Override
+    protected OptionParser setupOptionParser() {
+        OptionParser parser = super.setupOptionParser();
+
+        nameOption = addNameOption(parser).required();
+        indexConfOption = addIndexConfOption(parser).required();
+        connectionParamOption = addConnectionParamOption(parser);
+
+        return parser;
     }
 
     public void run(OptionSet options) throws Exception {
@@ -87,21 +108,5 @@ public class AddIndexCli extends BaseIndexCli {
         }
 
         return false;
-    }
-
-    @Override
-    protected OptionParser setupOptionParser() {
-        OptionParser parser = super.setupOptionParser();
-
-        nameOption = addNameOption(parser).required();
-        indexConfOption = addIndexConfOption(parser).required();
-        connectionParamOption = addConnectionParamOption(parser);
-
-        return parser;
-    }
-
-    @Override
-    protected String getCmdName() {
-        return "add-index";
     }
 }

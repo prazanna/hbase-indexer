@@ -70,7 +70,8 @@ if [ $# = 0 ]; then
   echo "where <command> an option from one of these categories:"
   echo ""
   echo "TOOLS"
-  echo "  add-index"
+  echo "  add-indexer"
+  echo "  list-indexers"
   echo ""
   echo "PROCESS MANAGEMENT"
   echo "  server           run the HBase Indexer server node"
@@ -230,7 +231,7 @@ unset IFS
 
 #Set the right GC options based on the what we are running
 # TODO hbase-indexer: update list of client commands
-declare -a client_cmds=("add-index" "update-index")
+declare -a client_cmds=("add-indexer" "list-indexers")
 for cmd in ${client_cmds[@]}; do
 	if [[ $cmd == $COMMAND ]]; then
 		client=true
@@ -247,8 +248,10 @@ fi
 # figure out which class to run
 if [ "$COMMAND" = "server" ] ; then
   CLASS='com.ngdata.hbaseindexer.Main'
-elif [ "$COMMAND" = "add-index" ] ; then
-  CLASS='com.ngdata.hbaseindexer.cli.AddIndexCli'
+elif [ "$COMMAND" = "add-indexer" ] ; then
+  CLASS='com.ngdata.hbaseindexer.cli.AddIndexerCli'
+elif [ "$COMMAND" = "list-indexers" ] ; then
+  CLASS='com.ngdata.hbaseindexer.cli.ListIndexersCli'
 elif [ "$COMMAND" = "classpath" ] ; then
   echo $CLASSPATH
   exit 0
