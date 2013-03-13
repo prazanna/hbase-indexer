@@ -63,8 +63,14 @@ public class Indexer implements EventListener {
         this.tablePool = tablePool;
         this.solr = solrServer;
     }
-
+    
     @Override
+    public void processEvents(List<SepEvent> events) {
+        for (SepEvent event : events) {
+            processEvent(event);
+        }
+    }
+
     public void processEvent(SepEvent event) {
         System.out.println("process event called");
         try {
