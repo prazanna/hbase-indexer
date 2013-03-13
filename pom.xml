@@ -23,7 +23,8 @@
     <version.solr>4.1.0</version.solr>
     <version.guava>11.0.2</version.guava>
     <version.slf4j>1.7.2</version.slf4j>
-    <version.zookeeper>3.4.3</version.zookeeper>
+    <version.hadoop.mr1>2.0.0-mr1-cdh4.2.0</version.hadoop.mr1>
+    <version.zookeeper>3.4.5-cdh4.2.0</version.zookeeper>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -104,6 +105,15 @@
       <name>Maven Repository Switchboard</name>
       <layout>default</layout>
       <url>http://repo1.maven.org/maven2</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+
+    <repository>
+      <id>cdh.repo</id>
+      <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+      <name>Cloudera Repository</name>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
