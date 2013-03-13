@@ -20,6 +20,8 @@ import joptsimple.OptionParser;
 import joptsimple.OptionException;
 import joptsimple.OptionSet;
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PropertyConfigurator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +60,11 @@ public abstract class BaseCli {
             System.exit(1);
         }
 
+        if (!options.has("default-log")) {
+            LogManager.resetConfiguration();
+            PropertyConfigurator.configure(BaseCli.class.getResource("cli-log4j.properties"));
+        }
+
         try {
             run(options);
         } catch (CliException e) {
@@ -83,6 +90,7 @@ public abstract class BaseCli {
     protected OptionParser setupOptionParser() {
         OptionParser parser =  new OptionParser();
         parser.acceptsAll(Lists.newArrayList("h", "help"), "shows help for this command");
+        parser.acceptsAll(Lists.newArrayList("dl", "default-log"), "don't override log4j config");
         return parser;
     }
 
