@@ -5,6 +5,7 @@ import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.HBaseToSolrMapper;
 import com.ngdata.hbaseindexer.Indexer;
 import com.ngdata.hbaseindexer.ResultToSolrMapper;
+import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
@@ -22,13 +23,15 @@ import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.zookeeper.KeeperException;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -125,24 +128,42 @@ public class IndexerSupervisor {
         connectionManager.shutdown();
     }
 
+    private SolrServer getSolrServer(IndexerDefinition indexerDef) throws MalformedURLException {
+        if (!"solr".equals(indexerDef.getConnectionType())) {
+            throw new RuntimeException("Only indexers with connectionType=solr are supported, but found type: '"
+                    + indexerDef.getConnectionType() + "'.");
+        }
+
+        String solrMode = indexerDef.getConnectionParams().get(SolrConnectionParams.MODE);
+        if (solrMode == null || solrMode.equals("cloud")) {
+            String solrZk = indexerDef.getConnectionParams().get(SolrConnectionParams.ZOOKEEPER);
+            CloudSolrServer solr = new CloudSolrServer(solrZk);
+            String collection = indexerDef.getConnectionParams().get(SolrConnectionParams.COLLECTION);
+            solr.setDefaultCollection(collection);
+            return solr;
+        } else {
+            throw new RuntimeException("Only indexers with connection parameter solr.mode=cloud are supported," +
+                    " found : '" + solrMode + "'.");
+        }
+    }
+
     private void addIndexUpdater(IndexerDefinition index) {
         IndexUpdaterHandle handle = null;
+        SolrServer solr = null;
         try {
             IndexConf indexConf = new XmlIndexConfReader().read(new ByteArrayInputStream(index.getConfiguration()));
-
-            // TODO need something real here
-            HttpSolrServer solr = new HttpSolrServer("http://localhost:8983/solr", httpClient);
 
             // create and register the indexer
             HBaseToSolrMapper mapper = new ResultToSolrMapper(
                     indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions());
+            solr = getSolrServer(index);
             Indexer indexer = new Indexer(indexConf, mapper, htablePool, solr);
             indexerRegistry.register(index.getName(), indexer);
 
             SepConsumer sepConsumer = new SepConsumer(index.getSubscriptionId(),
                     index.getSubscriptionTimestamp(), indexer, 10 /* TODO make configurable */, hostName,
                     zk, hbaseConf, null);
-            handle = new IndexUpdaterHandle(index, sepConsumer);
+            handle = new IndexUpdaterHandle(index, sepConsumer, solr);
             handle.start();
 
             indexUpdaters.put(index.getName(), handle);
@@ -166,6 +187,9 @@ public class IndexerSupervisor {
                     log.error("Problem stopping listeners for failed-to-start index updater for index '" +
                             index.getName() + "'", t2);
                 }
+            } else {
+                // Might be the handle was not yet created, but the solr connection was
+                Closer.close(solr);
             }
         }
     }
@@ -233,10 +257,12 @@ public class IndexerSupervisor {
     private class IndexUpdaterHandle {
         private final IndexerDefinition indexDef;
         private final SepConsumer sepConsumer;
+        private final SolrServer solrServer;
 
-        public IndexUpdaterHandle(IndexerDefinition indexDef, SepConsumer sepEventSlave) {
+        public IndexUpdaterHandle(IndexerDefinition indexDef, SepConsumer sepEventSlave, SolrServer solrServer) {
             this.indexDef = indexDef;
             this.sepConsumer = sepEventSlave;
+            this.solrServer = solrServer;
         }
 
         public void start() throws InterruptedException, KeeperException, IOException {
@@ -245,6 +271,7 @@ public class IndexerSupervisor {
 
         public void stop() throws InterruptedException {
             Closer.close(sepConsumer);
+            Closer.close(solrServer);
         }
     }
 
