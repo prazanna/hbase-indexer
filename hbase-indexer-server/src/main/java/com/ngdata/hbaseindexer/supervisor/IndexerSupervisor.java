@@ -1,5 +1,19 @@
+/*
+ * Copyright 2013 NGDATA nv
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ngdata.hbaseindexer.supervisor;
-
 
 import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.HBaseToSolrMapper;
@@ -39,10 +53,11 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.*;
 
 /**
- * Responsible for starting, stopping and restarting {@link Indexer}s for the indexes defined in the
+ * Responsible for starting, stopping and restarting {@link Indexer}s for the indexers defined in the
  * {@link IndexerModel}.
  */
 public class IndexerSupervisor {
@@ -54,9 +69,9 @@ public class IndexerSupervisor {
 
     private final IndexerModelListener listener = new MyListener();
 
-    private final Map<String, IndexUpdaterHandle> indexUpdaters = new HashMap<String, IndexUpdaterHandle>();
+    private final Map<String, IndexerHandle> indexers = new HashMap<String, IndexerHandle>();
 
-    private final Object indexUpdatersLock = new Object();
+    private final Object indexersLock = new Object();
 
     private final BlockingQueue<IndexerModelEvent> eventQueue = new LinkedBlockingQueue<IndexerModelEvent>();
 
@@ -96,12 +111,12 @@ public class IndexerSupervisor {
         eventWorkerThread = new Thread(eventWorker, "IndexerWorkerEventWorker");
         eventWorkerThread.start();
 
-        synchronized (indexUpdatersLock) {
-            Collection<IndexerDefinition> indexes = indexerModel.getIndexers(listener);
+        synchronized (indexersLock) {
+            Collection<IndexerDefinition> indexerDefs = indexerModel.getIndexers(listener);
 
-            for (IndexerDefinition index : indexes) {
-                if (shouldRunIndexUpdater(index)) {
-                    addIndexUpdater(index);
+            for (IndexerDefinition indexerDef : indexerDefs) {
+                if (shouldRunIndexer(indexerDef)) {
+                    startIndexer(indexerDef);
                 }
             }
         }
@@ -117,7 +132,7 @@ public class IndexerSupervisor {
             log.info("Interrupted while joining eventWorkerThread.");
         }
 
-        for (IndexUpdaterHandle handle : indexUpdaters.values()) {
+        for (IndexerHandle handle : indexers.values()) {
             try {
                 handle.stop();
             } catch (InterruptedException e) {
@@ -147,34 +162,34 @@ public class IndexerSupervisor {
         }
     }
 
-    private void addIndexUpdater(IndexerDefinition index) {
-        IndexUpdaterHandle handle = null;
+    private void startIndexer(IndexerDefinition indexerDef) {
+        IndexerHandle handle = null;
         SolrServer solr = null;
         try {
-            IndexConf indexConf = new XmlIndexConfReader().read(new ByteArrayInputStream(index.getConfiguration()));
+            IndexConf indexConf = new XmlIndexConfReader().read(new ByteArrayInputStream(indexerDef.getConfiguration()));
 
             // create and register the indexer
             HBaseToSolrMapper mapper = new ResultToSolrMapper(
                     indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions());
-            solr = getSolrServer(index);
+            solr = getSolrServer(indexerDef);
             Indexer indexer = new Indexer(indexConf, mapper, htablePool, solr);
-            indexerRegistry.register(index.getName(), indexer);
+            indexerRegistry.register(indexerDef.getName(), indexer);
 
-            SepConsumer sepConsumer = new SepConsumer(index.getSubscriptionId(),
-                    index.getSubscriptionTimestamp(), indexer, 10 /* TODO make configurable */, hostName,
+            SepConsumer sepConsumer = new SepConsumer(indexerDef.getSubscriptionId(),
+                    indexerDef.getSubscriptionTimestamp(), indexer, 10 /* TODO make configurable */, hostName,
                     zk, hbaseConf, null);
-            handle = new IndexUpdaterHandle(index, sepConsumer, solr);
+            handle = new IndexerHandle(indexerDef, sepConsumer, solr);
             handle.start();
 
-            indexUpdaters.put(index.getName(), handle);
+            indexers.put(indexerDef.getName(), handle);
 
-            log.info("Started index updater for index " + index.getName());
+            log.info("Started indexer for " + indexerDef.getName());
         } catch (Throwable t) {
             if (t instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
 
-            log.error("Problem starting index updater for index " + index.getName(), t);
+            log.error("Problem starting indexer " + indexerDef.getName(), t);
 
             if (handle != null) {
                 // stop any listeners that might have been started
@@ -184,8 +199,8 @@ public class IndexerSupervisor {
                     if (t2 instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
                     }
-                    log.error("Problem stopping listeners for failed-to-start index updater for index '" +
-                            index.getName() + "'", t2);
+                    log.error("Problem stopping consumers for failed-to-start indexer '" +
+                            indexerDef.getName() + "'", t2);
                 }
             } else {
                 // Might be the handle was not yet created, but the solr connection was
@@ -194,30 +209,30 @@ public class IndexerSupervisor {
         }
     }
 
-    private void updateIndexUpdater(IndexerDefinition index) {
-        IndexUpdaterHandle handle = indexUpdaters.get(index.getName());
+    private void restartIndexer(IndexerDefinition indexerDef) {
+        IndexerHandle handle = indexers.get(indexerDef.getName());
 
-        if (handle.indexDef.getOccVersion() >= index.getOccVersion()) {
+        if (handle.indexerDef.getOccVersion() >= indexerDef.getOccVersion()) {
             return;
         }
 
-        boolean relevantChanges = !Arrays.equals(handle.indexDef.getConfiguration(), index.getConfiguration()) ||
-                Objects.equal(handle.indexDef.getConnectionType(), index.getConnectionType())
-                || !Objects.equal(handle.indexDef.getConnectionParams(), index.getConnectionParams());
+        boolean relevantChanges = !Arrays.equals(handle.indexerDef.getConfiguration(), indexerDef.getConfiguration()) ||
+                Objects.equal(handle.indexerDef.getConnectionType(), indexerDef.getConnectionType())
+                || !Objects.equal(handle.indexerDef.getConnectionParams(), indexerDef.getConnectionParams());
 
         if (!relevantChanges) {
             return;
         }
 
-        if (removeIndexUpdater(index.getName())) {
-            addIndexUpdater(index);
+        if (stopIndexer(indexerDef.getName())) {
+            startIndexer(indexerDef);
         }
     }
 
-    private boolean removeIndexUpdater(String indexName) {
-        indexerRegistry.unregister(indexName);
+    private boolean stopIndexer(String indexerName) {
+        indexerRegistry.unregister(indexerName);
 
-        IndexUpdaterHandle handle = indexUpdaters.get(indexName);
+        IndexerHandle handle = indexers.get(indexerName);
 
         if (handle == null) {
             return true;
@@ -225,11 +240,11 @@ public class IndexerSupervisor {
 
         try {
             handle.stop();
-            indexUpdaters.remove(indexName);
-            log.info("Stopped indexer updater for index " + indexName);
+            indexers.remove(indexerName);
+            log.info("Stopped indexer " + indexerName);
             return true;
         } catch (Throwable t) {
-            log.fatal("Failed to stop an IndexUpdater that should be stopped.", t);
+            log.fatal("Failed to stop an indexer that should be stopped.", t);
             return false;
         }
     }
@@ -243,24 +258,24 @@ public class IndexerSupervisor {
                 // have to wait too long.
                 eventQueue.put(event);
             } catch (InterruptedException e) {
-                log.info("IndexerWorker.IndexerModelListener interrupted.");
+                log.info("IndexerSupervisor.IndexerModelListener interrupted.");
             }
         }
     }
 
-    private boolean shouldRunIndexUpdater(IndexerDefinition index) {
-        return index.getIncrementalIndexingState() == IndexerDefinition.IncrementalIndexingState.SUBSCRIBE_AND_CONSUME &&
-                index.getSubscriptionId() != null &&
-                !index.getLifecycleState().isDeleteState();
+    private boolean shouldRunIndexer(IndexerDefinition indexerDef) {
+        return indexerDef.getIncrementalIndexingState() == IncrementalIndexingState.SUBSCRIBE_AND_CONSUME &&
+                indexerDef.getSubscriptionId() != null &&
+                !indexerDef.getLifecycleState().isDeleteState();
     }
 
-    private class IndexUpdaterHandle {
-        private final IndexerDefinition indexDef;
+    private class IndexerHandle {
+        private final IndexerDefinition indexerDef;
         private final SepConsumer sepConsumer;
         private final SolrServer solrServer;
 
-        public IndexUpdaterHandle(IndexerDefinition indexDef, SepConsumer sepEventSlave, SolrServer solrServer) {
-            this.indexDef = indexDef;
+        public IndexerHandle(IndexerDefinition indexerDef, SepConsumer sepEventSlave, SolrServer solrServer) {
+            this.indexerDef = indexerDef;
             this.sepConsumer = sepEventSlave;
             this.solrServer = solrServer;
         }
@@ -298,23 +313,23 @@ public class IndexerSupervisor {
                     IndexerModelEvent event = eventQueue.take();
                     if (event.getType() == INDEXER_ADDED || event.getType() == INDEXER_UPDATED) {
                         try {
-                            IndexerDefinition index = indexerModel.getIndexer(event.getIndexerName());
-                            if (shouldRunIndexUpdater(index)) {
-                                if (indexUpdaters.containsKey(index.getName())) {
-                                    updateIndexUpdater(index);
+                            IndexerDefinition indexerDef = indexerModel.getIndexer(event.getIndexerName());
+                            if (shouldRunIndexer(indexerDef)) {
+                                if (indexers.containsKey(indexerDef.getName())) {
+                                    restartIndexer(indexerDef);
                                 } else {
-                                    addIndexUpdater(index);
+                                    startIndexer(indexerDef);
                                 }
                             } else {
-                                removeIndexUpdater(index.getName());
+                                stopIndexer(indexerDef.getName());
                             }
                         } catch (IndexerNotFoundException e) {
-                            removeIndexUpdater(event.getIndexerName());
+                            stopIndexer(event.getIndexerName());
                         } catch (Throwable t) {
                             log.error("Error in IndexerWorker's IndexerModelListener.", t);
                         }
                     } else if (event.getType() == INDEXER_DELETED) {
-                        removeIndexUpdater(event.getIndexerName());
+                        stopIndexer(event.getIndexerName());
                     }
                 } catch (InterruptedException e) {
                     log.info("IndexerWorker.EventWorker interrupted.");
