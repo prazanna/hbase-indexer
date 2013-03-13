@@ -17,6 +17,8 @@ package com.ngdata.hbaseindexer.model.api;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 
+import java.util.Map;
+
 /**
  * Defines an indexer within the {@link IndexerModel}.
  *
@@ -42,7 +44,8 @@ public class IndexerDefinition {
     private IncrementalIndexingState incrementalIndexingState = IncrementalIndexingState.SUBSCRIBE_AND_CONSUME;
     private String subscriptionId;
     private byte[] configuration;
-    private byte[] connectionConfiguration;
+    private String connectionType;
+    private Map<String, String> connectionParams;
     private byte[] defaultBatchIndexConfiguration;
     private byte[] batchIndexConfiguration;
     private BatchBuildInfo lastBatchBuildInfo;
@@ -59,7 +62,8 @@ public class IndexerDefinition {
             IncrementalIndexingState incrementalIndexingState,
             String subscriptionId,
             byte[] configuration,
-            byte[] connectionConfiguration,
+            String connectionType,
+            Map<String, String> connectionParams,
             byte[] defaultBatchIndexConfiguration,
             byte[] batchIndexConfiguration,
             BatchBuildInfo lastBatchBuildInfo,
@@ -72,7 +76,8 @@ public class IndexerDefinition {
         this.incrementalIndexingState = incrementalIndexingState;
         this.subscriptionId = subscriptionId;
         this.configuration = configuration;
-        this.connectionConfiguration = connectionConfiguration;
+        this.connectionType = connectionType;
+        this.connectionParams = connectionParams;
         this.defaultBatchIndexConfiguration = defaultBatchIndexConfiguration;
         this.batchIndexConfiguration = batchIndexConfiguration;
         this.lastBatchBuildInfo = lastBatchBuildInfo;
@@ -119,17 +124,20 @@ public class IndexerDefinition {
     }
 
     /**
-     * Configuration related to how to connect to the indexing system.
-     *
-     * <p>For example, in case Solr is used, this could contain the URLs of the Solr instances, possibly
-     * with configuration on how to shard among them, or in case of SolrCloud it could just a zookeeper
-     * connection string and a collection name.</p>
-     *
-     * <p>For other indexing systems it will be other parameters. For the IndexerDefinition this is just
-     * an opaque byte array, the content can be anything.</p>
+     * Identifies the type of indexing engine this indexer connects to, e.g. "solr".
      */
-    public byte[] getConnectionConfiguration() {
-        return connectionConfiguration;
+    public String getConnectionType() {
+        return connectionType;
+    }
+
+    /**
+     * A free-form set of connection parameters, contents depends on what is supported by the
+     * {@link #getConnectionType()}. For example, in case of SOLR this could contain the URL's of
+     * the Solr instances, or in case of SolrCloud it could just a zookeeper connection string
+     * and a collection name.
+     */
+    public Map<String, String> getConnectionParams() {
+        return connectionParams;
     }
 
     /**

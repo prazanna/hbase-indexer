@@ -1,13 +1,13 @@
 package com.ngdata.hbaseindexer.supervisor;
 
 
+import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.HBaseToSolrMapper;
 import com.ngdata.hbaseindexer.Indexer;
 import com.ngdata.hbaseindexer.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
-import com.ngdata.hbaseindexer.model.api.IndexerModelEventType;
 import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
@@ -178,7 +178,8 @@ public class IndexerSupervisor {
         }
 
         boolean relevantChanges = !Arrays.equals(handle.indexDef.getConfiguration(), index.getConfiguration()) ||
-                !Arrays.equals(handle.indexDef.getConnectionConfiguration(), index.getConnectionConfiguration());
+                Objects.equal(handle.indexDef.getConnectionType(), index.getConnectionType())
+                || !Objects.equal(handle.indexDef.getConnectionParams(), index.getConnectionParams());
 
         if (!relevantChanges) {
             return;

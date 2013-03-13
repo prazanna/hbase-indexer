@@ -17,6 +17,8 @@ package com.ngdata.hbaseindexer.model.api;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Map;
+
 import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
 import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
@@ -28,7 +30,8 @@ public class IndexerDefinitionBuilder {
     private IncrementalIndexingState incrementalIndexingState = IncrementalIndexingState.SUBSCRIBE_AND_CONSUME;
     private String subscriptionId;
     private byte[] configuration;
-    private byte[] connectionConfiguration;
+    private String connectionType;
+    private Map<String, String> connectionParams;
     private byte[] defaultBatchIndexConfiguration;
     private byte[] batchIndexConfiguration;
     private BatchBuildInfo lastBatchBuildInfo;
@@ -43,7 +46,8 @@ public class IndexerDefinitionBuilder {
         this.incrementalIndexingState = existingDefinition.getIncrementalIndexingState();
         this.subscriptionId = existingDefinition.getSubscriptionId();
         this.configuration = existingDefinition.getConfiguration();
-        this.connectionConfiguration = existingDefinition.getConnectionConfiguration();
+        this.connectionType = existingDefinition.getConnectionType();
+        this.connectionParams = existingDefinition.getConnectionParams();
         this.defaultBatchIndexConfiguration = existingDefinition.getDefaultBatchIndexConfiguration();
         this.batchIndexConfiguration = existingDefinition.getBatchIndexConfiguration();
         this.lastBatchBuildInfo = existingDefinition.getLastBatchBuildInfo();
@@ -102,10 +106,18 @@ public class IndexerDefinitionBuilder {
     }
 
     /**
-     * @see IndexerDefinition#connectionConfiguration
+     * @see IndexerDefinition#getConnectionType()
      */
-    public IndexerDefinitionBuilder connectionConfiguration(byte[] configuration) {
-        this.connectionConfiguration = configuration;
+    public IndexerDefinitionBuilder connectionType(String connectionType) {
+        this.connectionType = connectionType;
+        return this;
+    }
+
+    /**
+     * @see IndexerDefinition#getConnectionParams()
+     */
+    public IndexerDefinitionBuilder connectionParams(Map<String, String> connectionParams) {
+        this.connectionParams = connectionParams;
         return this;
     }
 
@@ -164,7 +176,7 @@ public class IndexerDefinitionBuilder {
         Preconditions.checkNotNull(incrementalIndexingState, "incrementalIndexingState");
 
         return new IndexerDefinition(name, lifecycleState, batchIndexingState, incrementalIndexingState, subscriptionId,
-                configuration, connectionConfiguration, defaultBatchIndexConfiguration, batchIndexConfiguration,
+                configuration, connectionType, connectionParams, defaultBatchIndexConfiguration, batchIndexConfiguration,
                 lastBatchBuildInfo, activeBatchBuildInfo, subscriptionTimestamp, occVersion);
     }
 }

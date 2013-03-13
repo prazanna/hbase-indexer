@@ -17,6 +17,7 @@ package com.ngdata.hbaseindexer.model.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -26,6 +27,7 @@ import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import com.ngdata.hbaseindexer.util.json.JsonUtil;
 import net.iharder.Base64;
+import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
@@ -60,7 +62,17 @@ public class IndexerDefinitionJsonSerDeser {
         
         byte[] configuration = getByteArrayProperty(node, "configuration");
 
-        byte[] connectionConfiguration = getByteArrayProperty(node, "connectionConfiguration");
+        String connectionType = JsonUtil.getString(node, "connectionType", null);
+        ObjectNode connectionParamsNode = JsonUtil.getObject(node, "connectionParams", null);
+        Map<String, String> connectionParams = null;
+        if (connectionParamsNode != null) {
+            connectionParams = new HashMap<String, String>();
+            Iterator<Map.Entry<String, JsonNode>> it = connectionParamsNode.getFields();
+            while (it.hasNext()) {
+                Map.Entry<String, JsonNode> entry = it.next();
+                connectionParams.put(entry.getKey(), entry.getValue().getTextValue());
+            }
+        }
 
         ActiveBatchBuildInfo activeBatchBuild = null;
         if (node.get("activeBatchBuild") != null) {
@@ -106,7 +118,8 @@ public class IndexerDefinitionJsonSerDeser {
         builder.subscriptionId(queueSubscriptionId);
         builder.subscriptionTimestamp(subscriptionTimestamp);
         builder.configuration(configuration);
-        builder.connectionConfiguration(connectionConfiguration);
+        builder.connectionType(connectionType);
+        builder.connectionParams(connectionParams);
         builder.activeBatchBuildInfo(activeBatchBuild);
         builder.lastBatchBuildInfo(lastBatchBuild);
         builder.batchIndexConfiguration(batchIndexConfiguration);
@@ -160,7 +173,16 @@ public class IndexerDefinitionJsonSerDeser {
         node.put("subscriptionTimestamp", indexer.getSubscriptionTimestamp());
 
         setByteArrayProperty(node, "configuration", indexer.getConfiguration());
-        setByteArrayProperty(node, "connectionConfiguration", indexer.getConnectionConfiguration());
+
+        if (indexer.getConnectionType() != null)
+            node.put("connectionType", indexer.getConnectionType());
+
+        if (indexer.getConnectionParams() != null) {
+            ObjectNode paramsNode = node.putObject("connectionParams");
+            for (Map.Entry<String, String> entry : indexer.getConnectionParams().entrySet()) {
+                paramsNode.put(entry.getKey(), entry.getValue());
+            }
+        }
 
         if (indexer.getActiveBatchBuildInfo() != null) {
             ActiveBatchBuildInfo buildInfo = indexer.getActiveBatchBuildInfo();

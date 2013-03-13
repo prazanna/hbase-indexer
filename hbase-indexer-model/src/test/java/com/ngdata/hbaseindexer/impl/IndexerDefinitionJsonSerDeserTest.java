@@ -1,5 +1,7 @@
 package com.ngdata.hbaseindexer.impl;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfoBuilder;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfoBuilder;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
@@ -37,7 +39,8 @@ public class IndexerDefinitionJsonSerDeserTest {
                 .batchIndexingState(BatchIndexingState.BUILDING)
                 .incrementalIndexingState(IncrementalIndexingState.SUBSCRIBE_DO_NOT_CONSUME)
                 .configuration("config1".getBytes())
-                .connectionConfiguration("config2".getBytes())
+                .connectionType("solr")
+                .connectionParams(ImmutableMap.of("p1", "v1", "p2", "v2"))
                 .subscriptionId("my-subscription")
                 .subscriptionTimestamp(5L)
                 .defaultBatchIndexConfiguration("batch-conf-default".getBytes())
@@ -70,7 +73,9 @@ public class IndexerDefinitionJsonSerDeserTest {
         assertEquals(BatchIndexingState.BUILDING, indexer2.getBatchIndexingState());
         assertEquals(IncrementalIndexingState.SUBSCRIBE_DO_NOT_CONSUME, indexer2.getIncrementalIndexingState());
         assertArrayEquals("config1".getBytes(), indexer2.getConfiguration());
-        assertArrayEquals("config2".getBytes(), indexer2.getConnectionConfiguration());
+        assertEquals("solr", indexer.getConnectionType());
+        assertEquals("v1", indexer.getConnectionParams().get("p1"));
+        assertEquals("v2", indexer.getConnectionParams().get("p2"));
         assertEquals("my-subscription", indexer2.getSubscriptionId());
         assertEquals(5L, indexer2.getSubscriptionTimestamp());
         assertArrayEquals("batch-conf-default".getBytes(), indexer2.getDefaultBatchIndexConfiguration());
