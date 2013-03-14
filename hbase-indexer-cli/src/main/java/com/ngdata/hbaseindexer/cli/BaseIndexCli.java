@@ -23,21 +23,14 @@ import com.ngdata.hbaseindexer.model.impl.IndexerModelImpl;
 import com.ngdata.hbaseindexer.util.zookeeper.StateWatchingZooKeeper;
 import com.ngdata.sep.util.io.Closer;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
-import joptsimple.ArgumentAcceptingOptionSpec;
+import com.ngdata.sep.util.zookeeper.ZooKeeperOperation;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import joptsimple.ValueConversionException;
-import joptsimple.ValueConverter;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.zookeeper.KeeperException;
 
-import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.ParameterizedType;
-import java.util.Map;
 
 public abstract class BaseIndexCli extends BaseCli {
     private OptionSpec<String> zkOption;
@@ -53,7 +46,10 @@ public abstract class BaseIndexCli extends BaseCli {
     protected OptionParser setupOptionParser() {
         OptionParser parser = super.setupOptionParser();
 
-        zkOption = addZooKeeperOption(parser);
+        zkOption = parser
+                        .acceptsAll(Lists.newArrayList("z", "zookeeper"), "ZooKeeper connection string. Can also be " +
+                                "specified through environment variable " + ZK_ENV_VAR)
+                        .withRequiredArg().ofType(String.class).describedAs("connection-string");
 
         return parser;
     }
@@ -95,94 +91,24 @@ public abstract class BaseIndexCli extends BaseCli {
     private void connectWithZooKeeper() throws IOException, KeeperException, InterruptedException {
         zk = new StateWatchingZooKeeper(zkConnectionString, 30000);
 
-        // TODO enable this test
-//        final String zkRoot = conf.get("hbaseindexer.zookeeper.znode.parent");
-//
-//        boolean lilyNodeExists = zk.retryOperation(new ZooKeeperOperation<Boolean>() {
-//            @Override
-//            public Boolean execute() throws KeeperException, InterruptedException {
-//                return zk.exists(zkRoot, false) != null;
-//            }
-//        });
-//
-//        if (!lilyNodeExists) {
-//            StringBuilder msg = new StringBuilder();
-//            msg.append("No " + zkRoot + " node found in ZooKeeper. Are you sure you are connecting to the right\n");
-//            msg.append("ZooKeeper?");
-//            throw new CliException(msg.toString(), 1);
-//        }
+        final String zkRoot = conf.get("hbaseindexer.zookeeper.znode.parent");
+
+        boolean lilyNodeExists = zk.retryOperation(new ZooKeeperOperation<Boolean>() {
+            @Override
+            public Boolean execute() throws KeeperException, InterruptedException {
+                return zk.exists(zkRoot, false) != null;
+            }
+        });
+
+        if (!lilyNodeExists) {
+            System.err.println();
+            System.err.println("WARNING: No " + zkRoot + " node found in ZooKeeper.");
+            System.err.println();
+        }
     }
 
     protected String getZkConnectionString() {
         return zkConnectionString;
     }
 
-    protected ArgumentAcceptingOptionSpec<String> addNameOption(OptionParser parser) {
-        return parser
-                .acceptsAll(Lists.newArrayList("n", "name"), "a name for the index")
-                .withRequiredArg().ofType(String.class);
-    }
-
-    protected ArgumentAcceptingOptionSpec<String> addIndexConfOption(OptionParser parser) {
-        return parser
-                .acceptsAll(Lists.newArrayList("c", "index-conf"), "Index configuration")
-                .withRequiredArg().ofType(String.class).describedAs("indexconf.xml");
-    }
-
-    protected ArgumentAcceptingOptionSpec<Pair<String, String>> addConnectionParamOption(OptionParser parser) {
-        return parser
-                .acceptsAll(Lists.newArrayList("cp", "connection-param"),
-                        "A connection parameter in the form key=value. This option can be specified multiple " +
-                                "times. Example: -cp solr.zk=host1,host2 -cp solr.collection=products")
-                .withRequiredArg()
-                .withValuesConvertedBy(new StringPairConverter())
-                .describedAs("key=value");
-    }
-
-    protected ArgumentAcceptingOptionSpec<String> addZooKeeperOption(OptionParser parser) {
-        return parser
-                .acceptsAll(Lists.newArrayList("z", "zookeeper"), "ZooKeeper connection string. Can also be " +
-                    "specified through environment variable " + ZK_ENV_VAR)
-                .withRequiredArg().ofType(String.class).describedAs("connection-string");
-    }
-
-    protected byte[] getIndexerConf(OptionSet options, OptionSpec<String> configOption) throws IOException {
-        File configurationFile = new File(configOption.value(options));
-
-        if (!configurationFile.exists()) {
-            StringBuilder msg = new StringBuilder();
-            msg.append("Specified indexer configuration file not found:\n");
-            msg.append(configurationFile.getAbsolutePath());
-            throw new CliException(msg.toString(), 1);
-        }
-
-        return FileUtils.readFileToByteArray(configurationFile);
-    }
-
-    /**
-     * Converter for jopt-simple that parses key=value pairs.
-     */
-    private static class StringPairConverter implements ValueConverter<Pair<String, String>> {
-        @Override
-        public Pair<String, String> convert(String input) {
-            int eqPos = input.indexOf('=');
-            if (eqPos == -1) {
-                throw new ValueConversionException("Parameter should be in the form key=value, which the " +
-                        "following is not: '" + input + "'.");
-            }
-            String key = input.substring(0, eqPos);
-            String value = input.substring(eqPos + 1);
-            return Pair.newPair(key, value);
-        }
-
-        @Override
-        public Class<Pair<String, String>> valueType() {
-            return (Class<Pair<String, String>>)(new Pair<String, String>()).getClass();
-        }
-
-        @Override
-        public String valuePattern() {
-            return "key=value";
-        }
-    }
 }

@@ -15,25 +15,16 @@
  */
 package com.ngdata.hbaseindexer.cli;
 
-import com.google.common.collect.Maps;
-import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
-import org.apache.hadoop.hbase.util.Pair;
-
-import java.util.Map;
 
 /**
  * CLI tool to add a new {@link IndexerDefinition}s to the {@link IndexerModel}.
  */
-public class AddIndexerCli extends BaseIndexCli {
-    private OptionSpec<String> nameOption;
-    private OptionSpec<String> indexConfOption;
-    private OptionSpec<Pair<String, String>> connectionParamOption;
+public class AddIndexerCli extends AddOrUpdateIndexerCli {
 
     public static void main(String[] args) throws Exception {
         new AddIndexerCli().run(args);
@@ -43,70 +34,25 @@ public class AddIndexerCli extends BaseIndexCli {
     }
 
     @Override
+    protected OptionParser setupOptionParser() {
+        OptionParser parser = super.setupOptionParser();
+        indexConfOption.required();
+        return parser;
+    }
+
+    @Override
     protected String getCmdName() {
         return "add-indexer";
     }
 
-    @Override
-    protected OptionParser setupOptionParser() {
-        OptionParser parser = super.setupOptionParser();
-
-        nameOption = addNameOption(parser).required();
-        indexConfOption = addIndexConfOption(parser).required();
-        connectionParamOption = addConnectionParamOption(parser);
-
-        return parser;
-    }
-
     public void run(OptionSet options) throws Exception {
-
         super.run(options);
 
-        Map<String, String> connectionParams = Maps.newHashMap();
-        for (Pair<String, String> param : connectionParamOption.values(options)) {
-            if (!isValidConnectionParam(param.getFirst())) {
-                System.err.println("WARNING: the following is not a recognized Solr connection parameter: "
-                        + param.getFirst());
-            }
-            connectionParams.put(param.getFirst(), param.getSecond());
-        }
+        IndexerDefinitionBuilder builder = buildIndexerDefinition(options, null);
+        IndexerDefinition indexer = builder.build();
 
-        if (!connectionParams.containsKey(SolrConnectionParams.ZOOKEEPER)) {
-            String solrZk = getZkConnectionString() + "/solr";
-            System.err.println("WARNING: no -cp solr.zk specified, will use " + solrZk);
-            connectionParams.put("solr.zk", solrZk);
-        }
+        model.addIndexer(indexer);
 
-        if (!connectionParams.containsKey(SolrConnectionParams.COLLECTION)) {
-            System.err.println("ERROR: no -cp solr.collection=collectionName specified");
-            System.exit(1);
-        }
-
-        if (connectionParams.containsKey(SolrConnectionParams.MODE)
-                && !connectionParams.get(SolrConnectionParams.MODE).equals("cloud")) {
-            System.err.println("ERROR: only 'cloud' supported for -cp solr.mode");
-        }
-
-        IndexerDefinitionBuilder builder = new IndexerDefinitionBuilder()
-                .name(nameOption.value(options))
-                .configuration(getIndexerConf(options, indexConfOption))
-                .connectionType("solr")
-                .connectionParams(connectionParams);
-
-        model.addIndexer(builder.build());
-
-        System.out.println("Index added");
-    }
-
-    private boolean isValidConnectionParam(String param) {
-        if (SolrConnectionParams.MODE.equals(param)) {
-            return true;
-        } else if (SolrConnectionParams.ZOOKEEPER.equals(param)) {
-            return true;
-        } else if (SolrConnectionParams.COLLECTION.equals(param)) {
-            return true;
-        }
-
-        return false;
+        System.out.println("Indexer added: " + indexer.getName());
     }
 }

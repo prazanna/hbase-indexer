@@ -71,6 +71,7 @@ if [ $# = 0 ]; then
   echo ""
   echo "TOOLS"
   echo "  add-indexer"
+  echo "  update-indexer"
   echo "  list-indexers"
   echo ""
   echo "PROCESS MANAGEMENT"
@@ -250,6 +251,8 @@ if [ "$COMMAND" = "server" ] ; then
   CLASS='com.ngdata.hbaseindexer.Main'
 elif [ "$COMMAND" = "add-indexer" ] ; then
   CLASS='com.ngdata.hbaseindexer.cli.AddIndexerCli'
+elif [ "$COMMAND" = "update-indexer" ] ; then
+  CLASS='com.ngdata.hbaseindexer.cli.UpdateIndexerCli'
 elif [ "$COMMAND" = "list-indexers" ] ; then
   CLASS='com.ngdata.hbaseindexer.cli.ListIndexersCli'
 elif [ "$COMMAND" = "classpath" ] ; then

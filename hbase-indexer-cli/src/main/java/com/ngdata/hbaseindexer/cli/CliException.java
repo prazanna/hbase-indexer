@@ -30,6 +30,10 @@ public class CliException extends RuntimeException {
         this.exitCode = exitCode;
     }
 
+    public CliException(String message) {
+        this(message, 1);
+    }
+
     public int getExitCode() {
         return exitCode;
     }

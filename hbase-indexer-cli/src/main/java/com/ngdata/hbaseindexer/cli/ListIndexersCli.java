@@ -116,6 +116,7 @@ public class ListIndexersCli  extends BaseIndexCli {
                 ps.println("    + Batch build config:");
                 printConf(lastBatchBuild.getBatchIndexConfiguration(), 8, ps, options.has("dump"));
             }
+            ps.println();
         }
     }
 
