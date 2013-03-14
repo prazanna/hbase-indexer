@@ -16,6 +16,7 @@
 package com.ngdata.hbaseindexer.model.api;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
@@ -117,7 +118,7 @@ public class IndexerDefinitionBuilder {
      * @see IndexerDefinition#getConnectionParams()
      */
     public IndexerDefinitionBuilder connectionParams(Map<String, String> connectionParams) {
-        this.connectionParams = connectionParams;
+        this.connectionParams = connectionParams != null ? ImmutableMap.copyOf(connectionParams) : null;
         return this;
     }
 
