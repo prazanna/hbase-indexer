@@ -15,6 +15,23 @@
  */
 package com.ngdata.hbaseindexer.supervisor;
 
+import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_ADDED;
+import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_DELETED;
+import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_UPDATED;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.HBaseToSolrMapper;
 import com.ngdata.hbaseindexer.Indexer;
@@ -23,12 +40,13 @@ import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
-import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
-import com.ngdata.sep.util.io.Closer;
+import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
 import com.ngdata.sep.impl.SepConsumer;
+import com.ngdata.sep.util.io.Closer;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,21 +58,6 @@ import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.zookeeper.KeeperException;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
-import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.*;
 
 /**
  * Responsible for starting, stopping and restarting {@link Indexer}s for the indexers defined in the
@@ -172,7 +175,7 @@ public class IndexerSupervisor {
             HBaseToSolrMapper mapper = new ResultToSolrMapper(
                     indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions());
             solr = getSolrServer(indexerDef);
-            Indexer indexer = new Indexer(indexConf, mapper, htablePool, solr);
+            Indexer indexer = Indexer.createIndexer(indexConf, mapper, htablePool, solr);
             indexerRegistry.register(indexerDef.getName(), indexer);
 
             SepConsumer sepConsumer = new SepConsumer(indexerDef.getSubscriptionId(),

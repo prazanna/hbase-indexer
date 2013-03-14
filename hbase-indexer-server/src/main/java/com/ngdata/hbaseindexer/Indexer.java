@@ -18,12 +18,19 @@ package com.ngdata.hbaseindexer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import com.ngdata.hbaseindexer.conf.IndexConf.RowReadMode;
+import javax.annotation.Nullable;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.ngdata.hbaseindexer.conf.IndexConf;
+import com.ngdata.hbaseindexer.conf.IndexConf.RowReadMode;
 import com.ngdata.sep.EventListener;
 import com.ngdata.sep.SepEvent;
 import org.apache.commons.logging.Log;
@@ -35,24 +42,39 @@ import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
 /**
- * The indexing algorithm. It receives an event from the SEP, handles it based on the configuration,
- * and eventually calls Solr.
+ * The indexing algorithm. It receives an event from the SEP, handles it based on the configuration, and eventually
+ * calls Solr.
  */
-public class Indexer implements EventListener {
-    
-    private Log log = LogFactory.getLog(getClass());
-    
-    private IndexConf conf;
-    private SolrServer solr;
-    private HTablePool tablePool;
-    private HBaseToSolrMapper mapper;
-    private UniqueKeyFormatter uniqueKeyFormatter;
+public abstract class Indexer implements EventListener {
 
-    public Indexer(IndexConf conf, HBaseToSolrMapper mapper, HTablePool tablePool, SolrServer solrServer) {
+    protected Log log = LogFactory.getLog(getClass());
+
+    protected IndexConf conf;
+    private SolrServer solr;
+    protected HBaseToSolrMapper mapper;
+    protected UniqueKeyFormatter uniqueKeyFormatter;
+    private Predicate<SepEvent> tableEqualityPredicate;
+
+    /**
+     * Instantiate an indexer based on the given {@link IndexConf}.
+     */
+    public static Indexer createIndexer(IndexConf conf, HBaseToSolrMapper mapper, HTablePool tablePool,
+            SolrServer solrServer) {
+        switch (conf.getMappingType()) {
+        case COLUMN:
+            return new ColumnBasedIndexer(conf, mapper, solrServer);
+        case ROW:
+            return new RowBasedIndexer(conf, mapper, tablePool, solrServer);
+        default:
+            throw new IllegalStateException("Can't determine the type of indexing to use for mapping type "
+                    + conf.getMappingType());
+        }
+    }
+
+    Indexer(IndexConf conf, HBaseToSolrMapper mapper, SolrServer solrServer) {
         this.conf = conf;
         this.mapper = mapper;
         try {
@@ -60,33 +82,40 @@ public class Indexer implements EventListener {
         } catch (Exception e) {
             throw new RuntimeException("Problem instantiating the UniqueKeyFormatter.", e);
         }
-        this.tablePool = tablePool;
         this.solr = solrServer;
+
+        final byte[] tableNameBytes = Bytes.toBytes(conf.getTable());
+        tableEqualityPredicate = new Predicate<SepEvent>() {
+
+            @Override
+            public boolean apply(@Nullable SepEvent event) {
+                return Arrays.equals(event.getTable(), tableNameBytes);
+            }
+        };
     }
-    
+
+    /**
+     * Build all new documents and ids to delete based on a list of {@code SepEvent}s.
+     * 
+     * @param events events that (potentially) trigger index updates
+     * @param updateCollector collects updates to be written to Solr
+     */
+    abstract void calculateIndexUpdates(List<SepEvent> events, SolrUpdateCollector updateCollector) throws IOException;
+
     @Override
     public void processEvents(List<SepEvent> events) {
-        for (SepEvent event : events) {
-            processEvent(event);
-        }
-    }
-
-    public void processEvent(SepEvent event) {
-        System.out.println("process event called");
         try {
-            if (!Arrays.equals(event.getTable(), Bytes.toBytes(conf.getTable()))) {
-                return;
-            }
 
-            switch (conf.getMappingType()) {
-                case ROW:
-                    performRowBasedMapping(event);
-                    break;
-                case COLUMN:
-                    performColumnBasedMapping(event);
-                    break;
-                default:
-                    throw new RuntimeException("Unexpected mapping type: " + conf.getMappingType());
+            SolrUpdateCollector updateCollector = new SolrUpdateCollector(events.size());
+            events = Lists.newArrayList(Iterables.filter(events, tableEqualityPredicate));
+
+            calculateIndexUpdates(events, updateCollector);
+
+            if (!updateCollector.getDocumentsToAdd().isEmpty()) {
+                solr.add(updateCollector.getDocumentsToAdd());
+            }
+            if (!updateCollector.getIdsToDelete().isEmpty()) {
+                solr.deleteById(updateCollector.getIdsToDelete());
             }
 
         } catch (Exception e) {
@@ -94,87 +123,141 @@ public class Indexer implements EventListener {
         }
     }
 
-    private void performRowBasedMapping(SepEvent event) throws IOException, SolrServerException {
-        // Check if the event contains changes to relevant key values
-        boolean relevant = false;
-        for (KeyValue kv : event.getKeyValues()) {
-            if (mapper.isRelevantKV(kv)) {
-                relevant = true;
-                break;
+    static class RowBasedIndexer extends Indexer {
+        
+        private HTablePool tablePool;
+
+        public RowBasedIndexer(IndexConf conf, HBaseToSolrMapper mapper, HTablePool tablePool, SolrServer solrServer) {
+            super(conf, mapper, solrServer);
+            this.tablePool = tablePool;
+        }
+
+        /**
+         * Makes a HBase Result object based on the KeyValue's from the SEP event. Usually, this will only be used in
+         * situations where only new data is written (or updates are complete row updates), so we don't expect any
+         * delete-type key-values, but just to be sure we filter them out.
+         */
+        private Result makeResult(List<KeyValue> eventKeyValues) {
+            List<KeyValue> keyValues = new ArrayList<KeyValue>(eventKeyValues.size());
+
+            for (KeyValue kv : eventKeyValues) {
+                if (!kv.isDelete() && !kv.isInternal()) {
+                    keyValues.add(kv);
+                }
+            }
+
+            return new Result(keyValues);
+        }
+
+        private Result readRow(byte[] row) throws IOException {
+            HTableInterface table = tablePool.getTable(conf.getTable());
+            try {
+                Get get = mapper.getGet(row);
+                return table.get(get);
+            } finally {
+                table.close();
             }
         }
 
-        if (!relevant) {
-            return;
-        }
+        @Override
+        protected void calculateIndexUpdates(List<SepEvent> events, SolrUpdateCollector updateCollector) throws IOException {
 
-        Result result = makeResult(event.getKeyValues());
-        if (conf.getRowReadMode() == RowReadMode.DYNAMIC) {
-            if (!mapper.containsRequiredData(result)) {
-                result = readRow(event.getRow());
-            }
-        }
-       
-        boolean rowDeleted = result.isEmpty();
+            Map<String, SepEvent> idToEvent = calculateUniqueEvents(events);
 
-        if (rowDeleted) {
-            // Delete row from Solr as well
-            solr.deleteById(uniqueKeyFormatter.formatRow(event.getRow()));
-            if (log.isDebugEnabled()) {
-                log.debug("Row " + Bytes.toString(event.getRow()) + ": deleted from Solr");
-            }
-        } else {
-            SolrInputDocument document = mapper.map(result);
-            document.addField(conf.getUniqueKeyField(), uniqueKeyFormatter.formatRow(event.getRow()));
-            // TODO there should probably some way for the mapper to indicate there was no useful content to map,
-            // e.g. if there are no fields in the solr document (and should we then perform a delete instead?)
-            solr.add(document);
-            if (log.isDebugEnabled()) {
-                log.debug("Row " + Bytes.toString(event.getRow()) + ": added to Solr");
-            }
-        }
-    }
+            for (SepEvent event : idToEvent.values()) {
 
-    private void performColumnBasedMapping(SepEvent event) throws IOException, SolrServerException {
-        for (KeyValue kv : event.getKeyValues()) {
-            if (mapper.isRelevantKV(kv)) {
-                String id = uniqueKeyFormatter.formatKeyValue(kv);
-                if (kv.isDeleteType()) { // TODO what to do in case of the various delete types (e.g. delete family?)
-                    solr.deleteById(id);
+                Result result = makeResult(event.getKeyValues());
+                if (conf.getRowReadMode() == RowReadMode.DYNAMIC) {
+                    if (!mapper.containsRequiredData(result)) {
+                        result = readRow(event.getRow());
+                    }
+                }
+
+                boolean rowDeleted = result.isEmpty();
+
+                if (rowDeleted) {
+                    // Delete row from Solr as well
+                    updateCollector.deleteById(uniqueKeyFormatter.formatRow(event.getRow()));
+                    if (log.isDebugEnabled()) {
+                        log.debug("Row " + Bytes.toString(event.getRow()) + ": deleted from Solr");
+                    }
                 } else {
-                    Result result = new Result(Lists.newArrayList(kv));
                     SolrInputDocument document = mapper.map(result);
-                    document.addField(conf.getUniqueKeyField(), id);
-                    solr.add(document);
+                    document.addField(conf.getUniqueKeyField(), uniqueKeyFormatter.formatRow(event.getRow()));
+                    // TODO there should probably some way for the mapper to indicate there was no useful content to
+                    // map,  e.g. if there are no fields in the solr document (and should we then perform a delete instead?)
+                    updateCollector.add(document);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Row " + Bytes.toString(event.getRow()) + ": added to Solr");
+                    }
                 }
             }
         }
+
+        /**
+         * Calculate a map of Solr document ids to SepEvents, only taking the most recent event for each document id.
+         */
+        private Map<String, SepEvent> calculateUniqueEvents(List<SepEvent> events) {
+            Map<String, SepEvent> idToEvent = Maps.newHashMap();
+            for (SepEvent event : events) {
+                // Check if the event contains changes to relevant key values
+                boolean relevant = false;
+                for (KeyValue kv : event.getKeyValues()) {
+                    if (mapper.isRelevantKV(kv)) {
+                        relevant = true;
+                        break;
+                    }
+                }
+
+                if (!relevant) {
+                    break;
+                }
+                idToEvent.put(uniqueKeyFormatter.formatRow(event.getRow()), event);
+            }
+            return idToEvent;
+        }
+
     }
 
-    /**
-     * Makes a HBase Result object based on the KeyValue's from the SEP event. Usually, this will only be used
-     * in situations where only new data is written (or updates are complete row updates), so we don't expect any
-     * delete-type key-values, but just to be sure we filter them out.
-     */
-    private Result makeResult(List<KeyValue> eventKeyValues) {
-        List<KeyValue> keyValues = new ArrayList<KeyValue>(eventKeyValues.size());
+    static class ColumnBasedIndexer extends Indexer {
 
-        for (KeyValue kv : eventKeyValues) {
-            if (!kv.isDelete() && !kv.isInternal()) {
-                keyValues.add(kv);
+        public ColumnBasedIndexer(IndexConf conf, HBaseToSolrMapper mapper, SolrServer solrServer) {
+            super(conf, mapper, solrServer);
+        }
+
+        @Override
+        protected void calculateIndexUpdates(List<SepEvent> events, SolrUpdateCollector updateCollector) throws IOException {
+            Map<String, KeyValue> idToKeyValue = calculateUniqueEvents(events);
+            for (Entry<String, KeyValue> idToKvEntry : idToKeyValue.entrySet()) {
+                // TODO what to do in case of the various delete types (e.g. delete)
+                if (idToKvEntry.getValue().isDeleteType()) {
+                    // family?)
+                    updateCollector.deleteById(idToKvEntry.getKey());
+                } else {
+                    Result result = new Result(Collections.singletonList(idToKvEntry.getValue()));
+                    SolrInputDocument document = mapper.map(result);
+                    document.addField(conf.getUniqueKeyField(), idToKvEntry.getKey());
+                    updateCollector.add(document);
+                }
             }
         }
 
-        return new Result(keyValues);
+        /**
+         * Calculate a map of Solr document ids to SepEvents, only taking the most recent event for each document id.
+         */
+        private Map<String, KeyValue> calculateUniqueEvents(List<SepEvent> events) {
+            Map<String, KeyValue> idToKeyValue = Maps.newHashMap();
+            for (SepEvent event : events) {
+                for (KeyValue kv : event.getKeyValues()) {
+                    if (mapper.isRelevantKV(kv)) {
+                        String id = uniqueKeyFormatter.formatKeyValue(kv);
+                        idToKeyValue.put(id, kv);
+                    }
+                }
+            }
+            return idToKeyValue;
+        }
+
     }
 
-    private Result readRow(byte[] row) throws IOException {
-        HTableInterface table = tablePool.getTable(conf.getTable());
-        try {
-            Get get = mapper.getGet(row);
-            return table.get(get);
-        } finally {
-            table.close();
-        }
-    }
 }
