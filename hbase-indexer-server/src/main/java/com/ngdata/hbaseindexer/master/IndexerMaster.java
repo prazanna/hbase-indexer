@@ -1,3 +1,18 @@
+/*
+ * Copyright 2013 NGDATA nv
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ngdata.hbaseindexer.master;
 
 import java.io.IOException;
@@ -17,7 +32,6 @@ import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
-import com.ngdata.hbaseindexer.model.api.IndexerModelEventType;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
 import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
 import com.ngdata.sep.util.io.Closer;
@@ -43,8 +57,8 @@ import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalInd
 import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.*;
 
 /**
- * The indexer master is active on only one Lily node and is responsible for things such as launching batch indexing
- * jobs, assigning or removing message queue subscriptions, and the like.
+ * The indexer master is active on only one hbase-indexer node and is responsible for things such as launching
+ * batch indexing jobs, assigning or removing SEP subscriptions, and the like.
  */
 public class IndexerMaster {
     private final ZooKeeperItf zk;
@@ -195,7 +209,7 @@ public class IndexerMaster {
                 IndexerDefinition indexer = indexerModel.getFreshIndexer(indexerName);
                 if (needsSubscriptionIdAssigned(indexer)) {
                     // We assume we are the only process which creates subscriptions which begin with the
-                    // prefix "IndexUpdater:". This way we are sure there are no naming conflicts or conflicts
+                    // prefix "Indexer:". This way we are sure there are no naming conflicts or conflicts
                     // due to concurrent operations (e.g. someone deleting this subscription right after we
                     // created it).
                     String subscriptionId = subscriptionId(indexer.getName());
@@ -233,7 +247,7 @@ public class IndexerMaster {
     }
 
     private String subscriptionId(String indexerName) {
-        return "IndexUpdater_" + indexerName;
+        return "Indexer_" + indexerName;
     }
 
     private void startFullIndexBuild(String indexerName) {
