@@ -239,6 +239,8 @@ public class IndexerDefinition {
          */
         DELETE_FAILED;
 
+        public static final LifecycleState DEFAULT = ACTIVE;
+
         public boolean isDeleteState() {
             return this == LifecycleState.DELETE_REQUESTED
                     || this == LifecycleState.DELETING
@@ -264,10 +266,17 @@ public class IndexerDefinition {
         /**
          * No event subscription is taken, incremental indexing is disabled.
          */
-        DO_NOT_SUBSCRIBE
+        DO_NOT_SUBSCRIBE;
+
+        public static final IncrementalIndexingState DEFAULT = SUBSCRIBE_AND_CONSUME;
     }
 
     public static enum BatchIndexingState {
+        /**
+         * No batch indexing job is running or requested to run.
+         */
+        INACTIVE,
+
         /**
          * A client puts the BatchIndexingState to BUILD_REQUESTED to request the startup of a batch indexing
          * job.
@@ -280,11 +289,8 @@ public class IndexerDefinition {
          *
          * <p>This state is set by the server, not by clients.</p>
          */
-        BUILDING,
+        BUILDING;
 
-        /**
-         * No batch indexing job is running or requested to run.
-         */
-        INACTIVE
+        public static final BatchIndexingState DEFAULT = INACTIVE;
     }
 }
