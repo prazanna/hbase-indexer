@@ -51,6 +51,11 @@ public class XmlIndexConfReader {
         return read(document);
     }
 
+    public void validate(InputStream is) throws IOException, SAXException, ParserConfigurationException {
+        Document document = parse(is);
+        validate(document);
+    }
+
     public IndexConf read(Document document) {
         validate(document);
 
