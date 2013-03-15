@@ -80,7 +80,7 @@ public interface WriteableIndexerModel extends IndexerModel {
     void unlockIndexer(String lock, boolean ignoreMissing) throws ZkLockException;
 
     /**
-     * Internal index lock method, <b>this method is only intended for internal Lily components</b>.
+     * Internal index lock method, <b>this method is only intended for internal indexer components</b>.
      */
     String lockIndexerInternal(String indexerName, boolean checkDeleted) throws ZkLockException, IndexerNotFoundException,
             InterruptedException, KeeperException, IndexerModelException;

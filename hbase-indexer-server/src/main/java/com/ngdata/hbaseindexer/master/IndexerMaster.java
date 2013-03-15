@@ -113,7 +113,7 @@ public class IndexerMaster {
 
     @PostConstruct
     public void start() throws LeaderElectionSetupException, IOException, InterruptedException, KeeperException {
-        leaderElection = new LeaderElection(zk, "Indexer Master", "/lily/indexer/masters",
+        leaderElection = new LeaderElection(zk, "Indexer Master", "/ngdata/indexer/masters",
                 new MyLeaderElectionCallback());
 
         // TODO

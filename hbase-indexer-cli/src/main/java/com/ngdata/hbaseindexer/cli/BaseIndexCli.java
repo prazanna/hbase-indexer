@@ -93,14 +93,14 @@ public abstract class BaseIndexCli extends BaseCli {
 
         final String zkRoot = conf.get("hbaseindexer.zookeeper.znode.parent");
 
-        boolean lilyNodeExists = zk.retryOperation(new ZooKeeperOperation<Boolean>() {
+        boolean indexerNodeExists = zk.retryOperation(new ZooKeeperOperation<Boolean>() {
             @Override
             public Boolean execute() throws KeeperException, InterruptedException {
                 return zk.exists(zkRoot, false) != null;
             }
         });
 
-        if (!lilyNodeExists) {
+        if (!indexerNodeExists) {
             System.err.println();
             System.err.println("WARNING: No " + zkRoot + " node found in ZooKeeper.");
             System.err.println();

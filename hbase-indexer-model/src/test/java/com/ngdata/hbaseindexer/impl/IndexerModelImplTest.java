@@ -52,7 +52,7 @@ public class IndexerModelImplTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        ZK_DIR = new File(System.getProperty("java.io.tmpdir") + File.separator + "lily.zklocktest");
+        ZK_DIR = new File(System.getProperty("java.io.tmpdir") + File.separator + "hbaseindexer.zklocktest");
         ZK_CLIENT_PORT = getFreePort();
 
         ZK_CLUSTER = new MiniZooKeeperCluster();

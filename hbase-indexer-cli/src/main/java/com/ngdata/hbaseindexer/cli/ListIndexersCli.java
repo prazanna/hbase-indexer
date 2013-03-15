@@ -56,6 +56,7 @@ public class ListIndexersCli  extends BaseIndexCli {
         return parser;
     }
 
+    @Override
     public void run(OptionSet options) throws Exception {
         super.run(options);
 
@@ -158,5 +159,5 @@ public class ListIndexersCli  extends BaseIndexCli {
     private static final String COUNTER_NUM_FAILED_MAPS =
             "org.apache.hadoop.mapred.JobInProgress$Counter:NUM_FAILED_MAPS";
     private static final String COUNTER_NUM_FAILED_RECORDS =
-            "org.lilyproject.indexer.batchbuild.IndexBatchBuildCounters:NUM_FAILED_RECORDS";
+            "com.ngdata.hbaseindexer.batchbuild.IndexBatchBuildCounters:NUM_FAILED_RECORDS";
 }

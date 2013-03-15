@@ -82,7 +82,7 @@ public class StateWatchingZooKeeper extends ZooKeeperImpl {
         ready = true;
 
         // Wait for connection to come up: if we fail to connect to ZK now, we do not want to continue
-        // starting up the Lily node.
+        // starting up the Indexer node.
         long waitUntil = System.currentTimeMillis() + startupTimeOut;
         int count = 0;
         while (zk.getState() != CONNECTED && waitUntil > System.currentTimeMillis()) {
@@ -164,7 +164,7 @@ public class StateWatchingZooKeeper extends ZooKeeperImpl {
                     if (stateWatcherThread != null) {
                         stateWatcherThread.interrupt();
                     }
-                    stateWatcherThread = new Thread(new StateWatcher(), "LilyZkStateWatcher");
+                    stateWatcherThread = new Thread(new StateWatcher(), "HBaseIndexerZkStateWatcher");
                     stateWatcherThread.start();
                 } else if (event.getState() == SyncConnected) {
                     if (firstConnect) {

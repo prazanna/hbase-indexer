@@ -58,7 +58,7 @@ public class IndexerRegistry  implements IndexerRegistryMBean {
 
     private void registerMBean() {
         try {
-            jmxObjectName = new ObjectName("Lily:name=Indexer");
+            jmxObjectName = new ObjectName("HBaseIndexer:name=Indexer");
             ManagementFactory.getPlatformMBeanServer().registerMBean(this, jmxObjectName);
         } catch (Exception e) {
             log.warn("Error registering mbean '"+ jmxObjectName, e);
