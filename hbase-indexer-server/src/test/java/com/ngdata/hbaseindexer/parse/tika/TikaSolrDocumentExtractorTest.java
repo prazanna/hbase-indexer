@@ -24,24 +24,39 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.Set;
 
-import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
+import javax.xml.parsers.ParserConfigurationException;
 
+import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.extract.SingleCellExtractor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.core.SolrConfig;
+import org.apache.solr.schema.IndexSchema;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.XHTMLContentHandler;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 public class TikaSolrDocumentExtractorTest {
+    
+    private static IndexSchema indexSchema;
+    
+    @BeforeClass
+    public static void setupBeforeClass() throws ParserConfigurationException, IOException, SAXException {
+        InputSource configInputSource = new InputSource(TikaSolrDocumentExtractorTest.class.getResourceAsStream("/solrconfig.xml"));
+        SolrConfig solrConfig = new SolrConfig("example", configInputSource);
+        InputSource schemaInputSource = new InputSource(TikaSolrDocumentExtractorTest.class.getResourceAsStream("/schema.xml"));
+        indexSchema = new IndexSchema(solrConfig, null, schemaInputSource);
+    }
 
     @Test
     public void testExtractDocument() throws IOException {
@@ -56,7 +71,7 @@ public class TikaSolrDocumentExtractorTest {
                 Bytes.toBytes(nonApplicableValue));
         Result result = new Result(new KeyValue[] { applicableKeyValue, nonApplicableKeyValue });
 
-        SolrDocumentExtractor documentExtractor = TikaSolrDocumentExtractor.createInstance(new SingleCellExtractor(
+        SolrDocumentExtractor documentExtractor = new TikaSolrDocumentExtractor(indexSchema, new SingleCellExtractor(
                 columnFamily, columnQualifier), "prefix_", "text/plain");
         SolrInputDocument solrInputDocument = new SolrInputDocument();
         documentExtractor.extractDocument(result, solrInputDocument);
@@ -77,7 +92,7 @@ public class TikaSolrDocumentExtractorTest {
                 Bytes.toBytes(applicableValue));
         Result result = new Result(new KeyValue[] { kv });
 
-        SolrDocumentExtractor documentExtractor = TikaSolrDocumentExtractor.createInstance(new SingleCellExtractor(
+        SolrDocumentExtractor documentExtractor = new TikaSolrDocumentExtractor(indexSchema, new SingleCellExtractor(
                 columnFamily, columnQualifier), null, "application/dummy");
         SolrInputDocument solrInputDocument = new SolrInputDocument();
         documentExtractor.extractDocument(result, solrInputDocument);

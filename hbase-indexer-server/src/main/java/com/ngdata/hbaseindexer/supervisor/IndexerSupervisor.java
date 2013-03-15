@@ -31,6 +31,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.hadoop.hbase.EmptyWatcher;
 
 import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.HBaseToSolrMapper;
@@ -45,6 +48,7 @@ import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
 import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
+import com.ngdata.hbaseindexer.util.solr.SolrConfigLoader;
 import com.ngdata.sep.impl.SepConsumer;
 import com.ngdata.sep.util.io.Closer;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
@@ -57,7 +61,10 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
+import org.apache.solr.schema.IndexSchema;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
+import org.xml.sax.SAXException;
 
 /**
  * Responsible for starting, stopping and restarting {@link Indexer}s for the indexers defined in the
@@ -171,9 +178,11 @@ public class IndexerSupervisor {
         try {
             IndexConf indexConf = new XmlIndexConfReader().read(new ByteArrayInputStream(indexerDef.getConfiguration()));
 
+            IndexSchema indexSchema = loadIndexSchema(indexerDef);
+            
             // create and register the indexer
             HBaseToSolrMapper mapper = new ResultToSolrMapper(
-                    indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions());
+                    indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions(), indexSchema);
             solr = getSolrServer(indexerDef);
             Indexer indexer = Indexer.createIndexer(indexConf, mapper, htablePool, solr);
             indexerRegistry.register(indexerDef.getName(), indexer);
@@ -210,6 +219,15 @@ public class IndexerSupervisor {
                 Closer.close(solr);
             }
         }
+    }
+    
+    private IndexSchema loadIndexSchema(IndexerDefinition indexerDef) throws IOException, ParserConfigurationException, SAXException, InterruptedException {
+        Map<String, String> connParams = indexerDef.getConnectionParams();
+        ZooKeeper zk = new ZooKeeper(connParams.get(SolrConnectionParams.ZOOKEEPER), 30000, EmptyWatcher.instance);
+        SolrConfigLoader solrConfigLoader = new SolrConfigLoader(connParams.get(SolrConnectionParams.COLLECTION), zk);
+        IndexSchema indexSchema = new IndexSchema(solrConfigLoader.loadSolrConfig(), null, null);
+        zk.close();
+        return indexSchema;
     }
 
     private void restartIndexer(IndexerDefinition indexerDef) {

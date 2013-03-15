@@ -22,20 +22,15 @@ import java.util.Map;
 import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
 import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.SolrInputDocumentBuilder;
-
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.MapSolrParams;
-import org.apache.solr.core.SolrConfig;
-import org.apache.solr.handler.extraction.ExtractingMetadataConstants;
 import org.apache.solr.handler.extraction.SolrContentHandler;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.tika.detect.Detector;
-import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
-import org.xml.sax.InputSource;
 
 /**
  * Tika-based document extractor.
@@ -95,29 +90,5 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
         return handler.newDocument();
     }
 
-    /**
-     * Factory method to create a {@code TikaSolrDocumentExtractor} based on a default Solr configuration.
-     * 
-     * @param extractor extracts byte arrays from HBase {@code Result}s
-     * @param fieldNamePrefix prefix to be added to all Solr document field names
-     * @param mimeType the mime type to be used as the default by Tika
-     * @return a new extractor instance
-     */
-    public static TikaSolrDocumentExtractor createInstance(ByteArrayExtractor extractor, String fieldNamePrefix,
-            String mimeType) {
-        InputSource configInputSource = new InputSource(
-                TikaSolrDocumentExtractor.class.getResourceAsStream("/solrconfig.xml"));
-        SolrConfig solrConfig;
-        try {
-            solrConfig = new SolrConfig("example", configInputSource);
-        } catch (Exception e) {
-            throw new RuntimeException("Error while parsing default Solr configuration", e);
-        }
-
-        InputSource schemaInputSource = new InputSource(
-                TikaSolrDocumentExtractor.class.getResourceAsStream("/schema.xml"));
-        IndexSchema indexSchema = new IndexSchema(solrConfig, null, schemaInputSource);
-        return new TikaSolrDocumentExtractor(indexSchema, extractor, fieldNamePrefix, mimeType);
-    }
 
 }

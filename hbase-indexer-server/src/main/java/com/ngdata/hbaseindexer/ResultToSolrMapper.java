@@ -20,8 +20,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 
-import com.ngdata.hbaseindexer.parse.tika.TikaSolrDocumentExtractor;
-
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
 import com.ngdata.hbaseindexer.conf.FieldDefinition;
@@ -31,10 +29,12 @@ import com.ngdata.hbaseindexer.parse.ByteArrayValueMappers;
 import com.ngdata.hbaseindexer.parse.HBaseSolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.extract.ByteArrayExtractors;
+import com.ngdata.hbaseindexer.parse.tika.TikaSolrDocumentExtractor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.schema.IndexSchema;
 
 /**
  * Parses HBase {@code Result} objects into a structure of fields and values.
@@ -61,9 +61,10 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      * 
      * @param fieldDefinitions define fields to be indexed
      * @param documentExtractDefinitions additional document extraction definitions
+     * @param indexSchema Solr index schema for the target index
      */
     public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions,
-            List<DocumentExtractDefinition> documentExtractDefinitions) {
+            List<DocumentExtractDefinition> documentExtractDefinitions, IndexSchema indexSchema) {
         extractors = Lists.newArrayList();
         resultDocumentExtractors = Lists.newArrayList();
         for (FieldDefinition fieldDefinition : fieldDefinitions) {
@@ -78,8 +79,10 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
         for (DocumentExtractDefinition extractDefinition : documentExtractDefinitions) {
             ByteArrayExtractor byteArrayExtractor = ByteArrayExtractors.getExtractor(
                     extractDefinition.getValueExpression(), extractDefinition.getValueSource());
-            resultDocumentExtractors.add(TikaSolrDocumentExtractor.createInstance(byteArrayExtractor,
-                    extractDefinition.getPrefix(), extractDefinition.getMimeType()));
+            
+            TikaSolrDocumentExtractor tikaDocumentExtractor = new TikaSolrDocumentExtractor(
+                    indexSchema, byteArrayExtractor, extractDefinition.getPrefix(), extractDefinition.getMimeType());
+            resultDocumentExtractors.add(tikaDocumentExtractor);
             extractors.add(byteArrayExtractor);
         }
 
