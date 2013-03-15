@@ -29,7 +29,6 @@ import com.ngdata.hbaseindexer.conf.IndexConfBuilder;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.KeyValue.Type;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +39,7 @@ public class ColumnBasedIndexerTest {
 
     private IndexConf indexConf;
     private HBaseToSolrMapper mapper;
-    private SolrServer solrServer;
+    private SolrWriter solrWriter;
     private SolrUpdateCollector updateCollector;
     private ColumnBasedIndexer indexer;
 
@@ -48,9 +47,9 @@ public class ColumnBasedIndexerTest {
     public void setUp() {
         indexConf = new IndexConfBuilder().table(TABLE_NAME).create();
         mapper = IndexerTest.createHbaseToSolrMapper(true);
-        solrServer = mock(SolrServer.class);
+        solrWriter = mock(SolrWriter.class);
         updateCollector = new SolrUpdateCollector(10);
-        indexer = new ColumnBasedIndexer(indexConf, mapper, solrServer);
+        indexer = new ColumnBasedIndexer(indexConf, mapper, solrWriter);
     }
 
     private SepEvent createSepEvent(String row, KeyValue... keyValues) {

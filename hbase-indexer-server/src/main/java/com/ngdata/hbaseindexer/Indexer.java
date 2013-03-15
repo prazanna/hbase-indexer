@@ -53,7 +53,7 @@ public abstract class Indexer implements EventListener {
     protected Log log = LogFactory.getLog(getClass());
 
     protected IndexConf conf;
-    private SolrServer solr;
+    private SolrWriter solrWriter;
     protected HBaseToSolrMapper mapper;
     protected UniqueKeyFormatter uniqueKeyFormatter;
     private Predicate<SepEvent> tableEqualityPredicate;
@@ -63,18 +63,19 @@ public abstract class Indexer implements EventListener {
      */
     public static Indexer createIndexer(IndexConf conf, HBaseToSolrMapper mapper, HTablePool tablePool,
             SolrServer solrServer) {
+        SolrWriter solrWriter = new SolrWriter(solrServer);
         switch (conf.getMappingType()) {
         case COLUMN:
-            return new ColumnBasedIndexer(conf, mapper, solrServer);
+            return new ColumnBasedIndexer(conf, mapper, solrWriter);
         case ROW:
-            return new RowBasedIndexer(conf, mapper, tablePool, solrServer);
+            return new RowBasedIndexer(conf, mapper, tablePool, solrWriter);
         default:
             throw new IllegalStateException("Can't determine the type of indexing to use for mapping type "
                     + conf.getMappingType());
         }
     }
 
-    Indexer(IndexConf conf, HBaseToSolrMapper mapper, SolrServer solrServer) {
+    Indexer(IndexConf conf, HBaseToSolrMapper mapper, SolrWriter solrWriter) {
         this.conf = conf;
         this.mapper = mapper;
         try {
@@ -82,7 +83,7 @@ public abstract class Indexer implements EventListener {
         } catch (Exception e) {
             throw new RuntimeException("Problem instantiating the UniqueKeyFormatter.", e);
         }
-        this.solr = solrServer;
+        this.solrWriter = solrWriter;
 
         final byte[] tableNameBytes = Bytes.toBytes(conf.getTable());
         tableEqualityPredicate = new Predicate<SepEvent>() {
@@ -112,10 +113,10 @@ public abstract class Indexer implements EventListener {
             calculateIndexUpdates(events, updateCollector);
 
             if (!updateCollector.getDocumentsToAdd().isEmpty()) {
-                solr.add(updateCollector.getDocumentsToAdd());
+                solrWriter.add(updateCollector.getDocumentsToAdd());
             }
             if (!updateCollector.getIdsToDelete().isEmpty()) {
-                solr.deleteById(updateCollector.getIdsToDelete());
+                solrWriter.deleteById(updateCollector.getIdsToDelete());
             }
 
         } catch (Exception e) {
@@ -127,8 +128,8 @@ public abstract class Indexer implements EventListener {
         
         private HTablePool tablePool;
 
-        public RowBasedIndexer(IndexConf conf, HBaseToSolrMapper mapper, HTablePool tablePool, SolrServer solrServer) {
-            super(conf, mapper, solrServer);
+        public RowBasedIndexer(IndexConf conf, HBaseToSolrMapper mapper, HTablePool tablePool, SolrWriter solrWriter) {
+            super(conf, mapper, solrWriter);
             this.tablePool = tablePool;
         }
 
@@ -185,7 +186,7 @@ public abstract class Indexer implements EventListener {
                     SolrInputDocument document = mapper.map(result);
                     document.addField(conf.getUniqueKeyField(), uniqueKeyFormatter.formatRow(event.getRow()));
                     // TODO there should probably some way for the mapper to indicate there was no useful content to
-                    // map,  e.g. if there are no fields in the solr document (and should we then perform a delete instead?)
+                    // map,  e.g. if there are no fields in the solrWriter document (and should we then perform a delete instead?)
                     updateCollector.add(document);
                     if (log.isDebugEnabled()) {
                         log.debug("Row " + Bytes.toString(event.getRow()) + ": added to Solr");
@@ -221,8 +222,8 @@ public abstract class Indexer implements EventListener {
 
     static class ColumnBasedIndexer extends Indexer {
 
-        public ColumnBasedIndexer(IndexConf conf, HBaseToSolrMapper mapper, SolrServer solrServer) {
-            super(conf, mapper, solrServer);
+        public ColumnBasedIndexer(IndexConf conf, HBaseToSolrMapper mapper, SolrWriter solrWriter) {
+            super(conf, mapper, solrWriter);
         }
 
         @Override
