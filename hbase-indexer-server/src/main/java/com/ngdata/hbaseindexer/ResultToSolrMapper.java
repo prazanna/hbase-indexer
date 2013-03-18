@@ -50,8 +50,6 @@ import org.apache.solr.schema.IndexSchema;
  */
 public class ResultToSolrMapper implements HBaseToSolrMapper {
     
-    private String indexerName;
-
     /**
      * Map of Solr field names to transformers for extracting data from HBase {@code Result} objects.
      */
@@ -78,7 +76,6 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      */
     public ResultToSolrMapper(String indexerName, List<FieldDefinition> fieldDefinitions,
             List<DocumentExtractDefinition> documentExtractDefinitions, IndexSchema indexSchema) {
-        this.indexerName = indexerName;
         extractors = Lists.newArrayList();
         resultDocumentExtractors = Lists.newArrayList();
         for (FieldDefinition fieldDefinition : fieldDefinitions) {
