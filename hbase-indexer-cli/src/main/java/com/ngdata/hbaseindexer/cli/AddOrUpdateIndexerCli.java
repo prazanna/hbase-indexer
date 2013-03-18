@@ -17,7 +17,11 @@ package com.ngdata.hbaseindexer.cli;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
+import com.ngdata.hbaseindexer.conf.IndexConfException;
+import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import joptsimple.ArgumentAcceptingOptionSpec;
@@ -28,7 +32,10 @@ import joptsimple.ValueConversionException;
 import joptsimple.ValueConverter;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hbase.util.Pair;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -187,7 +194,31 @@ public abstract class AddOrUpdateIndexerCli extends BaseIndexCli {
             throw new CliException(msg.toString());
         }
 
-        return FileUtils.readFileToByteArray(file);
+        byte[] data = ByteStreams.toByteArray(Files.newInputStreamSupplier(file));
+        try {
+            new XmlIndexConfReader().validate(new ByteArrayInputStream(data));
+        } catch (IndexConfException e) {
+            StringBuilder msg = new StringBuilder();
+            msg.append("Failed to parse file ").append(fileName).append('\n');
+            addExceptionMessages(e, msg);
+            throw new CliException(msg.toString());
+        } catch (SAXException e) {
+            StringBuilder msg = new StringBuilder();
+            msg.append("Failed to parse file ").append(fileName).append('\n');
+            addExceptionMessages(e, msg);
+            throw new CliException(msg.toString());
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+        return data;
+    }
+
+    private void addExceptionMessages(Throwable throwable, StringBuilder builder) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            builder.append(cause.getMessage()).append('\n');
+            cause = cause.getCause();
+        }
     }
 
     private Map<String, String> getConnectionParams(OptionSet options, Map<String, String> oldParams) {
