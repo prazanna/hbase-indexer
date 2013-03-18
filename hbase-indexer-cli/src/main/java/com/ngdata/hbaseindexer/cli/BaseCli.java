@@ -68,10 +68,12 @@ public abstract class BaseCli {
         try {
             run(options);
         } catch (CliException e) {
-            System.out.println(e.getMessage());
+            System.err.println();
+            System.err.println(e.getMessage());
             System.exit(e.getExitCode());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println();
+            e.printStackTrace(System.err);
             System.exit(1);
         } finally {
             try {
