@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer;
+package com.ngdata.hbaseindexer.indexer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -22,71 +22,65 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.solr.common.SolrInputDocument;
-
-import org.apache.hadoop.hbase.KeyValue.Type;
-
 import com.google.common.collect.Lists;
-import com.ngdata.hbaseindexer.Indexer.RowBasedIndexer;
+import com.ngdata.hbaseindexer.indexer.Indexer.ColumnBasedIndexer;
 import com.ngdata.hbaseindexer.conf.IndexConf;
-import com.ngdata.hbaseindexer.conf.IndexConf.MappingType;
 import com.ngdata.hbaseindexer.conf.IndexConfBuilder;
+import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.KeyValue.Type;
+import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
 import org.junit.Test;
 
-public class RowBasedIndexerTest {
-    
+public class ColumnBasedIndexerTest {
+
     private static final String TABLE_NAME = "TABLE_A";
-    
-    private HTablePool tablePool;
+
+    private IndexConf indexConf;
+    private HBaseToSolrMapper mapper;
     private SolrWriter solrWriter;
     private SolrUpdateCollector updateCollector;
-    private RowBasedIndexer indexer;
-    
+    private ColumnBasedIndexer indexer;
+
     @Before
     public void setUp() {
-        
-        IndexConf indexConf = new IndexConfBuilder().table(TABLE_NAME).mappingType(MappingType.ROW).create();
-        HBaseToSolrMapper mapper = IndexerTest.createHbaseToSolrMapper(true);
-        
-        tablePool = mock(HTablePool.class);
+        indexConf = new IndexConfBuilder().table(TABLE_NAME).create();
+        mapper = IndexerTest.createHbaseToSolrMapper(true);
         solrWriter = mock(SolrWriter.class);
-        
         updateCollector = new SolrUpdateCollector(10);
-        
-        indexer = new RowBasedIndexer("row-based", indexConf, mapper, tablePool, solrWriter);
+        indexer = new ColumnBasedIndexer("column-based", indexConf, mapper, solrWriter);
     }
-    
+
     private SepEvent createSepEvent(String row, KeyValue... keyValues) {
         return new SepEvent(TABLE_NAME.getBytes(), row.getBytes(), Lists.newArrayList(keyValues), null);
     }
 
     @Test
     public void testCalculateIndexUpdates_AddDocument() throws IOException {
-        
-        KeyValue keyValue = new KeyValue("_row_".getBytes(), "_cf_".getBytes(), "_qual_".getBytes(), "value".getBytes());
-        SepEvent sepEvent = createSepEvent("_row_", keyValue);
-        indexer.calculateIndexUpdates(Lists.newArrayList(sepEvent), updateCollector);
-        
-        assertEquals(1, updateCollector.getDocumentsToAdd().size());
-        assertEquals("_row_", updateCollector.getDocumentsToAdd().get(0).getFieldValue("id"));
+        KeyValue toAdd = new KeyValue("_row_".getBytes(), "_cf_".getBytes(), "_qual_".getBytes(), "value".getBytes());
+        SepEvent event = createSepEvent("_row_", toAdd);
+
+        indexer.calculateIndexUpdates(Lists.newArrayList(event), updateCollector);
+
         assertTrue(updateCollector.getIdsToDelete().isEmpty());
+        List<SolrInputDocument> documents = updateCollector.getDocumentsToAdd();
+        assertEquals(1, documents.size());
+        assertEquals("_row_-_cf_-_qual_", documents.get(0).getFieldValue("id"));
     }
-    
+
     @Test
-    public void testCalculateIndexUpdates_Delete() throws IOException {
-        
-        KeyValue keyValue = new KeyValue("_row_".getBytes(), "_cf_".getBytes(), "_qual_".getBytes(), 0L, Type.Delete);
-        SepEvent sepEvent = createSepEvent("_row_", keyValue);
-        indexer.calculateIndexUpdates(Lists.newArrayList(sepEvent), updateCollector);
-        
-        assertEquals(Lists.newArrayList("_row_"), updateCollector.getIdsToDelete());
+    public void testCalculateIndexUpdates_DeleteDocument() throws IOException {
+        KeyValue toDelete = new KeyValue("_row_".getBytes(), "_cf_".getBytes(), "_qual_".getBytes(), 0L, Type.Delete);
+        SepEvent event = createSepEvent("_row_", toDelete);
+
+        indexer.calculateIndexUpdates(Lists.newArrayList(event), updateCollector);
+
+        assertEquals(Lists.newArrayList("_row_-_cf_-_qual_"), updateCollector.getIdsToDelete());
         assertTrue(updateCollector.getDocumentsToAdd().isEmpty());
     }
-    
+
     @Test
     public void testCalculateIndexUpdates_UpdateAndDeleteCombinedForSameCell_DeleteFirst() throws IOException {
         KeyValue toDelete = new KeyValue("_row_".getBytes(), "_cf_".getBytes(), "_qual_".getBytes(), 0L, Type.Delete);
@@ -99,7 +93,7 @@ public class RowBasedIndexerTest {
         assertTrue(updateCollector.getIdsToDelete().isEmpty());
         List<SolrInputDocument> documents = updateCollector.getDocumentsToAdd();
         assertEquals(1, documents.size());
-        assertEquals("_row_", documents.get(0).getFieldValue("id"));
+        assertEquals("_row_-_cf_-_qual_", documents.get(0).getFieldValue("id"));
     }
 
     @Test
@@ -111,7 +105,7 @@ public class RowBasedIndexerTest {
 
         indexer.calculateIndexUpdates(Lists.newArrayList(addEvent, deleteEvent), updateCollector);
 
-        assertEquals(Lists.newArrayList("_row_"), updateCollector.getIdsToDelete());
+        assertEquals(Lists.newArrayList("_row_-_cf_-_qual_"), updateCollector.getIdsToDelete());
         assertTrue(updateCollector.getDocumentsToAdd().isEmpty());
     }
 

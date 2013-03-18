@@ -1,6 +1,6 @@
 package com.ngdata.hbaseindexer.supervisor;
 
-import com.ngdata.hbaseindexer.Indexer;
+import com.ngdata.hbaseindexer.indexer.Indexer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

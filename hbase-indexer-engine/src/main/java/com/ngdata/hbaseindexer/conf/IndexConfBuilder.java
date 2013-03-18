@@ -20,7 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import com.ngdata.hbaseindexer.UniqueKeyFormatter;
+import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 
 /**
  * A builder for creating {@link IndexConf} instances.

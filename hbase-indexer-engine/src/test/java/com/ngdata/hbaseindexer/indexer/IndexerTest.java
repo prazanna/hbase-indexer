@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer;
+package com.ngdata.hbaseindexer.indexer;
 
 import static junit.framework.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -37,6 +37,7 @@ import com.google.common.collect.Sets;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.IndexConf.RowReadMode;
 import com.ngdata.hbaseindexer.conf.IndexConfBuilder;
+import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;

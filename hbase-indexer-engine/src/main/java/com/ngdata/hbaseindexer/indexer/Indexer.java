@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer;
+package com.ngdata.hbaseindexer.indexer;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
+import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 import com.yammer.metrics.core.TimerContext;
 
 import com.google.common.base.Predicate;

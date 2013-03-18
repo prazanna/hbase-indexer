@@ -22,7 +22,7 @@ import java.io.InputStream;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import com.ngdata.hbaseindexer.HexUniqueKeyFormatter;
+import com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter;
 import org.junit.Test;
 
 public class XmlIndexConfReaderTest {

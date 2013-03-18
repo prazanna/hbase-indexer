@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer;
+package com.ngdata.hbaseindexer.parse;
 
+import com.ngdata.hbaseindexer.indexer.Indexer;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;

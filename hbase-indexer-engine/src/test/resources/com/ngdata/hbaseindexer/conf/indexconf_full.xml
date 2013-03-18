@@ -4,7 +4,7 @@
     mapping-type="column"
     read-row="never"
     unique-key-field="key"
-    unique-key-formatter="com.ngdata.hbaseindexer.HexUniqueKeyFormatter"
+    unique-key-formatter="com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter"
     >
 
   <field name="field1" value="col:qual1" source="qualifier" type="float"/>

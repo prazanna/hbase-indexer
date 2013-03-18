@@ -15,9 +15,9 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
-import com.ngdata.hbaseindexer.Indexer;
-import com.ngdata.hbaseindexer.StringUniqueKeyFormatter;
-import com.ngdata.hbaseindexer.UniqueKeyFormatter;
+import com.ngdata.hbaseindexer.indexer.Indexer;
+import com.ngdata.hbaseindexer.uniquekey.StringUniqueKeyFormatter;
+import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 
 import java.util.Collections;
 import java.util.List;

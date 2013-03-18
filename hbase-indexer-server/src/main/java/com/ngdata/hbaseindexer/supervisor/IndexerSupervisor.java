@@ -36,9 +36,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.apache.hadoop.hbase.EmptyWatcher;
 
 import com.google.common.base.Objects;
-import com.ngdata.hbaseindexer.HBaseToSolrMapper;
-import com.ngdata.hbaseindexer.Indexer;
-import com.ngdata.hbaseindexer.ResultToSolrMapper;
+import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
+import com.ngdata.hbaseindexer.indexer.Indexer;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.conf.IndexConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;

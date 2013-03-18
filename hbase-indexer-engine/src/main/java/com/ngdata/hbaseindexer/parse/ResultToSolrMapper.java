@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.hbaseindexer;
+package com.ngdata.hbaseindexer.parse;
 
 import java.util.List;
 import java.util.Map;
@@ -32,11 +32,6 @@ import com.yammer.metrics.core.Timer;
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
 import com.ngdata.hbaseindexer.conf.FieldDefinition;
-import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
-import com.ngdata.hbaseindexer.parse.ByteArrayValueMapper;
-import com.ngdata.hbaseindexer.parse.ByteArrayValueMappers;
-import com.ngdata.hbaseindexer.parse.HBaseSolrDocumentExtractor;
-import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.extract.ByteArrayExtractors;
 import com.ngdata.hbaseindexer.parse.tika.TikaSolrDocumentExtractor;
 import org.apache.hadoop.hbase.KeyValue;

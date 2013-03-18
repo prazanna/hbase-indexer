@@ -15,7 +15,7 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
-import com.ngdata.hbaseindexer.UniqueKeyFormatter;
+import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
