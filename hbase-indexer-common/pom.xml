@@ -20,8 +20,8 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ngdata</groupId>
-  <artifactId>hbase-indexer-util</artifactId>
-  <name>HBase Indexer: utility code</name>
+  <artifactId>hbase-indexer-common</artifactId>
+  <name>HBase Indexer: common code</name>
 
   <parent>
     <groupId>com.ngdata</groupId>

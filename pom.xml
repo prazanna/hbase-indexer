@@ -57,7 +57,7 @@
 
   <modules>
     <module>hbase-indexer-server</module>
-    <module>hbase-indexer-util</module>
+    <module>hbase-indexer-common</module>
     <module>hbase-indexer-model</module>
     <module>hbase-indexer-cli</module>
     <module>hbase-indexer-all</module>
@@ -78,7 +78,7 @@
       </dependency>
       <dependency>
         <groupId>com.ngdata</groupId>
-        <artifactId>hbase-indexer-util</artifactId>
+        <artifactId>hbase-indexer-common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

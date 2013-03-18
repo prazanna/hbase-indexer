@@ -33,7 +33,7 @@
   <dependencies>
     <dependency>
       <groupId>com.ngdata</groupId>
-      <artifactId>hbase-indexer-util</artifactId>
+      <artifactId>hbase-indexer-common</artifactId>
     </dependency>
     <dependency>
       <groupId>com.ngdata</groupId>
