@@ -23,13 +23,13 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The configuration for an index, i.e. this defines the behavior of the {@link Indexer} and of the parser/mapper
+ * The configuration for an indexer, i.e. this defines the behavior of the {@link Indexer} and of the parser/mapper
  * called by the indexer.
  *
- * <p>Instances of IndexConf can be created using {@link IndexConfBuilder} or from XML using
- * {@link XmlIndexConfReader}.</p>
+ * <p>Instances of IndexerConf can be created using {@link IndexerConfBuilder} or from XML using
+ * {@link XmlIndexerConfReader}.</p>
  */
-public class IndexConf {
+public class IndexerConf {
     private String table;
     private MappingType mappingType;
     private RowReadMode rowReadMode;
@@ -66,7 +66,7 @@ public class IndexConf {
     public static final String DEFAULT_FIELD_TYPE = "string";
     public static final String DEFAULT_EXTRACT_TYPE = "application/octet-stream";
 
-    IndexConf(String table) {
+    IndexerConf(String table) {
         this.table = table;
     }
 

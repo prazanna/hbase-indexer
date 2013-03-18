@@ -39,14 +39,14 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ngdata.hbaseindexer.conf.IndexConf.MappingType;
-import static com.ngdata.hbaseindexer.conf.IndexConf.RowReadMode;
+import static com.ngdata.hbaseindexer.conf.IndexerConf.MappingType;
+import static com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
 
 /**
- * Constructs an {@link IndexConf} from an XML file.
+ * Constructs an {@link IndexerConf} from an XML file.
  */
-public class XmlIndexConfReader {
-    public IndexConf read(InputStream is) throws IOException, SAXException, ParserConfigurationException {
+public class XmlIndexerConfReader {
+    public IndexerConf read(InputStream is) throws IOException, SAXException, ParserConfigurationException {
         Document document = parse(is);
         return read(document);
     }
@@ -56,10 +56,10 @@ public class XmlIndexConfReader {
         validate(document);
     }
 
-    public IndexConf read(Document document) {
+    public IndexerConf read(Document document) {
         validate(document);
 
-        IndexConfBuilder builder = new IndexConfBuilder();
+        IndexerConfBuilder builder = new IndexerConfBuilder();
 
         Element indexEl = document.getDocumentElement();
 

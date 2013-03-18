@@ -25,15 +25,15 @@ import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter;
 import org.junit.Test;
 
-public class XmlIndexConfReaderTest {
+public class XmlIndexerConfReaderTest {
     @Test
     public void testValid() throws Exception {
-        new XmlIndexConfReader().read(asStream("<index table='foo'/>"));
+        new XmlIndexerConfReader().read(asStream("<index table='foo'/>"));
     }
 
     @Test(expected = IndexConfException.class)
     public void testInvalid() throws Exception {
-        new XmlIndexConfReader().read(asStream("<foo/>"));
+        new XmlIndexerConfReader().read(asStream("<foo/>"));
     }
 
     private InputStream asStream(String data) {
@@ -42,11 +42,11 @@ public class XmlIndexConfReaderTest {
 
     @Test
     public void testFullIndexConf() throws Exception {
-        IndexConf conf = new XmlIndexConfReader().read(getClass().getResourceAsStream("indexconf_full.xml"));
+        IndexerConf conf = new XmlIndexerConfReader().read(getClass().getResourceAsStream("indexconf_full.xml"));
 
         assertEquals("table1", conf.getTable());
-        assertEquals(IndexConf.MappingType.COLUMN, conf.getMappingType());
-        assertEquals(IndexConf.RowReadMode.NEVER, conf.getRowReadMode());
+        assertEquals(IndexerConf.MappingType.COLUMN, conf.getMappingType());
+        assertEquals(IndexerConf.RowReadMode.NEVER, conf.getRowReadMode());
         assertEquals("key", conf.getUniqueKeyField());
         assertEquals(HexUniqueKeyFormatter.class, conf.getUniqueKeyFormatterClass());
 
@@ -64,17 +64,17 @@ public class XmlIndexConfReaderTest {
 
     @Test
     public void testDefaults() throws Exception {
-        IndexConf conf = new XmlIndexConfReader().read(getClass().getResourceAsStream("indexconf_defaults.xml"));
+        IndexerConf conf = new XmlIndexerConfReader().read(getClass().getResourceAsStream("indexconf_defaults.xml"));
 
         assertEquals("table1", conf.getTable());
-        assertEquals(IndexConf.DEFAULT_MAPPING_TYPE, conf.getMappingType());
-        assertEquals(IndexConf.DEFAULT_ROW_READ_MODE, conf.getRowReadMode());
-        assertEquals(IndexConf.DEFAULT_UNIQUE_KEY_FIELD, conf.getUniqueKeyField());
-        assertEquals(IndexConf.DEFAULT_UNIQUE_KEY_FORMATTER, conf.getUniqueKeyFormatterClass());
+        assertEquals(IndexerConf.DEFAULT_MAPPING_TYPE, conf.getMappingType());
+        assertEquals(IndexerConf.DEFAULT_ROW_READ_MODE, conf.getRowReadMode());
+        assertEquals(IndexerConf.DEFAULT_UNIQUE_KEY_FIELD, conf.getUniqueKeyField());
+        assertEquals(IndexerConf.DEFAULT_UNIQUE_KEY_FORMATTER, conf.getUniqueKeyFormatterClass());
 
         List<FieldDefinition> fieldDefs = conf.getFieldDefinitions();
         List<FieldDefinition> expectedFieldDefs = Lists.newArrayList(
-                new FieldDefinition("field1", "col:qual1", IndexConf.DEFAULT_VALUE_SOURCE, IndexConf.DEFAULT_FIELD_TYPE));
+                new FieldDefinition("field1", "col:qual1", IndexerConf.DEFAULT_VALUE_SOURCE, IndexerConf.DEFAULT_FIELD_TYPE));
         assertEquals(expectedFieldDefs, fieldDefs);
 
         List<DocumentExtractDefinition> extractDefs = conf.getDocumentExtractDefinitions();

@@ -33,6 +33,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.conf.XmlIndexerConfReader;
 import org.apache.hadoop.hbase.EmptyWatcher;
 
 import com.google.common.base.Objects;
@@ -40,8 +42,6 @@ import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
 import com.ngdata.hbaseindexer.indexer.Indexer;
 import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
-import com.ngdata.hbaseindexer.conf.IndexConf;
-import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
@@ -176,15 +176,15 @@ public class IndexerSupervisor {
         IndexerHandle handle = null;
         SolrServer solr = null;
         try {
-            IndexConf indexConf = new XmlIndexConfReader().read(new ByteArrayInputStream(indexerDef.getConfiguration()));
+            IndexerConf indexerConf = new XmlIndexerConfReader().read(new ByteArrayInputStream(indexerDef.getConfiguration()));
 
             IndexSchema indexSchema = loadIndexSchema(indexerDef);
             
             // create and register the indexer
             HBaseToSolrMapper mapper = new ResultToSolrMapper(indexerDef.getName(),
-                    indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions(), indexSchema);
+                    indexerConf.getFieldDefinitions(), indexerConf.getDocumentExtractDefinitions(), indexSchema);
             solr = getSolrServer(indexerDef);
-            Indexer indexer = Indexer.createIndexer(indexerDef.getName(), indexConf, mapper, htablePool, solr);
+            Indexer indexer = Indexer.createIndexer(indexerDef.getName(), indexerConf, mapper, htablePool, solr);
             indexerRegistry.register(indexerDef.getName(), indexer);
 
             SepConsumer sepConsumer = new SepConsumer(indexerDef.getSubscriptionId(),

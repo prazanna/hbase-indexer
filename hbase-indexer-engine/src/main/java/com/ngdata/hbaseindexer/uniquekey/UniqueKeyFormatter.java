@@ -15,7 +15,7 @@
  */
 package com.ngdata.hbaseindexer.uniquekey;
 
-import com.ngdata.hbaseindexer.conf.IndexConf;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
 import org.apache.hadoop.hbase.KeyValue;
 
 /**
@@ -26,7 +26,7 @@ public interface UniqueKeyFormatter {
     /**
      * Format a row key into a human-readable form.
      * <p>
-     * Called in case of row-based mapping, {@link IndexConf.MappingType#ROW}.
+     * Called in case of row-based mapping, {@link IndexerConf.MappingType#ROW}.
      * 
      * @param row row key to be formatted
      */
@@ -36,7 +36,7 @@ public interface UniqueKeyFormatter {
      * Format a {@code KeyValue} into a human-readable form. Only the row, column family, and qualifier
      * of the {@code KeyValue} will be encoded.
      * <p>
-     * Called in case of column-based mapping, {@link IndexConf.MappingType#COLUMN}.
+     * Called in case of column-based mapping, {@link IndexerConf.MappingType#COLUMN}.
      * 
      * @param keyValue value to be formatted
      */

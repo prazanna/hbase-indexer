@@ -21,7 +21,7 @@ import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.conf.IndexConfException;
-import com.ngdata.hbaseindexer.conf.XmlIndexConfReader;
+import com.ngdata.hbaseindexer.conf.XmlIndexerConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import joptsimple.ArgumentAcceptingOptionSpec;
@@ -196,7 +196,7 @@ public abstract class AddOrUpdateIndexerCli extends BaseIndexCli {
 
         byte[] data = ByteStreams.toByteArray(Files.newInputStreamSupplier(file));
         try {
-            new XmlIndexConfReader().validate(new ByteArrayInputStream(data));
+            new XmlIndexerConfReader().validate(new ByteArrayInputStream(data));
         } catch (IndexConfException e) {
             StringBuilder msg = new StringBuilder();
             msg.append("Failed to parse file ").append(fileName).append('\n');

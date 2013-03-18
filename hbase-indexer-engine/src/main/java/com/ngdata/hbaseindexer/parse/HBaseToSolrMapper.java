@@ -15,8 +15,8 @@
  */
 package com.ngdata.hbaseindexer.parse;
 
+import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.indexer.Indexer;
-import com.ngdata.hbaseindexer.conf.IndexConf;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -37,7 +37,7 @@ public interface HBaseToSolrMapper {
      * <p>In its simplest case, this could just return "new Get(row)", but it could be further tuned to
      * only read column families or columns that will be used by the mapping.</p>
      *
-     * <p>This call only applies to row-based indexing ({@link IndexConf.MappingType#ROW}).</p>
+     * <p>This call only applies to row-based indexing ({@link IndexerConf.MappingType#ROW}).</p>
      */
     Get getGet(byte[] row);
     

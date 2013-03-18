@@ -34,9 +34,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.ngdata.hbaseindexer.conf.IndexConf;
-import com.ngdata.hbaseindexer.conf.IndexConf.RowReadMode;
-import com.ngdata.hbaseindexer.conf.IndexConfBuilder;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
+import com.ngdata.hbaseindexer.conf.IndexerConfBuilder;
 import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
@@ -78,7 +78,7 @@ public class IndexerTest {
      */
     @Test
     public void testNonmatchedTable() {
-        IndexConf conf = new IndexConfBuilder().table(TABLE_A).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).create();
 
         Indexer indexer = Indexer.createIndexer("index name", conf, null, tablePool, solrServer);
 
@@ -94,7 +94,7 @@ public class IndexerTest {
      */
     @Test
     public void testNonExistingRow() throws Exception {
-        IndexConf conf = new IndexConfBuilder().table(TABLE_A).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).create();
 
         when(tableA.get(any(Get.class))).thenReturn(new Result());
 
@@ -140,7 +140,7 @@ public class IndexerTest {
 
     @Test
     public void testRowBasedIndexing_RowReadModeNever() throws SolrServerException, IOException {
-        IndexConf conf = new IndexConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.NEVER).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.NEVER).create();
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
 
@@ -162,7 +162,7 @@ public class IndexerTest {
 
     @Test
     public void testRowBasedIndexing_RowReadModeDynamic_RereadRequired() throws IOException, SolrServerException {
-        IndexConf conf = new IndexConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).create();
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(false);
 
@@ -187,7 +187,7 @@ public class IndexerTest {
 
     @Test
     public void testRowBasedIndexing_RowReadModeDynamic_NoRereadRequired() throws SolrServerException, IOException {
-        IndexConf conf = new IndexConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).create();
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
 
@@ -209,7 +209,7 @@ public class IndexerTest {
 
     @Test
     public void testColumnBasedIndexing() throws Exception {
-        IndexConf conf = new IndexConfBuilder().table(TABLE_A).mappingType(IndexConf.MappingType.COLUMN).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).mappingType(IndexerConf.MappingType.COLUMN).create();
 
         HBaseToSolrMapper mapper = new HBaseToSolrMapper() {
             @Override

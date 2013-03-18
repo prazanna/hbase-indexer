@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.conf.IndexerConfBuilder;
 import com.ngdata.hbaseindexer.indexer.Indexer.ColumnBasedIndexer;
-import com.ngdata.hbaseindexer.conf.IndexConf;
-import com.ngdata.hbaseindexer.conf.IndexConfBuilder;
 import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
@@ -38,7 +38,7 @@ public class ColumnBasedIndexerTest {
 
     private static final String TABLE_NAME = "TABLE_A";
 
-    private IndexConf indexConf;
+    private IndexerConf indexerConf;
     private HBaseToSolrMapper mapper;
     private SolrWriter solrWriter;
     private SolrUpdateCollector updateCollector;
@@ -46,11 +46,11 @@ public class ColumnBasedIndexerTest {
 
     @Before
     public void setUp() {
-        indexConf = new IndexConfBuilder().table(TABLE_NAME).create();
+        indexerConf = new IndexerConfBuilder().table(TABLE_NAME).create();
         mapper = IndexerTest.createHbaseToSolrMapper(true);
         solrWriter = mock(SolrWriter.class);
         updateCollector = new SolrUpdateCollector(10);
-        indexer = new ColumnBasedIndexer("column-based", indexConf, mapper, solrWriter);
+        indexer = new ColumnBasedIndexer("column-based", indexerConf, mapper, solrWriter);
     }
 
     private SepEvent createSepEvent(String row, KeyValue... keyValues) {

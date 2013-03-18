@@ -22,6 +22,8 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.util.List;
 
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.conf.IndexerConfBuilder;
 import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
 import org.apache.solr.common.SolrInputDocument;
 
@@ -29,9 +31,7 @@ import org.apache.hadoop.hbase.KeyValue.Type;
 
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.indexer.Indexer.RowBasedIndexer;
-import com.ngdata.hbaseindexer.conf.IndexConf;
-import com.ngdata.hbaseindexer.conf.IndexConf.MappingType;
-import com.ngdata.hbaseindexer.conf.IndexConfBuilder;
+import com.ngdata.hbaseindexer.conf.IndexerConf.MappingType;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTablePool;
@@ -50,7 +50,7 @@ public class RowBasedIndexerTest {
     @Before
     public void setUp() {
         
-        IndexConf indexConf = new IndexConfBuilder().table(TABLE_NAME).mappingType(MappingType.ROW).create();
+        IndexerConf indexerConf = new IndexerConfBuilder().table(TABLE_NAME).mappingType(MappingType.ROW).create();
         HBaseToSolrMapper mapper = IndexerTest.createHbaseToSolrMapper(true);
         
         tablePool = mock(HTablePool.class);
@@ -58,7 +58,7 @@ public class RowBasedIndexerTest {
         
         updateCollector = new SolrUpdateCollector(10);
         
-        indexer = new RowBasedIndexer("row-based", indexConf, mapper, tablePool, solrWriter);
+        indexer = new RowBasedIndexer("row-based", indexerConf, mapper, tablePool, solrWriter);
     }
     
     private SepEvent createSepEvent(String row, KeyValue... keyValues) {
