@@ -1,5 +1,5 @@
-<!-- A test indexconf that makes use of every element and attribute -->
-<index
+<!-- A test indexerconf that makes use of every element and attribute -->
+<indexer
     table="table1"
     mapping-type="column"
     read-row="never"
@@ -14,4 +14,4 @@
   <extract prefix="testprefix_" value="col:qual3" source="qualifier" type="text/html"/>
   
 
-</index>
+</indexer>

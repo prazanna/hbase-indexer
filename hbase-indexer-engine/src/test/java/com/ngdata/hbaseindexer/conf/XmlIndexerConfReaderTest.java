@@ -28,7 +28,7 @@ import org.junit.Test;
 public class XmlIndexerConfReaderTest {
     @Test
     public void testValid() throws Exception {
-        new XmlIndexerConfReader().read(asStream("<index table='foo'/>"));
+        new XmlIndexerConfReader().read(asStream("<indexer table='foo'/>"));
     }
 
     @Test(expected = IndexConfException.class)
