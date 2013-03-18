@@ -1,0 +1,13 @@
+Requests an indexer to be deleted and waits until it is deleted.
+
+Deleting an indexer is an asynchronous process, it is equivalent to running:
+
+ hbase-indexer update-indexer -n indexer-name --lifecycle DELETE_REQUESTED
+
+HBase Indexer will react to this by performing some cleanup and then
+really deleting the indexer definition. The cleanup involves, among other
+things, deleting the SEP subscription (= the HBase replication peer).
+
+Running indexer processes will also be stopped ASAP, though not guaranteed
+to be done before this tool returns (which would involve polling all
+servers in the cluster).

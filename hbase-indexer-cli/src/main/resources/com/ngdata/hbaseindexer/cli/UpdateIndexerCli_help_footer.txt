@@ -1,0 +1,16 @@
+This command can be used to update existing indexers.
+
+To see what indexers currently exist, run:
+
+ hbase-indexer list-indexers
+
+When updating an index, you only need to specify the properties you want to
+change.
+
+The processes running for this indexer will be restarted in order to use the
+new settings. This happens asynchronously, thus not necessarily before this
+tool returns.
+
+For example, if you changed the indexerconf.xml, you would run:
+
+ hbase-indexer update-indexer -n index-name -c indexerconf.xml
