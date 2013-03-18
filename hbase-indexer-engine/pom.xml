@@ -20,8 +20,8 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.ngdata</groupId>
-  <artifactId>hbase-indexer-server</artifactId>
-  <name>HBase Indexer: server process</name>
+  <artifactId>hbase-indexer-engine</artifactId>
+  <name>HBase Indexer: engine (mapper/indexer/...)</name>
 
   <parent>
     <groupId>com.ngdata</groupId>
@@ -31,10 +31,6 @@
   </parent>
 
   <dependencies>
-    <dependency>
-      <groupId>com.ngdata</groupId>
-      <artifactId>hbase-indexer-engine</artifactId>
-    </dependency>
     <dependency>
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-indexer-util</artifactId>
@@ -98,26 +94,6 @@
   </dependencies>
 
   <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.6</version>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <configuration>
-              <target>
-                <replace file="${project.build.outputDirectory}/hbase-indexer-default.xml"
-                  token="@@@VERSION@@@" value="${project.version}" />
-              </target>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
   </build>
 
 </project>

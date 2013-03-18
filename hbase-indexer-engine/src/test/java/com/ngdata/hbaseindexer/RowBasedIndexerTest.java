@@ -34,7 +34,6 @@ import com.ngdata.hbaseindexer.conf.IndexConfBuilder;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTablePool;
-import org.apache.solr.client.solrj.SolrServer;
 import org.junit.Before;
 import org.junit.Test;
 
