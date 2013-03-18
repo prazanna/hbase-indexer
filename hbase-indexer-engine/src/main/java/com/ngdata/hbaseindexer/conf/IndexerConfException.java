@@ -15,20 +15,20 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
-public class IndexConfException extends RuntimeException {
-    public IndexConfException() {
+public class IndexerConfException extends RuntimeException {
+    public IndexerConfException() {
         super();
     }
 
-    public IndexConfException(String message) {
+    public IndexerConfException(String message) {
         super(message);
     }
 
-    public IndexConfException(String message, Throwable cause) {
+    public IndexerConfException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public IndexConfException(Throwable cause) {
+    public IndexerConfException(Throwable cause) {
         super(cause);
     }
 }

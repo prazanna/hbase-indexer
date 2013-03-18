@@ -73,7 +73,7 @@ public class IndexerTest {
     }
 
     /**
-     * When receiving an event for a different table than the one specified in the IndexConf, the Indexer should not
+     * When receiving an event for a different table than the one specified in the IndexerConf, the Indexer should not
      * interact with HBase or Solr.
      */
     @Test

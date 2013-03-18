@@ -36,7 +36,7 @@ public class AddIndexerCli extends AddOrUpdateIndexerCli {
     @Override
     protected OptionParser setupOptionParser() {
         OptionParser parser = super.setupOptionParser();
-        indexConfOption.required();
+        indexerConfOption.required();
         return parser;
     }
 

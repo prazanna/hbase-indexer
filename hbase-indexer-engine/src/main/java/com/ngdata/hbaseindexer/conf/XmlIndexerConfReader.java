@@ -105,12 +105,12 @@ public class XmlIndexerConfReader {
     private void validate(Document document) {
         try {
             SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            URL url = getClass().getResource("indexconf.xsd");
+            URL url = getClass().getResource("indexerconf.xsd");
             Schema schema = factory.newSchema(url);
             Validator validator = schema.newValidator();
             validator.validate(new DOMSource(document));
         } catch (Exception e) {
-            throw new IndexConfException("Error validating index configuration against XML Schema.", e);
+            throw new IndexerConfException("Error validating index configuration against XML Schema.", e);
         }
     }
 
@@ -124,14 +124,14 @@ public class XmlIndexerConfReader {
             }
             return newList;
         } catch (XPathExpressionException e) {
-            throw new IndexConfException("Error evaluating XPath expression '" + expression + "'.", e);
+            throw new IndexerConfException("Error evaluating XPath expression '" + expression + "'.", e);
         }
     }
 
     public static String getAttribute(Element element, String name, boolean required) {
         if (!element.hasAttribute(name)) {
             if (required)
-                throw new IndexConfException("Missing attribute " + name + " on element " + element.getLocalName());
+                throw new IndexerConfException("Missing attribute " + name + " on element " + element.getLocalName());
             else
                 return null;
         }
@@ -147,7 +147,7 @@ public class XmlIndexerConfReader {
         try {
             return (T)Enum.valueOf(enumClass, value.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IndexConfException("Illegal value in attribute " + attribute + " on element "
+            throw new IndexerConfException("Illegal value in attribute " + attribute + " on element "
                     + element.getLocalName() + ": '" + value);
         }
     }
@@ -156,12 +156,12 @@ public class XmlIndexerConfReader {
         try {
             Class<T> clazz = (Class<T>)getClass().getClassLoader().loadClass(className);
             if (!baseType.isAssignableFrom(clazz)) {
-                throw new IndexConfException("Expected a class which inherits from " + baseType.getName()
+                throw new IndexerConfException("Expected a class which inherits from " + baseType.getName()
                         + ", which the following does not: " + clazz.getName());
             }
             return clazz;
         } catch (ClassNotFoundException e) {
-            throw new IndexConfException("Could not load class: '" + className + "'", e);
+            throw new IndexerConfException("Could not load class: '" + className + "'", e);
         }
     }
 }

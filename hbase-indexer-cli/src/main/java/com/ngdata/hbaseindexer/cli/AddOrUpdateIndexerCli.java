@@ -20,7 +20,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
-import com.ngdata.hbaseindexer.conf.IndexConfException;
+import com.ngdata.hbaseindexer.conf.IndexerConfException;
 import com.ngdata.hbaseindexer.conf.XmlIndexerConfReader;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
@@ -49,7 +49,7 @@ import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState
  */
 public abstract class AddOrUpdateIndexerCli extends BaseIndexCli {
     protected OptionSpec<String> nameOption;
-    protected ArgumentAcceptingOptionSpec<String> indexConfOption;
+    protected ArgumentAcceptingOptionSpec<String> indexerConfOption;
     protected OptionSpec<Pair<String, String>> connectionParamOption;
     protected OptionSpec<IndexerDefinition.LifecycleState> lifecycleStateOption;
     protected OptionSpec<IndexerDefinition.IncrementalIndexingState> incrementalIdxStateOption;
@@ -66,9 +66,9 @@ public abstract class AddOrUpdateIndexerCli extends BaseIndexCli {
                 .withRequiredArg().ofType(String.class)
                 .required();
 
-        indexConfOption = parser
-                .acceptsAll(Lists.newArrayList("c", "index-conf"), "Index configuration")
-                .withRequiredArg().ofType(String.class).describedAs("indexconf.xml");
+        indexerConfOption = parser
+                .acceptsAll(Lists.newArrayList("c", "indexer-conf"), "Indexer configuration")
+                .withRequiredArg().ofType(String.class).describedAs("indexerconf.xml");
 
         connectionParamOption = parser
                         .acceptsAll(Lists.newArrayList("cp", "connection-param"),
@@ -155,7 +155,7 @@ public abstract class AddOrUpdateIndexerCli extends BaseIndexCli {
         if (connectionParams != null)
             builder.connectionParams(connectionParams);
 
-        byte[] indexerConf = getIndexerConf(options, indexConfOption);
+        byte[] indexerConf = getIndexerConf(options, indexerConfOption);
         if (indexerConf != null)
             builder.configuration(indexerConf);
 
@@ -197,7 +197,7 @@ public abstract class AddOrUpdateIndexerCli extends BaseIndexCli {
         byte[] data = ByteStreams.toByteArray(Files.newInputStreamSupplier(file));
         try {
             new XmlIndexerConfReader().validate(new ByteArrayInputStream(data));
-        } catch (IndexConfException e) {
+        } catch (IndexerConfException e) {
             StringBuilder msg = new StringBuilder();
             msg.append("Failed to parse file ").append(fileName).append('\n');
             addExceptionMessages(e, msg);

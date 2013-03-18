@@ -31,7 +31,7 @@ public class XmlIndexerConfReaderTest {
         new XmlIndexerConfReader().read(asStream("<indexer table='foo'/>"));
     }
 
-    @Test(expected = IndexConfException.class)
+    @Test(expected = IndexerConfException.class)
     public void testInvalid() throws Exception {
         new XmlIndexerConfReader().read(asStream("<foo/>"));
     }
@@ -41,8 +41,8 @@ public class XmlIndexerConfReaderTest {
     }
 
     @Test
-    public void testFullIndexConf() throws Exception {
-        IndexerConf conf = new XmlIndexerConfReader().read(getClass().getResourceAsStream("indexconf_full.xml"));
+    public void testFullIndexerConf() throws Exception {
+        IndexerConf conf = new XmlIndexerConfReader().read(getClass().getResourceAsStream("indexerconf_full.xml"));
 
         assertEquals("table1", conf.getTable());
         assertEquals(IndexerConf.MappingType.COLUMN, conf.getMappingType());
@@ -64,7 +64,7 @@ public class XmlIndexerConfReaderTest {
 
     @Test
     public void testDefaults() throws Exception {
-        IndexerConf conf = new XmlIndexerConfReader().read(getClass().getResourceAsStream("indexconf_defaults.xml"));
+        IndexerConf conf = new XmlIndexerConfReader().read(getClass().getResourceAsStream("indexerconf_defaults.xml"));
 
         assertEquals("table1", conf.getTable());
         assertEquals(IndexerConf.DEFAULT_MAPPING_TYPE, conf.getMappingType());
