@@ -25,6 +25,7 @@
     <version.slf4j>1.7.2</version.slf4j>
     <version.hadoop.mr1>2.0.0-mr1-cdh4.2.0</version.hadoop.mr1>
     <version.zookeeper>3.4.5-cdh4.2.0</version.zookeeper>
+    <version.jackson>1.9.2</version.jackson>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -122,6 +123,16 @@
         <artifactId>junit</artifactId>
         <version>4.8.1</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.jackson</groupId>
+        <artifactId>jackson-core-asl</artifactId>
+        <version>${version.jackson}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.jackson</groupId>
+        <artifactId>jackson-mapper-asl</artifactId>
+        <version>${version.jackson}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
