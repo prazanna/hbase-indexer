@@ -93,7 +93,7 @@ public class XmlIndexerConfReader {
             builder.addDocumentExtractDefinition(prefix, value, source, type);
         }
 
-        return builder.create();
+        return builder.build();
     }
 
     private static Document parse(InputStream is) throws ParserConfigurationException, IOException, SAXException {

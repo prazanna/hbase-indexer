@@ -75,7 +75,7 @@ public class IndexerConfBuilder {
         return this;
     }
 
-    public IndexerConf create() {
+    public IndexerConf build() {
         checkNotNull(table, "table name");
         IndexerConf conf = new IndexerConf(table);
         conf.setMappingType(mappingType != null ? mappingType : IndexerConf.DEFAULT_MAPPING_TYPE);

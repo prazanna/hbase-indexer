@@ -78,7 +78,7 @@ public class IndexerTest {
      */
     @Test
     public void testNonmatchedTable() {
-        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).build();
 
         Indexer indexer = Indexer.createIndexer("index name", conf, null, tablePool, solrServer);
 
@@ -94,7 +94,7 @@ public class IndexerTest {
      */
     @Test
     public void testNonExistingRow() throws Exception {
-        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).build();
 
         when(tableA.get(any(Get.class))).thenReturn(new Result());
 
@@ -140,7 +140,7 @@ public class IndexerTest {
 
     @Test
     public void testRowBasedIndexing_RowReadModeNever() throws SolrServerException, IOException {
-        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.NEVER).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.NEVER).build();
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
 
@@ -162,7 +162,7 @@ public class IndexerTest {
 
     @Test
     public void testRowBasedIndexing_RowReadModeDynamic_RereadRequired() throws IOException, SolrServerException {
-        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).build();
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(false);
 
@@ -187,7 +187,7 @@ public class IndexerTest {
 
     @Test
     public void testRowBasedIndexing_RowReadModeDynamic_NoRereadRequired() throws SolrServerException, IOException {
-        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).build();
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
 
@@ -209,7 +209,7 @@ public class IndexerTest {
 
     @Test
     public void testColumnBasedIndexing() throws Exception {
-        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).mappingType(IndexerConf.MappingType.COLUMN).create();
+        IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).mappingType(IndexerConf.MappingType.COLUMN).build();
 
         HBaseToSolrMapper mapper = new HBaseToSolrMapper() {
             @Override

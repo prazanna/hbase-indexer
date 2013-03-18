@@ -46,7 +46,7 @@ public class ColumnBasedIndexerTest {
 
     @Before
     public void setUp() {
-        indexerConf = new IndexerConfBuilder().table(TABLE_NAME).create();
+        indexerConf = new IndexerConfBuilder().table(TABLE_NAME).build();
         mapper = IndexerTest.createHbaseToSolrMapper(true);
         solrWriter = mock(SolrWriter.class);
         updateCollector = new SolrUpdateCollector(10);

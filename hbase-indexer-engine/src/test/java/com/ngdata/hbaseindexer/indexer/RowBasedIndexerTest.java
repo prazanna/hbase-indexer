@@ -50,7 +50,7 @@ public class RowBasedIndexerTest {
     @Before
     public void setUp() {
         
-        IndexerConf indexerConf = new IndexerConfBuilder().table(TABLE_NAME).mappingType(MappingType.ROW).create();
+        IndexerConf indexerConf = new IndexerConfBuilder().table(TABLE_NAME).mappingType(MappingType.ROW).build();
         HBaseToSolrMapper mapper = IndexerTest.createHbaseToSolrMapper(true);
         
         tablePool = mock(HTablePool.class);
