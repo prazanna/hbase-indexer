@@ -1,0 +1,23 @@
+To add an indexer, you first need an XML indexer configuration:
+
+<indexer table="my-table">
+  <field name="solr-field-name" value="family:qualifier" type="string"/>
+</indexer>
+
+Then add the indexer as follows:
+
+hbase-indexer add-indexer -n indexer-name \
+                          -c indexerconf.xml \
+                          -cp solr.zk=zookeeperhost1,zookeeperhost2/solr \
+                          -cp solr.collection=collection1
+
+The indexer-name can be choosen freely.
+
+The -cp arguments specify Solr connection parameters. The solr.zk property
+specifies the ZooKeeper ensemble used by Solr. The "/solr" at the end is
+to change the ZooKeeper root for Solr, only add this if you configured the
+Solr server like this as well.
+
+To verify the indexer exists, run
+
+hbase-indexer list-indexers
