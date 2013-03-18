@@ -26,22 +26,22 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import com.ngdata.hbaseindexer.conf.IndexerConf;
-import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
-import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
-import com.yammer.metrics.core.TimerContext;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
+import com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
+import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 import com.ngdata.sep.EventListener;
 import com.ngdata.sep.SepEvent;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+import com.yammer.metrics.core.TimerContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.KeyValue;
@@ -61,6 +61,7 @@ public abstract class Indexer implements EventListener {
 
     protected Log log = LogFactory.getLog(getClass());
 
+    private String indexerName;
     protected IndexerConf conf;
     private SolrWriter solrWriter;
     protected ResultToSolrMapper mapper;
@@ -72,21 +73,22 @@ public abstract class Indexer implements EventListener {
     /**
      * Instantiate an indexer based on the given {@link IndexerConf}.
      */
-    public static Indexer createIndexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, HTablePool tablePool,
+    public static Indexer createIndexer(String indexerName, IndexerConf conf, ResultToSolrMapper mapper, HTablePool tablePool,
             SolrServer solrServer) {
-        SolrWriter solrWriter = new SolrWriter(indexName, solrServer);
+        SolrWriter solrWriter = new SolrWriter(indexerName, solrServer);
         switch (conf.getMappingType()) {
         case COLUMN:
-            return new ColumnBasedIndexer(indexName, conf, mapper, solrWriter);
+            return new ColumnBasedIndexer(indexerName, conf, mapper, solrWriter);
         case ROW:
-            return new RowBasedIndexer(indexName, conf, mapper, tablePool, solrWriter);
+            return new RowBasedIndexer(indexerName, conf, mapper, tablePool, solrWriter);
         default:
             throw new IllegalStateException("Can't determine the type of indexing to use for mapping type "
                     + conf.getMappingType());
         }
     }
 
-    Indexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, SolrWriter solrWriter) {
+    Indexer(String indexerName, IndexerConf conf, ResultToSolrMapper mapper, SolrWriter solrWriter) {
+        this.indexerName = indexerName;
         this.conf = conf;
         this.mapper = mapper;
         try {
@@ -105,9 +107,9 @@ public abstract class Indexer implements EventListener {
             }
         };
         
-        incomingEventsMeter = Metrics.newMeter(new MetricName(getClass(), "Incoming events", indexName),
+        incomingEventsMeter = Metrics.newMeter(new MetricName(getClass(), "Incoming events", indexerName),
                 "Rate of incoming SEP events", TimeUnit.SECONDS);
-        applicableEventsMeter = Metrics.newMeter(new MetricName(getClass(), "Applicable events", indexName),
+        applicableEventsMeter = Metrics.newMeter(new MetricName(getClass(), "Applicable events", indexerName),
                 "Rate of incoming SEP events that are considered applicable", TimeUnit.SECONDS);
 
     }
@@ -141,16 +143,22 @@ public abstract class Indexer implements EventListener {
             throw new RuntimeException(e);
         }
     }
+    
+    public void stop() {
+        IndexerMetricsUtil.shutdownMetrics(getClass(), indexerName);
+        IndexerMetricsUtil.shutdownMetrics(mapper.getClass(), indexerName);
+    }
+    
 
     static class RowBasedIndexer extends Indexer {
         
         private HTablePool tablePool;
         private Timer rowReadTimer;
 
-        public RowBasedIndexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, HTablePool tablePool, SolrWriter solrWriter) {
-            super(indexName, conf, mapper, solrWriter);
+        public RowBasedIndexer(String indexerName, IndexerConf conf, ResultToSolrMapper mapper, HTablePool tablePool, SolrWriter solrWriter) {
+            super(indexerName, conf, mapper, solrWriter);
             this.tablePool = tablePool;
-            rowReadTimer = Metrics.newTimer(new MetricName(getClass(), "Row read timer", indexName), TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
+            rowReadTimer = Metrics.newTimer(new MetricName(getClass(), "Row read timer", indexerName), TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
         }
 
         /**
@@ -247,8 +255,8 @@ public abstract class Indexer implements EventListener {
 
     static class ColumnBasedIndexer extends Indexer {
 
-        public ColumnBasedIndexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, SolrWriter solrWriter) {
-            super(indexName, conf, mapper, solrWriter);
+        public ColumnBasedIndexer(String indexerName, IndexerConf conf, ResultToSolrMapper mapper, SolrWriter solrWriter) {
+            super(indexerName, conf, mapper, solrWriter);
         }
 
         @Override

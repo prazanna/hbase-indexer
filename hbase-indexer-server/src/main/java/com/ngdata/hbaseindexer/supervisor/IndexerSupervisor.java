@@ -251,6 +251,10 @@ public class IndexerSupervisor {
     }
 
     private boolean stopIndexer(String indexerName) {
+        Indexer indexer = indexerRegistry.getIndexer(indexerName);
+        if (indexer != null) {
+            indexer.stop();
+        }
         indexerRegistry.unregister(indexerName);
 
         IndexerHandle handle = indexers.get(indexerName);
