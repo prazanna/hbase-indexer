@@ -72,6 +72,7 @@ if [ $# = 0 ]; then
   echo "TOOLS"
   echo "  add-indexer"
   echo "  update-indexer"
+  echo "  delete-indexer"
   echo "  list-indexers"
   echo ""
   echo "PROCESS MANAGEMENT"
@@ -231,8 +232,7 @@ fi
 unset IFS
 
 #Set the right GC options based on the what we are running
-# TODO hbase-indexer: update list of client commands
-declare -a client_cmds=("add-indexer" "list-indexers")
+declare -a client_cmds=("add-indexer" "list-indexers" "update-indexer" "delete-indexer")
 for cmd in ${client_cmds[@]}; do
 	if [[ $cmd == $COMMAND ]]; then
 		client=true
@@ -253,6 +253,8 @@ elif [ "$COMMAND" = "add-indexer" ] ; then
   CLASS='com.ngdata.hbaseindexer.cli.AddIndexerCli'
 elif [ "$COMMAND" = "update-indexer" ] ; then
   CLASS='com.ngdata.hbaseindexer.cli.UpdateIndexerCli'
+elif [ "$COMMAND" = "delete-indexer" ] ; then
+  CLASS='com.ngdata.hbaseindexer.cli.DeleteIndexerCli'
 elif [ "$COMMAND" = "list-indexers" ] ; then
   CLASS='com.ngdata.hbaseindexer.cli.ListIndexersCli'
 elif [ "$COMMAND" = "classpath" ] ; then
