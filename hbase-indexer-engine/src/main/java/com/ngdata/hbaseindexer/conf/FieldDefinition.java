@@ -36,6 +36,21 @@ public class FieldDefinition {
 
     private final String typeName;
 
+    /**
+     * Specifies where values to index should be extracted from in an HBase {@code KeyValue}.
+     */
+    public static enum ValueSource {
+        /**
+         * Extract values to index from the column qualifier of a {@code KeyValue}.
+         */
+        QUALIFIER,
+
+        /**
+         * Extract values to index from the cell value of a {@code KeyValue}.
+         */
+        VALUE
+    }
+
     public FieldDefinition(String name, String valueExpression, ValueSource valueSource, String typeName) {
         checkNotNull(name, "name");
         checkNotNull(name, "valueExpression");
@@ -94,6 +109,5 @@ public class FieldDefinition {
     public String toString() {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
-    
 
 }

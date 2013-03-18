@@ -15,6 +15,7 @@
  */
 package com.ngdata.hbaseindexer.conf;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;

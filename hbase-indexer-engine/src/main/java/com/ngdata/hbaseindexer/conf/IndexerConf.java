@@ -22,6 +22,8 @@ import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 import java.util.Collections;
 import java.util.List;
 
+import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
+
 /**
  * The configuration for an indexer, i.e. this defines the behavior of the {@link Indexer} and of the parser/mapper
  * called by the indexer.

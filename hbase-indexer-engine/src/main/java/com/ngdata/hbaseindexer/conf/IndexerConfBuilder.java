@@ -16,6 +16,7 @@
 package com.ngdata.hbaseindexer.conf;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 
 import java.util.List;
 

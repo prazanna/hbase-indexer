@@ -15,6 +15,7 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
+import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;

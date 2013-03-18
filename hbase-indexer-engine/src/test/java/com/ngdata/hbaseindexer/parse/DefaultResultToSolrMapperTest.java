@@ -15,6 +15,7 @@
  */
 package com.ngdata.hbaseindexer.parse;
 
+import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -34,7 +35,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
 import com.ngdata.hbaseindexer.conf.FieldDefinition;
-import com.ngdata.hbaseindexer.conf.ValueSource;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;

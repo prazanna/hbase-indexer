@@ -15,12 +15,12 @@
  */
 package com.ngdata.hbaseindexer.parse.extract;
 
+import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.ngdata.hbaseindexer.conf.ValueSource;
 import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Test;

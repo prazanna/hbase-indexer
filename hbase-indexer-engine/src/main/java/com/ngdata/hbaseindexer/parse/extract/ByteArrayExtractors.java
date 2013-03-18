@@ -15,9 +15,10 @@
  */
 package com.ngdata.hbaseindexer.parse.extract;
 
-import com.ngdata.hbaseindexer.conf.ValueSource;
 import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
 import org.apache.hadoop.hbase.util.Bytes;
+
+import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 
 /**
  * Contains factory methods for {@link ByteArrayExtractor}s.
