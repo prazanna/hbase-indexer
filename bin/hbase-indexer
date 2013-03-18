@@ -232,7 +232,7 @@ fi
 unset IFS
 
 #Set the right GC options based on the what we are running
-declare -a client_cmds=("add-indexer" "list-indexers" "update-indexer" "delete-indexer")
+declare -a client_cmds=("add-indexer" "list-indexers" "update-indexer" "delete-indexer" "version")
 for cmd in ${client_cmds[@]}; do
 	if [[ $cmd == $COMMAND ]]; then
 		client=true
@@ -257,6 +257,8 @@ elif [ "$COMMAND" = "delete-indexer" ] ; then
   CLASS='com.ngdata.hbaseindexer.cli.DeleteIndexerCli'
 elif [ "$COMMAND" = "list-indexers" ] ; then
   CLASS='com.ngdata.hbaseindexer.cli.ListIndexersCli'
+elif [ "$COMMAND" = "version" ] ; then
+  CLASS='com.ngdata.hbaseindexer.util.VersionInfo'
 elif [ "$COMMAND" = "classpath" ] ; then
   echo $CLASSPATH
   exit 0
