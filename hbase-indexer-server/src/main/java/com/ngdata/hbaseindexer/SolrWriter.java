@@ -18,14 +18,17 @@ package com.ngdata.hbaseindexer;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.solr.common.SolrException.ErrorCode;
-
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Meter;
+import com.yammer.metrics.core.MetricName;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrException;
+import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.SolrInputDocument;
 
 /**
@@ -49,9 +52,29 @@ public class SolrWriter {
 
     private Log log = LogFactory.getLog(getClass());
     private SolrServer solrServer;
+    private Meter indexAddMeter;
+    private Meter indexDeleteMeter;
+    private Meter solrAddErrorMeter;
+    private Meter solrDeleteErrorMeter;
+    private Meter documentAddErrorMeter;
+    private Meter documentDeleteErrorMeter;
 
-    public SolrWriter(SolrServer solrServer) {
+    public SolrWriter(String indexName, SolrServer solrServer) {
         this.solrServer = solrServer;
+        
+        indexAddMeter = Metrics.newMeter(new MetricName(getClass(), "Index adds", indexName), "Documents added to Solr index",
+                TimeUnit.SECONDS);
+        indexDeleteMeter = Metrics.newMeter(new MetricName(getClass(), "Index deletes", indexName),
+                "Documents deleted from Solr index", TimeUnit.SECONDS);
+        solrAddErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Solr add errors", indexName),
+                "Documents not added to Solr due to Solr errors", TimeUnit.SECONDS);
+        solrDeleteErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Solr delete errors", indexName),
+                "Documents not deleted from Solr due to Solr errors", TimeUnit.SECONDS);
+        documentAddErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Document add errors", indexName),
+                "Documents not added to Solr due to document errors", TimeUnit.SECONDS);
+        documentDeleteErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Document delete errors", indexName),
+                "Documents not deleted from Solr due to document errors", TimeUnit.SECONDS);
+
     }
 
     private boolean isDocumentIssue(SolrException solrException) {
@@ -75,21 +98,27 @@ public class SolrWriter {
     public void add(Collection<SolrInputDocument> inputDocuments) throws SolrServerException, IOException {
         try {
             solrServer.add(inputDocuments);
+            indexAddMeter.mark(inputDocuments.size());
         } catch (SolrException e) {
             if (isDocumentIssue(e)) {
                 retryAddsIndividually(inputDocuments);
             } else {
+                solrAddErrorMeter.mark(inputDocuments.size());
                 throw e;
             }
         }
     }
-    
-    private void retryAddsIndividually(Collection<SolrInputDocument> inputDocuments) throws SolrServerException, IOException {
+
+    private void retryAddsIndividually(Collection<SolrInputDocument> inputDocuments) throws SolrServerException,
+            IOException {
         for (SolrInputDocument inputDocument : inputDocuments) {
             try {
                 solrServer.add(inputDocument);
+                indexAddMeter.mark();
             } catch (SolrException e) {
                 logOrThrowSolrException(e);
+                // No exception thrown through, so we can update the metric
+                documentAddErrorMeter.mark();
             }
         }
     }
@@ -103,21 +132,26 @@ public class SolrWriter {
     public void deleteById(List<String> idsToDelete) throws SolrServerException, IOException {
         try {
             solrServer.deleteById(idsToDelete);
+            indexDeleteMeter.mark(idsToDelete.size());
         } catch (SolrException e) {
             if (isDocumentIssue(e)) {
                 retryDeletesIndividually(idsToDelete);
             } else {
+                solrDeleteErrorMeter.mark(idsToDelete.size());
                 throw e;
             }
         }
     }
-    
+
     private void retryDeletesIndividually(List<String> idsToDelete) throws SolrServerException, IOException {
         for (String idToDelete : idsToDelete) {
             try {
                 solrServer.deleteById(idToDelete);
+                indexDeleteMeter.mark();
             } catch (SolrException e) {
                 logOrThrowSolrException(e);
+                // No exception thrown through, so we can update the metric
+                documentDeleteErrorMeter.mark();
             }
         }
     }

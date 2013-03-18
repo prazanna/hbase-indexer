@@ -58,7 +58,7 @@ public class RowBasedIndexerTest {
         
         updateCollector = new SolrUpdateCollector(10);
         
-        indexer = new RowBasedIndexer(indexConf, mapper, tablePool, solrWriter);
+        indexer = new RowBasedIndexer("row-based", indexConf, mapper, tablePool, solrWriter);
     }
     
     private SepEvent createSepEvent(String row, KeyValue... keyValues) {

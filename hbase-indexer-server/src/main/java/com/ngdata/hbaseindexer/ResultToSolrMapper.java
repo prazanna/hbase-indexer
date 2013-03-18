@@ -18,7 +18,16 @@ package com.ngdata.hbaseindexer;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.NavigableSet;
+
+import com.yammer.metrics.core.TimerContext;
+
+import com.yammer.metrics.core.MetricName;
+
+import com.yammer.metrics.Metrics;
+
+import com.yammer.metrics.core.Timer;
 
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
@@ -40,6 +49,8 @@ import org.apache.solr.schema.IndexSchema;
  * Parses HBase {@code Result} objects into a structure of fields and values.
  */
 public class ResultToSolrMapper implements HBaseToSolrMapper {
+    
+    private String indexerName;
 
     /**
      * Map of Solr field names to transformers for extracting data from HBase {@code Result} objects.
@@ -56,6 +67,8 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      */
     private List<ByteArrayExtractor> extractors;
     
+    private Timer mappingTimer;
+    
     /**
      * Instantiate with {@code FieldDefinitions}s and {@code DocumentExtractDefinition}s.
      * 
@@ -63,8 +76,9 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
      * @param documentExtractDefinitions additional document extraction definitions
      * @param indexSchema Solr index schema for the target index
      */
-    public ResultToSolrMapper(List<FieldDefinition> fieldDefinitions,
+    public ResultToSolrMapper(String indexerName, List<FieldDefinition> fieldDefinitions,
             List<DocumentExtractDefinition> documentExtractDefinitions, IndexSchema indexSchema) {
+        this.indexerName = indexerName;
         extractors = Lists.newArrayList();
         resultDocumentExtractors = Lists.newArrayList();
         for (FieldDefinition fieldDefinition : fieldDefinitions) {
@@ -100,6 +114,9 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
             }
         }
         familyMap = get.getFamilyMap();
+        
+        mappingTimer = Metrics.newTimer(new MetricName(getClass(), "HBase Result to Solr mapping time", indexerName),
+                TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
     }
     
     @Override
@@ -140,11 +157,16 @@ public class ResultToSolrMapper implements HBaseToSolrMapper {
 
     @Override
     public SolrInputDocument map(Result result) {
-        SolrInputDocument solrInputDocument = new SolrInputDocument();
-        for (SolrDocumentExtractor documentExtractor : resultDocumentExtractors) {
-            documentExtractor.extractDocument(result, solrInputDocument);
+        TimerContext timerContext = mappingTimer.time();
+        try {
+            SolrInputDocument solrInputDocument = new SolrInputDocument();
+            for (SolrDocumentExtractor documentExtractor : resultDocumentExtractors) {
+                documentExtractor.extractDocument(result, solrInputDocument);
+            }
+            return solrInputDocument;
+        } finally {
+            timerContext.stop();
         }
-        return solrInputDocument;
     }
 
 }

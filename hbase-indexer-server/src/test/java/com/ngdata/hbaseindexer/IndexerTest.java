@@ -79,7 +79,7 @@ public class IndexerTest {
     public void testNonmatchedTable() {
         IndexConf conf = new IndexConfBuilder().table(TABLE_A).create();
 
-        Indexer indexer = Indexer.createIndexer(conf, null, tablePool, solrServer);
+        Indexer indexer = Indexer.createIndexer("index name", conf, null, tablePool, solrServer);
 
         SepEvent event = new SepEvent(Bytes.toBytes(TABLE_B), null, null, null);
         indexer.processEvents(Collections.singletonList(event));
@@ -99,7 +99,7 @@ public class IndexerTest {
 
         HBaseToSolrMapper mapper = mock(HBaseToSolrMapper.class);
         when(mapper.isRelevantKV(any(KeyValue.class))).thenReturn(true);
-        Indexer indexer = Indexer.createIndexer(conf, mapper, tablePool, solrServer);
+        Indexer indexer = Indexer.createIndexer("index name", conf, mapper, tablePool, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(new KeyValue(Bytes.toBytes("row1"), Bytes.toBytes("cf"),
                 Bytes.toBytes("qual"), Bytes.toBytes("value")));
@@ -143,7 +143,7 @@ public class IndexerTest {
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
 
-        Indexer indexer = Indexer.createIndexer(conf, mapper, tablePool, solrServer);
+        Indexer indexer = Indexer.createIndexer("index name", conf, mapper, tablePool, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(new KeyValue(Bytes.toBytes("row1"), Bytes.toBytes("cf"),
                 Bytes.toBytes("qual"), Bytes.toBytes("val")));
@@ -167,7 +167,7 @@ public class IndexerTest {
 
         when(tableA.get(any(Get.class))).thenReturn(new Result(Lists.newArrayList(new KeyValue())));
 
-        Indexer indexer = Indexer.createIndexer(conf, mapper, tablePool, solrServer);
+        Indexer indexer = Indexer.createIndexer("index name", conf, mapper, tablePool, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(new KeyValue(Bytes.toBytes("row1"), Bytes.toBytes("cf"),
                 Bytes.toBytes("qual"), Bytes.toBytes("value")));
@@ -190,7 +190,7 @@ public class IndexerTest {
 
         HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
 
-        Indexer indexer = Indexer.createIndexer(conf, mapper, tablePool, solrServer);
+        Indexer indexer = Indexer.createIndexer("index name", conf, mapper, tablePool, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(new KeyValue(Bytes.toBytes("row1"), Bytes.toBytes("cf"),
                 Bytes.toBytes("qual"), Bytes.toBytes("value")));
@@ -233,7 +233,7 @@ public class IndexerTest {
             }
         };
 
-        Indexer indexer = Indexer.createIndexer(conf, mapper, null, solrServer);
+        Indexer indexer = Indexer.createIndexer("index name", conf, mapper, null, solrServer);
 
         List<KeyValue> kvs = Lists.newArrayList(
                 new KeyValue(Bytes.toBytes("row1"), Bytes.toBytes("messages"), Bytes.toBytes("msg1"),

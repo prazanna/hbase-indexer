@@ -39,7 +39,7 @@ public class SolrWriterTest {
     @Before
     public void setUp() {
         solrServer = mock(SolrServer.class);
-        solrWriter = new SolrWriter(solrServer);
+        solrWriter = new SolrWriter("index name", solrServer);
     }
 
     @Test

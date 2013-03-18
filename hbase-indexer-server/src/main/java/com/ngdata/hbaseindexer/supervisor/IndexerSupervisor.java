@@ -181,10 +181,10 @@ public class IndexerSupervisor {
             IndexSchema indexSchema = loadIndexSchema(indexerDef);
             
             // create and register the indexer
-            HBaseToSolrMapper mapper = new ResultToSolrMapper(
+            HBaseToSolrMapper mapper = new ResultToSolrMapper(indexerDef.getName(),
                     indexConf.getFieldDefinitions(), indexConf.getDocumentExtractDefinitions(), indexSchema);
             solr = getSolrServer(indexerDef);
-            Indexer indexer = Indexer.createIndexer(indexConf, mapper, htablePool, solr);
+            Indexer indexer = Indexer.createIndexer(indexerDef.getName(), indexConf, mapper, htablePool, solr);
             indexerRegistry.register(indexerDef.getName(), indexer);
 
             SepConsumer sepConsumer = new SepConsumer(indexerDef.getSubscriptionId(),

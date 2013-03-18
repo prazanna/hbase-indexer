@@ -49,7 +49,7 @@ public class ColumnBasedIndexerTest {
         mapper = IndexerTest.createHbaseToSolrMapper(true);
         solrWriter = mock(SolrWriter.class);
         updateCollector = new SolrUpdateCollector(10);
-        indexer = new ColumnBasedIndexer(indexConf, mapper, solrWriter);
+        indexer = new ColumnBasedIndexer("column-based", indexConf, mapper, solrWriter);
     }
 
     private SepEvent createSepEvent(String row, KeyValue... keyValues) {
