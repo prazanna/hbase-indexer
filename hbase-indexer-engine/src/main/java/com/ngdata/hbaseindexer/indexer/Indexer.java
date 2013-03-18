@@ -15,6 +15,8 @@
  */
 package com.ngdata.hbaseindexer.indexer;
 
+import static com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil.metricName;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +41,6 @@ import com.ngdata.sep.EventListener;
 import com.ngdata.sep.SepEvent;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Meter;
-import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import com.yammer.metrics.core.TimerContext;
 import org.apache.commons.logging.Log;
@@ -107,9 +108,9 @@ public abstract class Indexer implements EventListener {
             }
         };
         
-        incomingEventsMeter = Metrics.newMeter(new MetricName(getClass(), "Incoming events", indexerName),
+        incomingEventsMeter = Metrics.newMeter(metricName(getClass(), "Incoming events", indexerName),
                 "Rate of incoming SEP events", TimeUnit.SECONDS);
-        applicableEventsMeter = Metrics.newMeter(new MetricName(getClass(), "Applicable events", indexerName),
+        applicableEventsMeter = Metrics.newMeter(metricName(getClass(), "Applicable events", indexerName),
                 "Rate of incoming SEP events that are considered applicable", TimeUnit.SECONDS);
 
     }
@@ -158,7 +159,7 @@ public abstract class Indexer implements EventListener {
         public RowBasedIndexer(String indexerName, IndexerConf conf, ResultToSolrMapper mapper, HTablePool tablePool, SolrWriter solrWriter) {
             super(indexerName, conf, mapper, solrWriter);
             this.tablePool = tablePool;
-            rowReadTimer = Metrics.newTimer(new MetricName(getClass(), "Row read timer", indexerName), TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
+            rowReadTimer = Metrics.newTimer(metricName(getClass(), "Row read timer", indexerName), TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
         }
 
         /**

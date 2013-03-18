@@ -15,25 +15,22 @@
  */
 package com.ngdata.hbaseindexer.parse;
 
+import static com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil.metricName;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.NavigableSet;
-
-import com.yammer.metrics.core.TimerContext;
-
-import com.yammer.metrics.core.MetricName;
-
-import com.yammer.metrics.Metrics;
-
-import com.yammer.metrics.core.Timer;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
 import com.ngdata.hbaseindexer.conf.FieldDefinition;
 import com.ngdata.hbaseindexer.parse.extract.ByteArrayExtractors;
 import com.ngdata.hbaseindexer.parse.tika.TikaSolrDocumentExtractor;
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Timer;
+import com.yammer.metrics.core.TimerContext;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -107,7 +104,7 @@ public class DefaultResultToSolrMapper implements ResultToSolrMapper {
         }
         familyMap = get.getFamilyMap();
         
-        mappingTimer = Metrics.newTimer(new MetricName(getClass(), "HBase Result to Solr mapping time", indexerName),
+        mappingTimer = Metrics.newTimer(metricName(getClass(), "HBase Result to Solr mapping time", indexerName),
                 TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
     }
     

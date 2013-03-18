@@ -21,4 +21,17 @@ public class ConfKeys {
     public static final String ZK_CONNECT_STRING = "hbaseindexer.zookeeper.connectstring";
 
     public static final String ZK_ROOT_NODE = "hbaseindexer.zookeeper.znode.parent";
+    
+    /**
+     * Name of the Ganglia server to report to. Metrics reporting to Ganglia is only enabled
+     * if a value is present under this key in the configuration.
+     */
+    public static final String GANGLIA_SERVER = "hbaseindexer.metrics.ganglia.server";
+    
+    /** Port to report to for Ganglia. */
+    public static final String GANGLIA_PORT = "hbaseindexer.metrics.ganglia.port";
+    
+    /** Ganglia reporting interval, in seconds. */
+    public static final String GANGLIA_INTERVAL = "hbaseindexer.metrics.ganglia.interval";
+    
 }

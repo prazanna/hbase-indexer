@@ -15,6 +15,8 @@
  */
 package com.ngdata.hbaseindexer.indexer;
 
+import static com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil.metricName;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -22,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Meter;
-import com.yammer.metrics.core.MetricName;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.solr.client.solrj.SolrServer;
@@ -62,17 +63,17 @@ public class SolrWriter {
     public SolrWriter(String indexName, SolrServer solrServer) {
         this.solrServer = solrServer;
         
-        indexAddMeter = Metrics.newMeter(new MetricName(getClass(), "Index adds", indexName), "Documents added to Solr index",
+        indexAddMeter = Metrics.newMeter(metricName(getClass(), "Index adds", indexName), "Documents added to Solr index",
                 TimeUnit.SECONDS);
-        indexDeleteMeter = Metrics.newMeter(new MetricName(getClass(), "Index deletes", indexName),
+        indexDeleteMeter = Metrics.newMeter(metricName(getClass(), "Index deletes", indexName),
                 "Documents deleted from Solr index", TimeUnit.SECONDS);
-        solrAddErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Solr add errors", indexName),
+        solrAddErrorMeter = Metrics.newMeter(metricName(getClass(), "Solr add errors", indexName),
                 "Documents not added to Solr due to Solr errors", TimeUnit.SECONDS);
-        solrDeleteErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Solr delete errors", indexName),
+        solrDeleteErrorMeter = Metrics.newMeter(metricName(getClass(), "Solr delete errors", indexName),
                 "Documents not deleted from Solr due to Solr errors", TimeUnit.SECONDS);
-        documentAddErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Document add errors", indexName),
+        documentAddErrorMeter = Metrics.newMeter(metricName(getClass(), "Document add errors", indexName),
                 "Documents not added to Solr due to document errors", TimeUnit.SECONDS);
-        documentDeleteErrorMeter = Metrics.newMeter(new MetricName(getClass(), "Document delete errors", indexName),
+        documentDeleteErrorMeter = Metrics.newMeter(metricName(getClass(), "Document delete errors", indexName),
                 "Documents not deleted from Solr due to document errors", TimeUnit.SECONDS);
 
     }

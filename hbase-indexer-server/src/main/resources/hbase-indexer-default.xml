@@ -40,4 +40,26 @@
     classpath.
     </description>
   </property>
+
+
+  <!-- 
+    Ganglia-based monitoring 
+  -->
+  <property>
+    <name>hbaseindexer.metrics.ganglia.server</name>
+    <value></value>
+    <description>Server for Ganglia reporting</description>
+  </property>
+
+  <property>
+    <name>hbaseindexer.metrics.ganglia.port</name>
+    <value>8649</value>
+    <description>Port for Ganglia reporting</description>
+  </property>
+
+  <property>
+    <name>hbaseindexer.metrics.ganglia.interval</name>
+    <value>60</value>
+    <description>Reporting interval to Ganglia, in seconds</description>
+  </property>
 </configuration>

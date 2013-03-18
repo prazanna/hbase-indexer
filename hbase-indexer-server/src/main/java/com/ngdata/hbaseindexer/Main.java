@@ -15,6 +15,10 @@
  */
 package com.ngdata.hbaseindexer;
 
+import java.util.concurrent.TimeUnit;
+
+import com.yammer.metrics.reporting.GangliaReporter;
+
 import com.ngdata.hbaseindexer.master.IndexerMaster;
 import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
 import com.ngdata.hbaseindexer.model.impl.IndexerModelImpl;
@@ -54,6 +58,8 @@ public class Main {
         // The same configuration object is used for both hbase-indexer as for hbase client access
         Configuration conf = HBaseIndexerConfiguration.create();
         conf.setBoolean("hbase.replication", true);
+        
+        setupMetrics(conf);
 
         String hostname = Strings.domainNamePointerToHostName(DNS.getDefaultHost(
                 conf.get("hbase.regionserver.dns.interface", "default"),
@@ -82,6 +88,17 @@ public class Main {
                 tablePool, conf);
 
         indexerSupervisor.init();
+        
+    }
+    
+    private void setupMetrics(Configuration conf) {
+        String gangliaHost = conf.get(ConfKeys.GANGLIA_SERVER);
+        if (gangliaHost != null) {
+            int gangliaPort = conf.getInt(ConfKeys.GANGLIA_PORT, 8649);
+            int interval = conf.getInt(ConfKeys.GANGLIA_INTERVAL, 60);
+            log.info("Enabling Ganglia reporting to " + gangliaHost + ":" + gangliaPort);
+            GangliaReporter.enable(interval, TimeUnit.SECONDS, gangliaHost, gangliaPort);
+        }
     }
 
     void stopServices() {
