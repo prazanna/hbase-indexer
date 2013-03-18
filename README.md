@@ -12,7 +12,7 @@ Use the following command to build the binary distribution (.tar.gz):
 
 These steps assume a running HBase 0.94.x installation (preferably CDH 4.2), as well as a running Solr installation. For this example, the configured Solr schema will need to have a multi-valued field called "data", as well as a unique key field called "id".
 
-1. Enable replication and other settings that are outlined in the [https://github.com/NGDATA/hbase-sep/blob/master/demo/README.md](hbase-sep demo instructions)
+1. Enable replication and other settings that are outlined in the [hbase-sep demo instructions](https://github.com/NGDATA/hbase-sep/blob/master/demo/README.md)
 2. Unzip the binary distribution (instructions for creating the binary distribution are listed above).
 
         $ tar zxvf hbase_indexer.tar.gz
