@@ -36,14 +36,6 @@
       <artifactId>hbase-indexer-engine</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.ngdata</groupId>
-      <artifactId>hbase-indexer-util</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.ngdata</groupId>
-      <artifactId>hbase-indexer-model</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-core</artifactId>
       <version>${version.hadoop.mr1}</version>
@@ -62,34 +54,6 @@
       <groupId>org.slf4j</groupId>
       <artifactId>jul-to-slf4j</artifactId>
       <version>${version.slf4j}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.solr</groupId>
-        <artifactId>solr-core</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.apache.solr</groupId>
-        <artifactId>solr-solrj</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.solr</groupId>
-      <artifactId>solr-cell</artifactId>
-      <version>${version.solr}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>${version.guava}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.yammer.metrics</groupId>
-      <artifactId>metrics-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>1.9.5</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
