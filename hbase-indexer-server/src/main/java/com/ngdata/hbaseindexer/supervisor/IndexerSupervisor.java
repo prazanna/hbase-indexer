@@ -35,12 +35,12 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexerConfReader;
+import com.ngdata.hbaseindexer.parse.DefaultResultToSolrMapper;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import org.apache.hadoop.hbase.EmptyWatcher;
 
 import com.google.common.base.Objects;
-import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
 import com.ngdata.hbaseindexer.indexer.Indexer;
-import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
@@ -181,7 +181,7 @@ public class IndexerSupervisor {
             IndexSchema indexSchema = loadIndexSchema(indexerDef);
             
             // create and register the indexer
-            HBaseToSolrMapper mapper = new ResultToSolrMapper(indexerDef.getName(),
+            ResultToSolrMapper mapper = new DefaultResultToSolrMapper(indexerDef.getName(),
                     indexerConf.getFieldDefinitions(), indexerConf.getDocumentExtractDefinitions(), indexSchema);
             solr = getSolrServer(indexerDef);
             Indexer indexer = Indexer.createIndexer(indexerDef.getName(), indexerConf, mapper, htablePool, solr);

@@ -15,150 +15,55 @@
  */
 package com.ngdata.hbaseindexer.parse;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
-import java.util.NavigableSet;
-
-import com.yammer.metrics.core.TimerContext;
-
-import com.yammer.metrics.core.MetricName;
-
-import com.yammer.metrics.Metrics;
-
-import com.yammer.metrics.core.Timer;
-
-import com.google.common.collect.Lists;
-import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
-import com.ngdata.hbaseindexer.conf.FieldDefinition;
-import com.ngdata.hbaseindexer.parse.extract.ByteArrayExtractors;
-import com.ngdata.hbaseindexer.parse.tika.TikaSolrDocumentExtractor;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.indexer.Indexer;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.schema.IndexSchema;
 
 /**
- * Parses HBase {@code Result} objects into a structure of fields and values.
+ * Parses and maps HBase {@code Result} objects to Solr {@code SolrInputDocument}s.
  */
-public class ResultToSolrMapper implements HBaseToSolrMapper {
-    
+public interface ResultToSolrMapper {
     /**
-     * Map of Solr field names to transformers for extracting data from HBase {@code Result} objects.
+     * Should return true if the given key-value would be used by the mapping.
+     *
+     * <p>The implementation should just look at the coordinates (row/family/column), not at the
+     * type (put, delete, ...).</p>
      */
-    private List<SolrDocumentExtractor> resultDocumentExtractors;
+    boolean isRelevantKV(KeyValue kv);
 
     /**
-     * Information to be used for constructing a Get to fetch data required for indexing.
+     * Creates the Get object used to retrieve the row from HBase with the data needed by this mapper.
+     *
+     * <p>In its simplest case, this could just return "new Get(row)", but it could be further tuned to
+     * only read column families or columns that will be used by the mapping.</p>
+     *
+     * <p>This call only applies to row-based indexing ({@link IndexerConf.MappingType#ROW}).</p>
      */
-    private Map<byte[], NavigableSet<byte[]>> familyMap;
-
-    /**
-     * Used to do evaluation on applicability of KeyValues.
-     */
-    private List<ByteArrayExtractor> extractors;
-    
-    private Timer mappingTimer;
+    Get getGet(byte[] row);
     
     /**
-     * Instantiate with {@code FieldDefinitions}s and {@code DocumentExtractDefinition}s.
+     * Determine if the given Result object contains sufficient information to perform indexing.
+     * <p>
+     * This method is needed in order to determine whether or not to re-read an updated row when performing
+     * row-based indexing.
      * 
-     * @param fieldDefinitions define fields to be indexed
-     * @param documentExtractDefinitions additional document extraction definitions
-     * @param indexSchema Solr index schema for the target index
+     * @param result contains all KeyValues of the updated row
+     * @return true if all data required for indexing is included in the row, otherwise false
      */
-    public ResultToSolrMapper(String indexerName, List<FieldDefinition> fieldDefinitions,
-            List<DocumentExtractDefinition> documentExtractDefinitions, IndexSchema indexSchema) {
-        extractors = Lists.newArrayList();
-        resultDocumentExtractors = Lists.newArrayList();
-        for (FieldDefinition fieldDefinition : fieldDefinitions) {
-            ByteArrayExtractor byteArrayExtractor = ByteArrayExtractors.getExtractor(
-                    fieldDefinition.getValueExpression(), fieldDefinition.getValueSource());
-            ByteArrayValueMapper valueMapper = ByteArrayValueMappers.getMapper(fieldDefinition.getTypeName());
-            resultDocumentExtractors.add(new HBaseSolrDocumentExtractor(fieldDefinition.getName(), byteArrayExtractor,
-                    valueMapper));
-            extractors.add(byteArrayExtractor);
-        }
+    boolean containsRequiredData(Result result);
 
-        for (DocumentExtractDefinition extractDefinition : documentExtractDefinitions) {
-            ByteArrayExtractor byteArrayExtractor = ByteArrayExtractors.getExtractor(
-                    extractDefinition.getValueExpression(), extractDefinition.getValueSource());
-            
-            TikaSolrDocumentExtractor tikaDocumentExtractor = new TikaSolrDocumentExtractor(
-                    indexSchema, byteArrayExtractor, extractDefinition.getPrefix(), extractDefinition.getMimeType());
-            resultDocumentExtractors.add(tikaDocumentExtractor);
-            extractors.add(byteArrayExtractor);
-        }
-
-        Get get = new Get();
-        for (ByteArrayExtractor extractor : extractors) {
-
-            byte[] columnFamily = extractor.getColumnFamily();
-            byte[] columnQualifier = extractor.getColumnQualifier();
-            if (columnFamily != null) {
-                if (columnQualifier != null) {
-                    get.addColumn(columnFamily, columnQualifier);
-                } else {
-                    get.addFamily(columnFamily);
-                }
-            }
-        }
-        familyMap = get.getFamilyMap();
-        
-        mappingTimer = Metrics.newTimer(new MetricName(getClass(), "HBase Result to Solr mapping time", indexerName),
-                TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
-    }
-    
-    @Override
-    public boolean containsRequiredData(Result result) {
-        for (ByteArrayExtractor extractor : extractors) {
-            if (!extractor.containsTarget(result)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public boolean isRelevantKV(KeyValue kv) {
-        for (ByteArrayExtractor extractor : extractors) {
-            if (extractor.isApplicable(kv)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public Get getGet(byte[] row) {
-        Get get = new Get(row);
-        for (Entry<byte[], NavigableSet<byte[]>> familyMapEntry : familyMap.entrySet()) {
-            byte[] columnFamily = familyMapEntry.getKey();
-            if (familyMapEntry.getValue() == null) {
-                get.addFamily(columnFamily);
-            } else {
-                for (byte[] qualifier : familyMapEntry.getValue()) {
-                    get.addColumn(columnFamily, qualifier);
-                }
-            }
-        }
-        return get;
-    }
-
-    @Override
-    public SolrInputDocument map(Result result) {
-        TimerContext timerContext = mappingTimer.time();
-        try {
-            SolrInputDocument solrInputDocument = new SolrInputDocument();
-            for (SolrDocumentExtractor documentExtractor : resultDocumentExtractors) {
-                documentExtractor.extractDocument(result, solrInputDocument);
-            }
-            return solrInputDocument;
-        } finally {
-            timerContext.stop();
-        }
-    }
-
+    /**
+     * Creates a Solr document out of the supplied HBase row.
+     *
+     * <p>The document does not need to contain the ID (unique key) for Solr, this will be added by the
+     * {@link Indexer}.</p>
+     *
+     * <p>If the mapping would result in nothing, either null or an empty SolrInputDocument can be returned.
+     * TODO this is not yet implemented, also does Solr allow adding empty documents and does this have an
+     * interesting semantic?</p>
+     */
+    SolrInputDocument map(Result result);
 }

@@ -24,7 +24,7 @@ import java.util.List;
 
 import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.conf.IndexerConfBuilder;
-import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import org.apache.solr.common.SolrInputDocument;
 
 import org.apache.hadoop.hbase.KeyValue.Type;
@@ -51,7 +51,7 @@ public class RowBasedIndexerTest {
     public void setUp() {
         
         IndexerConf indexerConf = new IndexerConfBuilder().table(TABLE_NAME).mappingType(MappingType.ROW).build();
-        HBaseToSolrMapper mapper = IndexerTest.createHbaseToSolrMapper(true);
+        ResultToSolrMapper mapper = IndexerTest.createHbaseToSolrMapper(true);
         
         tablePool = mock(HTablePool.class);
         solrWriter = mock(SolrWriter.class);

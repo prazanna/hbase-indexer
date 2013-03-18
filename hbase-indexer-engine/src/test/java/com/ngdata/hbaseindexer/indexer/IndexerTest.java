@@ -37,7 +37,7 @@ import com.google.common.collect.Sets;
 import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
 import com.ngdata.hbaseindexer.conf.IndexerConfBuilder;
-import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -98,7 +98,7 @@ public class IndexerTest {
 
         when(tableA.get(any(Get.class))).thenReturn(new Result());
 
-        HBaseToSolrMapper mapper = mock(HBaseToSolrMapper.class);
+        ResultToSolrMapper mapper = mock(ResultToSolrMapper.class);
         when(mapper.isRelevantKV(any(KeyValue.class))).thenReturn(true);
         Indexer indexer = Indexer.createIndexer("index name", conf, mapper, tablePool, solrServer);
 
@@ -114,8 +114,8 @@ public class IndexerTest {
     /**
      * Create a dummy HBaseToSolrMapper that returns the given value on any calls to containsRequiredData().
      */
-    static HBaseToSolrMapper createHbaseToSolrMapper(final boolean containsRequiredDataReturnVal) {
-        return new HBaseToSolrMapper() {
+    static ResultToSolrMapper createHbaseToSolrMapper(final boolean containsRequiredDataReturnVal) {
+        return new ResultToSolrMapper() {
             @Override
             public boolean isRelevantKV(KeyValue kv) {
                 return true;
@@ -142,7 +142,7 @@ public class IndexerTest {
     public void testRowBasedIndexing_RowReadModeNever() throws SolrServerException, IOException {
         IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.NEVER).build();
 
-        HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
+        ResultToSolrMapper mapper = createHbaseToSolrMapper(true);
 
         Indexer indexer = Indexer.createIndexer("index name", conf, mapper, tablePool, solrServer);
 
@@ -164,7 +164,7 @@ public class IndexerTest {
     public void testRowBasedIndexing_RowReadModeDynamic_RereadRequired() throws IOException, SolrServerException {
         IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).build();
 
-        HBaseToSolrMapper mapper = createHbaseToSolrMapper(false);
+        ResultToSolrMapper mapper = createHbaseToSolrMapper(false);
 
         when(tableA.get(any(Get.class))).thenReturn(new Result(Lists.newArrayList(new KeyValue())));
 
@@ -189,7 +189,7 @@ public class IndexerTest {
     public void testRowBasedIndexing_RowReadModeDynamic_NoRereadRequired() throws SolrServerException, IOException {
         IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).rowReadMode(RowReadMode.DYNAMIC).build();
 
-        HBaseToSolrMapper mapper = createHbaseToSolrMapper(true);
+        ResultToSolrMapper mapper = createHbaseToSolrMapper(true);
 
         Indexer indexer = Indexer.createIndexer("index name", conf, mapper, tablePool, solrServer);
 
@@ -211,7 +211,7 @@ public class IndexerTest {
     public void testColumnBasedIndexing() throws Exception {
         IndexerConf conf = new IndexerConfBuilder().table(TABLE_A).mappingType(IndexerConf.MappingType.COLUMN).build();
 
-        HBaseToSolrMapper mapper = new HBaseToSolrMapper() {
+        ResultToSolrMapper mapper = new ResultToSolrMapper() {
             @Override
             public boolean isRelevantKV(KeyValue kv) {
                 return Bytes.toString(kv.getFamily()).equals("messages");

@@ -26,7 +26,7 @@ import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.conf.IndexerConfBuilder;
 import com.ngdata.hbaseindexer.indexer.Indexer.ColumnBasedIndexer;
-import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.sep.SepEvent;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.KeyValue.Type;
@@ -39,7 +39,7 @@ public class ColumnBasedIndexerTest {
     private static final String TABLE_NAME = "TABLE_A";
 
     private IndexerConf indexerConf;
-    private HBaseToSolrMapper mapper;
+    private ResultToSolrMapper mapper;
     private SolrWriter solrWriter;
     private SolrUpdateCollector updateCollector;
     private ColumnBasedIndexer indexer;

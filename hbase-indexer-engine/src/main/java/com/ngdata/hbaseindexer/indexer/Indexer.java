@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import com.ngdata.hbaseindexer.conf.IndexerConf;
-import com.ngdata.hbaseindexer.parse.HBaseToSolrMapper;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 import com.yammer.metrics.core.TimerContext;
 
@@ -63,7 +63,7 @@ public abstract class Indexer implements EventListener {
 
     protected IndexerConf conf;
     private SolrWriter solrWriter;
-    protected HBaseToSolrMapper mapper;
+    protected ResultToSolrMapper mapper;
     protected UniqueKeyFormatter uniqueKeyFormatter;
     private Predicate<SepEvent> tableEqualityPredicate;
     private final Meter incomingEventsMeter;
@@ -72,7 +72,7 @@ public abstract class Indexer implements EventListener {
     /**
      * Instantiate an indexer based on the given {@link IndexerConf}.
      */
-    public static Indexer createIndexer(String indexName, IndexerConf conf, HBaseToSolrMapper mapper, HTablePool tablePool,
+    public static Indexer createIndexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, HTablePool tablePool,
             SolrServer solrServer) {
         SolrWriter solrWriter = new SolrWriter(indexName, solrServer);
         switch (conf.getMappingType()) {
@@ -86,7 +86,7 @@ public abstract class Indexer implements EventListener {
         }
     }
 
-    Indexer(String indexName, IndexerConf conf, HBaseToSolrMapper mapper, SolrWriter solrWriter) {
+    Indexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, SolrWriter solrWriter) {
         this.conf = conf;
         this.mapper = mapper;
         try {
@@ -147,7 +147,7 @@ public abstract class Indexer implements EventListener {
         private HTablePool tablePool;
         private Timer rowReadTimer;
 
-        public RowBasedIndexer(String indexName, IndexerConf conf, HBaseToSolrMapper mapper, HTablePool tablePool, SolrWriter solrWriter) {
+        public RowBasedIndexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, HTablePool tablePool, SolrWriter solrWriter) {
             super(indexName, conf, mapper, solrWriter);
             this.tablePool = tablePool;
             rowReadTimer = Metrics.newTimer(new MetricName(getClass(), "Row read timer", indexName), TimeUnit.MILLISECONDS, TimeUnit.SECONDS);
@@ -247,7 +247,7 @@ public abstract class Indexer implements EventListener {
 
     static class ColumnBasedIndexer extends Indexer {
 
-        public ColumnBasedIndexer(String indexName, IndexerConf conf, HBaseToSolrMapper mapper, SolrWriter solrWriter) {
+        public ColumnBasedIndexer(String indexName, IndexerConf conf, ResultToSolrMapper mapper, SolrWriter solrWriter) {
             super(indexName, conf, mapper, solrWriter);
         }
 
