@@ -46,6 +46,9 @@
   </fileSets>
   <moduleSets>
     <moduleSet>
+      <excludes>
+        <exclude>com.ngdata:hbase-indexer-all</exclude>
+      </excludes>
       <binaries>
         <outputDirectory>lib</outputDirectory>
         <unpack>false</unpack>
