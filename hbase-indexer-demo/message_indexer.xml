@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<indexer table="indexdemo-message" 
+         mapping-type="column"
+         unique-key-formatter="com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter">
+  <field name="content" value="content:*" type="string"/>
+</indexer>

@@ -79,6 +79,7 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
 
         // TODO Need to check which parameters (if any) need to be given
         Map<String, String> cellParams = new HashMap<String, String>();
+        cellParams.put("lowernames", "true");
         SolrContentHandler handler = new SolrContentHandler(metadata, new MapSolrParams(cellParams), indexSchema);
 
         try {

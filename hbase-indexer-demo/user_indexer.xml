@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<indexer table="indexdemo-user">
+  <field name="name" value="info:name"/>
+  <field name="age_i" value="info:age" type="int"/>
+</indexer>
