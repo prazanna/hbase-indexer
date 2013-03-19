@@ -128,6 +128,9 @@ public abstract class Indexer implements EventListener {
 
     @Override
     public void processEvents(List<SepEvent> events) {
+        if (log.isDebugEnabled()) {
+            log.debug(String.format("Indexer %s received %s events from SEP", indexerName, events.size()));
+        }
         try {
 
             incomingEventsMeter.mark(events.size());
@@ -136,6 +139,11 @@ public abstract class Indexer implements EventListener {
             applicableEventsMeter.mark(events.size());
 
             calculateIndexUpdates(events, updateCollector);
+
+            if (log.isDebugEnabled()) {
+                log.debug(String.format("Indexer %s will send to Solr %s adds and %s deletes", indexerName,
+                        updateCollector.getDocumentsToAdd().size(), updateCollector.getIdsToDelete().size()));
+            }
 
             if (!updateCollector.getDocumentsToAdd().isEmpty()) {
                 solrWriter.add(updateCollector.getDocumentsToAdd());
