@@ -49,18 +49,21 @@ public class Main {
     }
 
     public void run(String[] args) throws Exception {
-        startServices();
+        Configuration conf = HBaseIndexerConfiguration.create();
+
+        setupMetrics(conf);
+
+        startServices(conf);
 
         Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
     }
 
-    void startServices() throws Exception {
-        // The same configuration object is used for both hbase-indexer as for hbase client access
-        Configuration conf = HBaseIndexerConfiguration.create();
-        conf.setBoolean("hbase.replication", true);
-        
-        setupMetrics(conf);
-
+    /**
+     *
+     * @param conf the configuration object containing the hbase-indexer configuration, as well
+     *             as the hbase/hadoop settings. Typically created using {@link HBaseIndexerConfiguration}.
+     */
+    public void startServices(Configuration conf) throws Exception {
         String hostname = Strings.domainNamePointerToHostName(DNS.getDefaultHost(
                 conf.get("hbase.regionserver.dns.interface", "default"),
                 conf.get("hbase.regionserver.dns.nameserver", "default")));
@@ -101,7 +104,7 @@ public class Main {
         }
     }
 
-    void stopServices() {
+    public void stopServices() {
         log.debug("Stopping indexer supervisor");
         Closer.close(indexerSupervisor);
         log.debug("Stopping indexer master");
@@ -112,6 +115,14 @@ public class Main {
         Closer.close(tablePool);
         log.debug("Stopping ZooKeeper connection");
         Closer.close(zk);
+    }
+
+    public SepModel getSepModel() {
+        return sepModel;
+    }
+
+    public WriteableIndexerModel getIndexerModel() {
+        return indexerModel;
     }
 
     public class ShutdownHandler implements  Runnable {
