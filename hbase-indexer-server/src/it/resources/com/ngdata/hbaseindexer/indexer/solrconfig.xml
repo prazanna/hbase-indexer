@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- This is a minimal solrconfig.xml. -->
+<config>
+  <luceneMatchVersion>LUCENE_40</luceneMatchVersion>
+  <dataDir>${solr.data.dir:}</dataDir>
+
+  <directoryFactory name="DirectoryFactory"
+                    class="${solr.directoryFactory:solr.StandardDirectoryFactory}"/>
+
+  <indexConfig>
+  </indexConfig>
+
+  <jmx />
+
+  <updateHandler class="solr.DirectUpdateHandler2">
+    <autoCommit>
+      <maxTime>120000</maxTime>
+      <openSearcher>true</openSearcher>
+    </autoCommit>
+
+    <autoSoftCommit>
+      <maxTime>3000</maxTime>
+    </autoSoftCommit>
+
+    <updateLog>
+      <str name="dir">${solr.data.dir:}</str>
+    </updateLog>
+  </updateHandler>
+
+  <query>
+    <maxBooleanClauses>1024</maxBooleanClauses>
+
+    <filterCache class="solr.FastLRUCache"
+                 size="512"
+                 initialSize="512"
+                 autowarmCount="0"/>
+
+    <queryResultCache class="solr.LRUCache"
+                      size="512"
+                      initialSize="512"
+                      autowarmCount="0"/>
+
+    <documentCache class="solr.LRUCache"
+                   size="512"
+                   initialSize="512"
+                   autowarmCount="0"/>
+
+    <enableLazyFieldLoading>true</enableLazyFieldLoading>
+    <queryResultWindowSize>20</queryResultWindowSize>
+    <queryResultMaxDocsCached>200</queryResultMaxDocsCached>
+    <useColdSearcher>false</useColdSearcher>
+    <maxWarmingSearchers>2</maxWarmingSearchers>
+  </query>
+
+
+  <requestDispatcher handleSelect="false" >
+    <requestParsers enableRemoteStreaming="true"
+                    multipartUploadLimitInKB="2048000" />
+    <httpCaching never304="true" />
+  </requestDispatcher>
+
+  <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="echoParams">explicit</str>
+      <int name="rows">10</int>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="/get" class="solr.RealTimeGetHandler">
+    <lst name="defaults">
+      <str name="omitHeader">true</str>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="/update" class="solr.UpdateRequestHandler">
+  </requestHandler>
+
+  <!-- required for SolrCloud -->
+  <requestHandler name="/replication" class="solr.ReplicationHandler" startup="lazy" />
+
+  <requestHandler name="/admin/" class="solr.admin.AdminHandlers"/>
+
+  <requestHandler name="/admin/ping" class="solr.PingRequestHandler">
+    <lst name="invariants">
+      <str name="q">solrpingquery</str>
+    </lst>
+    <lst name="defaults">
+      <str name="echoParams">all</str>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="/debug/dump" class="solr.DumpRequestHandler" >
+    <lst name="defaults">
+      <str name="echoParams">explicit</str>
+      <str name="echoHandler">true</str>
+    </lst>
+  </requestHandler>
+
+  <admin>
+    <defaultQuery>*:*</defaultQuery>
+  </admin>
+
+</config>
