@@ -17,6 +17,9 @@ package com.ngdata.hbaseindexer.conf;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Map;
+
+import com.google.common.collect.Maps;
 import com.ngdata.hbaseindexer.parse.ByteArrayValueMapper;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
@@ -35,6 +38,8 @@ public class FieldDefinition {
     private final ValueSource valueSource;
 
     private final String typeName;
+    
+    private final Map<String,String> params;
 
     /**
      * Specifies where values to index should be extracted from in an HBase {@code KeyValue}.
@@ -52,14 +57,20 @@ public class FieldDefinition {
     }
 
     public FieldDefinition(String name, String valueExpression, ValueSource valueSource, String typeName) {
+        this(name, valueExpression, valueSource, typeName, Maps.<String,String>newHashMap());
+    }
+    
+    public FieldDefinition(String name, String valueExpression, ValueSource valueSource, String typeName, Map<String,String> params) {
         checkNotNull(name, "name");
         checkNotNull(name, "valueExpression");
-        checkNotNull(valueSource);
-        checkNotNull(typeName);
+        checkNotNull(valueSource, "valueSource");
+        checkNotNull(typeName, "typeName");
+        checkNotNull(params, "params");
         this.name = name;
         this.valueExpression = valueExpression;
         this.valueSource = valueSource;
         this.typeName = typeName;
+        this.params = params;
     }
 
     /**
@@ -84,6 +95,13 @@ public class FieldDefinition {
      */
     public ValueSource getValueSource() {
         return valueSource;
+    }
+    
+    /**
+     * Get the configuration parameters for this field definitions.
+     */
+    public Map<String, String> getParams() {
+        return params;
     }
 
     /**

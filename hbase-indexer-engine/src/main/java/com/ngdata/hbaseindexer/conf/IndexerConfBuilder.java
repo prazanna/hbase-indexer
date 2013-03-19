@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
@@ -34,6 +35,7 @@ public class IndexerConfBuilder {
     private IndexerConf.MappingType mappingType = IndexerConf.MappingType.ROW;
     private List<FieldDefinition> fieldDefinitions = Lists.newArrayList();
     private List<DocumentExtractDefinition> documentExtractDefinitions = Lists.newArrayList();
+    private Map<String,String> globalParams;
 
     public IndexerConfBuilder table(String table) {
         this.table = table;
@@ -59,20 +61,25 @@ public class IndexerConfBuilder {
         this.uniqueKeyFormatterClass = uniqueKeyFormatterClass;
         return this;
     }
+    
+    public IndexerConfBuilder globalParams(Map<String,String> globalParams) {
+        this.globalParams = globalParams;
+        return this;
+    }
 
     public IndexerConfBuilder addFieldDefinition(String name, String valueExpression,
-            ValueSource valueSource, String typeName) {
+            ValueSource valueSource, String typeName, Map<String, String> params) {
         fieldDefinitions.add(new FieldDefinition(name, valueExpression,
                 valueSource == null ? IndexerConf.DEFAULT_VALUE_SOURCE : valueSource,
-                typeName == null ? IndexerConf.DEFAULT_FIELD_TYPE : typeName));
+                typeName == null ? IndexerConf.DEFAULT_FIELD_TYPE : typeName, params));
         return this;
     }
     
     public IndexerConfBuilder addDocumentExtractDefinition(String prefix, String valueExpression,
-            ValueSource valueSource, String type) {
+            ValueSource valueSource, String type, Map<String, String> params) {
         documentExtractDefinitions.add(new DocumentExtractDefinition(prefix, valueExpression,
                 valueSource == null ? IndexerConf.DEFAULT_VALUE_SOURCE : valueSource,
-                type == null ? IndexerConf.DEFAULT_EXTRACT_TYPE : type));
+                type == null ? IndexerConf.DEFAULT_EXTRACT_TYPE : type, params));
         return this;
     }
 
@@ -86,6 +93,7 @@ public class IndexerConfBuilder {
                 uniqueKeyFormatterClass : IndexerConf.DEFAULT_UNIQUE_KEY_FORMATTER);
         conf.setFieldDefinitions(fieldDefinitions);
         conf.setDocumentExtractDefinitions(documentExtractDefinitions);
+        conf.setGlobalParams(globalParams);
         return conf;
     }
 }

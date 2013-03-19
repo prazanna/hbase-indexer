@@ -15,12 +15,12 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
-import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -33,15 +33,18 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 
-import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
-import static com.ngdata.hbaseindexer.conf.IndexerConf.MappingType;
-import static com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
+import com.google.common.collect.Maps;
+
+import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
+import com.ngdata.hbaseindexer.conf.IndexerConf.MappingType;
+import com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
+import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * Constructs an {@link IndexerConf} from an XML file.
@@ -68,6 +71,7 @@ public class XmlIndexerConfReader {
         builder.mappingType(getEnumAttribute(MappingType.class, indexEl, "mapping-type", null));
         builder.rowReadMode(getEnumAttribute(RowReadMode.class, indexEl, "read-row", null));
         builder.uniqueyKeyField(getAttribute(indexEl, "unique-key-field", false));
+        builder.globalParams(buildParams(indexEl));
 
         String uniqueKeyFormatterName = getAttribute(indexEl, "unique-key-formatter", false);
         if (uniqueKeyFormatterName != null) {
@@ -80,8 +84,9 @@ public class XmlIndexerConfReader {
             String value = getAttribute(fieldEl, "value", true);
             ValueSource source = getEnumAttribute(ValueSource.class, fieldEl, "source", null);
             String type = getAttribute(fieldEl, "type", false);
+            Map<String,String> params = buildParams(fieldEl);
 
-            builder.addFieldDefinition(name, value, source, type);
+            builder.addFieldDefinition(name, value, source, type, params);
         }
         
         List<Element> extractEls = evalXPathAsElementList("extract", indexEl);
@@ -90,11 +95,22 @@ public class XmlIndexerConfReader {
             String value = getAttribute(extractEl, "value", true);
             ValueSource source = getEnumAttribute(ValueSource.class, extractEl, "source", null);
             String type = getAttribute(extractEl, "type", false);
+            Map<String,String> params = buildParams(extractEl);
             
-            builder.addDocumentExtractDefinition(prefix, value, source, type);
+            builder.addDocumentExtractDefinition(prefix, value, source, type, params);
         }
 
         return builder.build();
+    }
+    
+    private Map<String,String> buildParams(Element parentElement) {
+        Map<String,String> paramMap = Maps.newHashMap();
+        for (Element paramElement : evalXPathAsElementList("param", parentElement)) {
+            String key = getAttribute(paramElement, "name", true);
+            String value = getAttribute(paramElement, "value", true);
+            paramMap.put(key, value);
+        }
+        return paramMap;
     }
 
     private static Document parse(InputStream is) throws ParserConfigurationException, IOException, SAXException {

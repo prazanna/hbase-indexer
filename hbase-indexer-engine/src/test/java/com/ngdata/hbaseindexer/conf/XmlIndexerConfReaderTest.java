@@ -15,14 +15,15 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
-import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter;
 import org.junit.Test;
 
@@ -54,13 +55,18 @@ public class XmlIndexerConfReaderTest {
         List<FieldDefinition> fieldDefs = conf.getFieldDefinitions();
         List<FieldDefinition> expectedFieldDefs = Lists.newArrayList(
                 new FieldDefinition("field1", "col:qual1", ValueSource.QUALIFIER, "float"),
-                new FieldDefinition("field2", "col:qual2", ValueSource.VALUE, "long"));
+                new FieldDefinition("field2", "col:qual2", ValueSource.VALUE, "long",
+                        ImmutableMap.of("fieldKeyA", "fieldValueA", "fieldKeyB", "fieldValueB")));
         assertEquals(expectedFieldDefs, fieldDefs);
         
         List<DocumentExtractDefinition> extractDefs = conf.getDocumentExtractDefinitions();
         List<DocumentExtractDefinition> expectedExtractDefs = Lists.newArrayList(
-                new DocumentExtractDefinition("testprefix_", "col:qual3", ValueSource.QUALIFIER, "text/html"));
+                new DocumentExtractDefinition("testprefix_", "col:qual3", ValueSource.QUALIFIER, "text/html",
+                        ImmutableMap.of("extractKeyA", "extractValueA", "extractKeyB", "extractValueB")));
         assertEquals(expectedExtractDefs, extractDefs);
+
+        assertEquals(ImmutableMap.of("globalKeyA", "globalValueA", "globalKeyB", "globalValueB"), conf.getGlobalParams());
+        
     }
 
     @Test

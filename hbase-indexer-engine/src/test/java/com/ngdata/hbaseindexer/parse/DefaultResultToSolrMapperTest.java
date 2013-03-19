@@ -15,7 +15,6 @@
  */
 package com.ngdata.hbaseindexer.parse;
 
-import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,12 +28,12 @@ import java.util.NavigableSet;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.xml.sax.SAXException;
-
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
 import com.ngdata.hbaseindexer.conf.FieldDefinition;
+import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -46,6 +45,7 @@ import org.apache.solr.schema.IndexSchema;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public class DefaultResultToSolrMapperTest {
 

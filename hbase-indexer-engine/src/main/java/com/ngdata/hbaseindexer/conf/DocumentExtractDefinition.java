@@ -15,8 +15,11 @@
  */
 package com.ngdata.hbaseindexer.conf;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 
+import java.util.Map;
+
+import com.google.common.collect.Maps;
+import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -31,15 +34,22 @@ public class DocumentExtractDefinition {
     private ValueSource valueSource;
     private String valueExpression;
     private String mimeType;
+    private Map<String,String> params;
 
     public DocumentExtractDefinition(String prefix, String valueExpression, ValueSource valueSource, String mimeType) {
+        this(prefix, valueExpression, valueSource, mimeType, Maps.<String,String>newHashMap());
+    }
+    
+    public DocumentExtractDefinition(String prefix, String valueExpression, ValueSource valueSource, String mimeType, Map<String,String> params) {
         checkNotNull(valueExpression, "valueExpression");
         checkNotNull(valueSource, "valueSource");
         checkNotNull(mimeType, "mimeType");
+        checkNotNull(params, "params");
         this.prefix = prefix == null ? "" : prefix;
         this.valueSource = valueSource;
         this.valueExpression = valueExpression;
         this.mimeType = mimeType;
+        this.params = params;
     }
 
     /**
@@ -71,6 +81,13 @@ public class DocumentExtractDefinition {
      */
     public String getMimeType() {
         return mimeType;
+    }
+    
+    /**
+     * Get the configuration parameters for the extract definition.
+     */
+    public Map<String, String> getParams() {
+        return params;
     }
     
     @Override

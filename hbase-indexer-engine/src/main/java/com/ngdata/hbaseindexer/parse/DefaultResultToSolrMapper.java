@@ -23,6 +23,8 @@ import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.concurrent.TimeUnit;
 
+import com.ngdata.hbaseindexer.ConfigureUtil;
+
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.conf.DocumentExtractDefinition;
 import com.ngdata.hbaseindexer.conf.FieldDefinition;
@@ -74,6 +76,7 @@ public class DefaultResultToSolrMapper implements ResultToSolrMapper {
             ByteArrayExtractor byteArrayExtractor = ByteArrayExtractors.getExtractor(
                     fieldDefinition.getValueExpression(), fieldDefinition.getValueSource());
             ByteArrayValueMapper valueMapper = ByteArrayValueMappers.getMapper(fieldDefinition.getTypeName());
+            ConfigureUtil.configure(valueMapper, fieldDefinition.getParams());
             resultDocumentExtractors.add(new HBaseSolrDocumentExtractor(fieldDefinition.getName(), byteArrayExtractor,
                     valueMapper));
             extractors.add(byteArrayExtractor);
@@ -85,6 +88,7 @@ public class DefaultResultToSolrMapper implements ResultToSolrMapper {
             
             TikaSolrDocumentExtractor tikaDocumentExtractor = new TikaSolrDocumentExtractor(
                     indexSchema, byteArrayExtractor, extractDefinition.getPrefix(), extractDefinition.getMimeType());
+            ConfigureUtil.configure(tikaDocumentExtractor, extractDefinition.getParams());
             resultDocumentExtractors.add(tikaDocumentExtractor);
             extractors.add(byteArrayExtractor);
         }

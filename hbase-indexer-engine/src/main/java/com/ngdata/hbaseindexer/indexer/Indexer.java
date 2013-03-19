@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import com.ngdata.hbaseindexer.ConfigureUtil;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -97,6 +99,7 @@ public abstract class Indexer implements EventListener {
         } catch (Exception e) {
             throw new RuntimeException("Problem instantiating the UniqueKeyFormatter.", e);
         }
+        ConfigureUtil.configure(uniqueKeyFormatter, conf.getGlobalParams());
         this.solrWriter = solrWriter;
 
         final byte[] tableNameBytes = Bytes.toBytes(conf.getTable());

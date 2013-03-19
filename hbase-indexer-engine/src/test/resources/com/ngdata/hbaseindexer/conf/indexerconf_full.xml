@@ -9,9 +9,17 @@
 
   <field name="field1" value="col:qual1" source="qualifier" type="float"/>
   
-  <field name="field2" value="col:qual2" source="value" type="long"/>
+  <field name="field2" value="col:qual2" source="value" type="long">
+    <param name="fieldKeyA" value="fieldValueA"/>
+    <param name="fieldKeyB" value="fieldValueB"/>
+  </field>
   
-  <extract prefix="testprefix_" value="col:qual3" source="qualifier" type="text/html"/>
-  
+  <extract prefix="testprefix_" value="col:qual3" source="qualifier" type="text/html">
+    <param name="extractKeyA" value="extractValueA"/>
+    <param name="extractKeyB" value="extractValueB"/>
+  </extract>
+
+  <param name="globalKeyA" value="globalValueA"/>
+  <param name="globalKeyB" value="globalValueB"/>
 
 </indexer>

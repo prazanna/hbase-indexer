@@ -33,6 +33,9 @@
   </xs:element>
   <xs:element name="field">
     <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="param"/>
+      </xs:sequence>
       <xs:attribute name="name" type="xs:string"/>
       <xs:attribute name="value" type="xs:string"/>
       <xs:attribute name="source" type="xs:string" use="optional"/>
@@ -41,6 +44,9 @@
   </xs:element>
   <xs:element name="extract">
     <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="param"/>
+      </xs:sequence>
       <xs:attribute name="prefix" type="xs:string" use="optional"/>
       <xs:attribute name="value" type="xs:string"/>
       <xs:attribute name="source" type="xs:string" use="optional"/>

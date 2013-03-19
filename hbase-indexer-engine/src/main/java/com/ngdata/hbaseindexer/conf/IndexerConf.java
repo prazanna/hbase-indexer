@@ -15,14 +15,14 @@
  */
 package com.ngdata.hbaseindexer.conf;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import com.ngdata.hbaseindexer.indexer.Indexer;
 import com.ngdata.hbaseindexer.uniquekey.StringUniqueKeyFormatter;
 import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
-
-import java.util.Collections;
-import java.util.List;
-
-import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 
 /**
  * The configuration for an indexer, i.e. this defines the behavior of the {@link Indexer} and of the parser/mapper
@@ -39,6 +39,7 @@ public class IndexerConf {
     private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
     private List<FieldDefinition> fieldDefinitions;
     private List<DocumentExtractDefinition> extractDefinitions;
+    private Map<String,String> globalParams;
 
     public enum MappingType { ROW, COLUMN }
 
@@ -99,6 +100,13 @@ public class IndexerConf {
     public List<DocumentExtractDefinition> getDocumentExtractDefinitions() {
         return extractDefinitions;
     }
+    
+    /**
+     * Get the map of global configuration parameters for this indexer.
+     */
+    public Map<String,String> getGlobalParams() {
+        return globalParams;
+    }
 
     void setMappingType(MappingType mappingType) {
         this.mappingType = mappingType;
@@ -122,6 +130,10 @@ public class IndexerConf {
 
     void setUniqueKeyFormatterClass(Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass) {
         this.uniqueKeyFormatterClass = uniqueKeyFormatterClass;
+    }
+    
+    void setGlobalParams(Map<String,String> globalParams) {
+        this.globalParams = globalParams;
     }
 
    
