@@ -78,8 +78,8 @@ public class SolrWriter {
 
     }
 
-    private boolean isDocumentIssue(SolrException solrException) {
-        return solrException.code() == ErrorCode.BAD_REQUEST.code;
+    private boolean isDocumentIssue(SolrException e) {
+        return e.code() == ErrorCode.BAD_REQUEST.code;
     }
 
     private void logOrThrowSolrException(SolrException solrException) {
@@ -107,6 +107,9 @@ public class SolrWriter {
                 solrAddErrorMeter.mark(inputDocuments.size());
                 throw e;
             }
+        } catch (SolrServerException sse) {
+            solrAddErrorMeter.mark(inputDocuments.size());
+            throw sse;
         }
     }
 
@@ -141,6 +144,9 @@ public class SolrWriter {
                 solrDeleteErrorMeter.mark(idsToDelete.size());
                 throw e;
             }
+        } catch (SolrServerException sse) {
+            solrDeleteErrorMeter.mark(idsToDelete.size());
+            throw sse;
         }
     }
 
