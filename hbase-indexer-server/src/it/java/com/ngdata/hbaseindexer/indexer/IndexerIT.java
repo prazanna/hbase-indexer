@@ -78,12 +78,13 @@ public class IndexerIT {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        if (hbaseTestUtil != null) {
-            hbaseTestUtil.shutdownMiniCluster();
-        }
-
+        //  Stop Solr first, as it depends on ZooKeeper
         if (solrTestingUtility != null) {
             solrTestingUtility.stop();
+        }
+
+        if (hbaseTestUtil != null) {
+            hbaseTestUtil.shutdownMiniCluster();
         }
     }
 
