@@ -46,7 +46,8 @@ public class DemoUserIngester {
         final byte[] infoCf = Bytes.toBytes("info");
 
         // column qualifiers
-        final byte[] nameCq = Bytes.toBytes("name");
+        final byte[] firstNameCq = Bytes.toBytes("firstname");
+        final byte[] lastNameCq = Bytes.toBytes("lastname");
         final byte[] emailCq = Bytes.toBytes("email");
         final byte[] ageCq = Bytes.toBytes("age");
         
@@ -58,11 +59,13 @@ public class DemoUserIngester {
             byte[] rowkey = Bytes.toBytes(UUID.randomUUID().toString());
             Put put = new Put(rowkey);
 
-            String name = pickName();
-            String email = name.toLowerCase() + "@" + pickDomain();
+            String firstName = pickName();
+            String lastName = pickName();
+            String email = firstName.toLowerCase() + "@" + pickDomain();
             int age = (int) Math.ceil(Math.random() * 100);
 
-            put.add(infoCf, nameCq, Bytes.toBytes(name));
+            put.add(infoCf, firstNameCq, Bytes.toBytes(firstName));
+            put.add(infoCf, lastNameCq, Bytes.toBytes(lastName));
             put.add(infoCf, emailCq, Bytes.toBytes(email));
             put.add(infoCf, ageCq, Bytes.toBytes(age));
 

@@ -16,9 +16,10 @@
 package com.ngdata.hbaseindexer.parse.tika;
 
 import java.io.ByteArrayInputStream;
-import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
+import com.ngdata.hbaseindexer.Configurable;
 import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
 import com.ngdata.hbaseindexer.parse.SolrDocumentExtractor;
 import com.ngdata.hbaseindexer.parse.SolrInputDocumentBuilder;
@@ -38,13 +39,19 @@ import org.apache.tika.parser.ParseContext;
  * This implementation has no knowledge of the input data structure, and hands off all processing to <a
  * href="http://tika.apache.org">Tika</a>.
  */
-public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
+public class TikaSolrDocumentExtractor implements SolrDocumentExtractor, Configurable {
+    
+    Map<String, String> DEFAULT_CELL_PARAMS = ImmutableMap.of(
+                                                "lowernames", "true",
+                                                "fmap.content_encoding", "ignored_field",
+                                                "fmap.content_type", "ignored_field");
 
     private IndexSchema indexSchema;
     private ByteArrayExtractor extractor;
     private String fieldNamePrefix;
     private String mimeType;
     private AutoDetectParser parser;
+    private Map<String,String> params;
 
     /**
      * Instantiate with the mime type of the input that will be handled by this extractor.
@@ -77,9 +84,7 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
         Metadata metadata = new Metadata();
         metadata.add(LiteralMimeDetector.MIME_TYPE, mimeType);
 
-        // TODO Need to check which parameters (if any) need to be given
-        Map<String, String> cellParams = new HashMap<String, String>();
-        cellParams.put("lowernames", "true");
+        Map<String, String> cellParams = (params == null || params.isEmpty()) ? DEFAULT_CELL_PARAMS : params;
         SolrContentHandler handler = new SolrContentHandler(metadata, new MapSolrParams(cellParams), indexSchema);
 
         try {
@@ -91,5 +96,9 @@ public class TikaSolrDocumentExtractor implements SolrDocumentExtractor {
         return handler.newDocument();
     }
 
+    @Override
+    public void configure(Map<String, String> params) {
+        this.params = params;
+    }
 
 }
