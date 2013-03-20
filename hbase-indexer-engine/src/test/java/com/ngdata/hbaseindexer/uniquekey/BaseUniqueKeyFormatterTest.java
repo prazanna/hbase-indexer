@@ -25,11 +25,18 @@ public abstract class BaseUniqueKeyFormatterTest {
 
     protected abstract UniqueKeyFormatter createFormatter();
 
-    protected void doRoundTrip(byte[] rowKey) {
+    protected void doRoundTripRowKey(byte[] rowKey) {
         UniqueKeyFormatter formatter = createFormatter();
         String formatted = formatter.formatRow(rowKey);
         byte[] unformatted = formatter.unformatRow(formatted);
         assertArrayEquals(rowKey, unformatted);
+    }
+    
+    protected void doRoundTripColumnFamily(byte[] columnFamily) {
+        UniqueKeyFormatter formatter = createFormatter();
+        String formatted = formatter.formatRow(columnFamily);
+        byte[] unformatted = formatter.unformatRow(formatted);
+        assertArrayEquals(columnFamily, unformatted);
     }
 
     protected void doRoundTrip(KeyValue keyValue) {
@@ -45,6 +52,11 @@ public abstract class BaseUniqueKeyFormatterTest {
     public void testFormatRow_Null() {
         createFormatter().formatRow(null);
     }
+    
+    @Test(expected = NullPointerException.class)
+    public void testFormatFamily_Null() {
+        createFormatter().formatFamily(null);
+    }
 
     @Test(expected = NullPointerException.class)
     public void testFormatKeyValue_NullRowKey() {
@@ -53,7 +65,12 @@ public abstract class BaseUniqueKeyFormatterTest {
 
     @Test
     public void testFormatRow_SimpleCase() {
-        doRoundTrip(new byte[]{1,2,3});
+        doRoundTripRowKey(new byte[]{1,2,3});
+    }
+    
+    @Test
+    public void testFormatFamily_SimpleCase() {
+        doRoundTripColumnFamily(new byte[]{1,2,3});
     }
 
     @Test
@@ -63,7 +80,12 @@ public abstract class BaseUniqueKeyFormatterTest {
 
     @Test
     public void testFormatRow_WithHyphens() {
-        doRoundTrip(Bytes.toBytes("key-with-hyphens"));
+        doRoundTripRowKey(Bytes.toBytes("key-with-hyphens"));
+    }
+    
+    @Test
+    public void testFormatFamily_WithHyphens() {
+        doRoundTripColumnFamily(Bytes.toBytes("family-with-hyphens"));
     }
 
     @Test

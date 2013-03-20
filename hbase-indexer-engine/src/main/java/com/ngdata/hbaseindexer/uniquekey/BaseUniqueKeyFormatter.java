@@ -50,6 +50,12 @@ public abstract class BaseUniqueKeyFormatter implements UniqueKeyFormatter {
         Preconditions.checkNotNull(row, "row");
         return encodeAsString(row);
     }
+    
+    @Override
+    public String formatFamily(byte[] family) {
+        Preconditions.checkNotNull(family, "family");
+        return encodeAsString(family);
+    }
 
     @Override
     public String formatKeyValue(KeyValue keyValue) {
@@ -60,6 +66,11 @@ public abstract class BaseUniqueKeyFormatter implements UniqueKeyFormatter {
     @Override
     public byte[] unformatRow(String keyString) {
         return decodeFromString(keyString);
+    }
+    
+    @Override
+    public byte[] unformatFamily(String familyString) {
+        return decodeFromString(familyString);
     }
 
     @Override

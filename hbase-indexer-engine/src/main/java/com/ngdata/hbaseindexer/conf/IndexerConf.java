@@ -38,6 +38,8 @@ public class IndexerConf {
     private MappingType mappingType;
     private RowReadMode rowReadMode;
     private String uniqueKeyField;
+    private String rowField;
+    private String columnFamilyField;
     private Class<? extends ResultToSolrMapper> mapperClass;
     private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
     private List<FieldDefinition> fieldDefinitions;
@@ -92,6 +94,22 @@ public class IndexerConf {
         return uniqueKeyField;
     }
     
+    /**
+     * Get the name of the Solr field used to identify the HBase row containing the
+     * indexed document. Only used for column-based indexing.
+     */
+    public String getRowField() {
+        return rowField;
+    }
+
+    /**
+     * Get the name of the Solr field used to identify the HBase column family containing
+     * the indexed document. Only used for column-based indexing.
+     */
+    public String getColumnFamilyField() {
+        return columnFamilyField;
+    }
+    
     public Class<? extends ResultToSolrMapper> getMapperClass() {
         return mapperClass;
     }
@@ -123,14 +141,22 @@ public class IndexerConf {
         this.rowReadMode = rowReadMode;
     }
     
-    public void setMapperClass(Class<? extends ResultToSolrMapper> mapperClass) {
+     void setMapperClass(Class<? extends ResultToSolrMapper> mapperClass) {
         this.mapperClass = mapperClass;
     }
 
     void setUniqueKeyField(String uniqueKeyField) {
         this.uniqueKeyField = uniqueKeyField;
     }
-
+    
+    void setRowField(String rowField) {
+        this.rowField = rowField;
+    }
+    
+    public void setColumnFamilyField(String columnFamilyField) {
+        this.columnFamilyField = columnFamilyField;
+    }
+    
     void setFieldDefinitions(List<FieldDefinition> fieldDefinitions) {
         this.fieldDefinitions = Collections.unmodifiableList(fieldDefinitions);
     }

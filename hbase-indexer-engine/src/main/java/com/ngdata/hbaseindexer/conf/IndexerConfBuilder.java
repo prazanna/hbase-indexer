@@ -30,7 +30,9 @@ import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
  */
 public class IndexerConfBuilder {
     private String table;
-    private String uniqueKeyField = "id";
+    private String uniqueKeyField;
+    private String rowField;
+    private String columnFamilyField;
     private Class<? extends ResultToSolrMapper> mapperClass;
     private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
     private IndexerConf.RowReadMode rowReadMode = IndexerConf.RowReadMode.DYNAMIC;
@@ -56,6 +58,16 @@ public class IndexerConfBuilder {
 
     public IndexerConfBuilder uniqueyKeyField(String uniqueKeyField) {
         this.uniqueKeyField = uniqueKeyField;
+        return this;
+    }
+    
+    public IndexerConfBuilder rowField(String rowField) {
+        this.rowField = rowField;
+        return this;
+    }
+    
+    public IndexerConfBuilder columnFamilyField(String columnFamilyField) {
+        this.columnFamilyField = columnFamilyField;
         return this;
     }
     
@@ -96,6 +108,8 @@ public class IndexerConfBuilder {
         conf.setMappingType(mappingType != null ? mappingType : IndexerConf.DEFAULT_MAPPING_TYPE);
         conf.setRowReadMode(rowReadMode != null ? rowReadMode : IndexerConf.DEFAULT_ROW_READ_MODE);
         conf.setUniqueKeyField(uniqueKeyField != null ? uniqueKeyField : IndexerConf.DEFAULT_UNIQUE_KEY_FIELD);
+        conf.setRowField(rowField);
+        conf.setColumnFamilyField(columnFamilyField);
         conf.setMapperClass(mapperClass);
         conf.setUniqueKeyFormatterClass(uniqueKeyFormatterClass != null ?
                 uniqueKeyFormatterClass : IndexerConf.DEFAULT_UNIQUE_KEY_FORMATTER);

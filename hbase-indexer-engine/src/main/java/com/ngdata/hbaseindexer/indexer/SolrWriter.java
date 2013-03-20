@@ -162,5 +162,26 @@ public class SolrWriter {
             }
         }
     }
+    
+    /**
+     * Has the same behavior as {@link SolrServer#deleteByQuery(String)}.
+     * 
+     * @param deleteQuery delete query to be executed
+     */
+    public void deleteByQuery(String deleteQuery) throws SolrServerException, IOException {
+        try {
+            solrServer.deleteByQuery(deleteQuery);
+        } catch (SolrException e) {
+            if (isDocumentIssue(e)) {
+                documentDeleteErrorMeter.mark(1);
+            } else {
+                solrDeleteErrorMeter.mark(1);
+                throw e;
+            }
+        } catch (SolrServerException sse) {
+            solrDeleteErrorMeter.mark(1);
+            throw sse;
+        }
+    }
 
 }

@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Joiner;
+
 import com.ngdata.hbaseindexer.ConfigureUtil;
 
 import com.google.common.base.Predicate;
@@ -151,6 +153,11 @@ public abstract class Indexer implements EventListener {
             if (!updateCollector.getIdsToDelete().isEmpty()) {
                 solrWriter.deleteById(updateCollector.getIdsToDelete());
             }
+            
+            for (String deleteQuery : updateCollector.getDeleteQueries()) {
+                solrWriter.deleteByQuery(deleteQuery);
+            }
+            
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -230,7 +237,7 @@ public abstract class Indexer implements EventListener {
                 } else {
                     SolrInputDocument document = mapper.map(result);
                     document.addField(conf.getUniqueKeyField(), uniqueKeyFormatter.formatRow(event.getRow()));
-                    // TODO there should probably some way for the mapper to indicate there was no useful content to
+                    // TODO there should probablyn be some way for the mapper to indicate there was no useful content to
                     // map,  e.g. if there are no fields in the solrWriter document (and should we then perform a delete instead?)
                     updateCollector.add(document);
                     if (log.isDebugEnabled()) {
@@ -275,19 +282,78 @@ public abstract class Indexer implements EventListener {
         protected void calculateIndexUpdates(List<SepEvent> events, SolrUpdateCollector updateCollector) throws IOException {
             Map<String, KeyValue> idToKeyValue = calculateUniqueEvents(events);
             for (Entry<String, KeyValue> idToKvEntry : idToKeyValue.entrySet()) {
-                // TODO what to do in case of the various delete types (e.g. delete)
-                if (idToKvEntry.getValue().isDeleteType()) {
-                    // family?)
-                    updateCollector.deleteById(idToKvEntry.getKey());
+                String documentId = idToKvEntry.getKey();
+                KeyValue keyValue = idToKvEntry.getValue();
+                if (idToKvEntry.getValue().isDelete()) {
+                    handleDelete(documentId, keyValue, updateCollector);
                 } else {
-                    Result result = new Result(Collections.singletonList(idToKvEntry.getValue()));
+                    Result result = new Result(Collections.singletonList(keyValue));
                     SolrInputDocument document = mapper.map(result);
-                    document.addField(conf.getUniqueKeyField(), idToKvEntry.getKey());
+                    document.addField(conf.getUniqueKeyField(), documentId);
+                    
+                    addRowAndFamily(document, keyValue);
+                    
                     updateCollector.add(document);
                 }
             }
         }
+        
+        private void handleDelete(String documentId, KeyValue deleteKeyValue, SolrUpdateCollector updateCollector) {
+            byte deleteType = deleteKeyValue.getType();
+            if (deleteType == KeyValue.Type.DeleteColumn.getCode()) {
+                updateCollector.deleteById(documentId);
+            } else if (deleteType == KeyValue.Type.DeleteFamily.getCode()) {
+                deleteFamily(deleteKeyValue, updateCollector);
+            } else if (deleteType == KeyValue.Type.Delete.getCode()) {
+                deleteRow(deleteKeyValue, updateCollector);
+            } else {
+                log.error(String.format("Unknown delete type %d for document %s, not doing anything", deleteType, documentId));
+            }
+        }
 
+        private void addRowAndFamily(SolrInputDocument document, KeyValue keyValue) {
+            if (conf.getRowField() != null) {
+                document.addField(conf.getRowField(), uniqueKeyFormatter.formatRow(keyValue.getRow()));
+            }
+
+            if (conf.getColumnFamilyField() != null) {
+                document.addField(conf.getColumnFamilyField(),
+                        uniqueKeyFormatter.formatFamily(keyValue.getFamily()));
+            }
+        }
+        
+        /**
+         * Delete all values for a single column family from Solr.
+         */
+        private void deleteFamily(KeyValue deleteKeyValue, SolrUpdateCollector updateCollector) {
+            String rowField = conf.getRowField();
+            String cfField = conf.getColumnFamilyField();
+            String rowValue = uniqueKeyFormatter.formatRow(deleteKeyValue.getRow());
+            String  familyValue = uniqueKeyFormatter.formatFamily(deleteKeyValue.getFamily());
+            if (rowField != null && cfField != null) {
+                updateCollector.deleteByQuery(String.format("(%s:%s)AND(%s:%s)", rowField, rowValue, cfField, familyValue));
+            } else {
+                log.warn(String.format(
+                        "Can't delete row %s and family %s from Solr because row and/or family fields not included in the indexer configuration",
+                        rowValue, familyValue));
+            }
+        }
+
+        /**
+         * Delete all values for a single row from Solr.
+         */
+        private void deleteRow(KeyValue deleteKeyValue, SolrUpdateCollector updateCollector) {
+            String rowField = conf.getRowField();
+            String rowValue = uniqueKeyFormatter.formatRow(deleteKeyValue.getRow());
+            if (rowField != null) {
+                updateCollector.deleteByQuery(String.format("%s:%s", rowField, rowValue));
+            } else {
+                log.warn(String.format(
+                        "Can't delete row %s from Solr because row field not included in indexer configuration",
+                        rowValue));
+            }
+        }
+        
         /**
          * Calculate a map of Solr document ids to SepEvents, only taking the most recent event for each document id.
          */

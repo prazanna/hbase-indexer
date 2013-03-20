@@ -16,6 +16,7 @@
 package com.ngdata.hbaseindexer.conf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -49,7 +50,9 @@ public class XmlIndexerConfReaderTest {
         assertEquals("table1", conf.getTable());
         assertEquals(IndexerConf.MappingType.COLUMN, conf.getMappingType());
         assertEquals(IndexerConf.RowReadMode.NEVER, conf.getRowReadMode());
-        assertEquals("key", conf.getUniqueKeyField());
+        assertEquals("custom-id", conf.getUniqueKeyField());
+        assertEquals("custom-row", conf.getRowField());
+        assertEquals("custom-family", conf.getColumnFamilyField());
         assertEquals(HexUniqueKeyFormatter.class, conf.getUniqueKeyFormatterClass());
         assertEquals(TestResultToSolrMapper.class, conf.getMapperClass());
 
@@ -78,6 +81,8 @@ public class XmlIndexerConfReaderTest {
         assertEquals(IndexerConf.DEFAULT_MAPPING_TYPE, conf.getMappingType());
         assertEquals(IndexerConf.DEFAULT_ROW_READ_MODE, conf.getRowReadMode());
         assertEquals(IndexerConf.DEFAULT_UNIQUE_KEY_FIELD, conf.getUniqueKeyField());
+        assertNull(conf.getRowField());
+        assertNull(conf.getColumnFamilyField());
         assertEquals(IndexerConf.DEFAULT_UNIQUE_KEY_FORMATTER, conf.getUniqueKeyFormatterClass());
         assertEquals(null, conf.getMapperClass());
 

@@ -29,6 +29,8 @@
       <xs:attribute name="mapper" type="xs:string" use="optional"/>
       <xs:attribute name="unique-key-formatter" type="xs:string" use="optional"/>
       <xs:attribute name="unique-key-field" type="xs:string" use="optional"/>
+      <xs:attribute name="row-field" type="xs:string" use="optional"/>
+      <xs:attribute name="column-family-field" type="xs:string" use="optional"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="field">

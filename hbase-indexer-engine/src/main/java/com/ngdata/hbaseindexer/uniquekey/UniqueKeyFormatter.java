@@ -25,12 +25,19 @@ import org.apache.hadoop.hbase.KeyValue;
 public interface UniqueKeyFormatter {
     /**
      * Format a row key into a human-readable form.
-     * <p>
-     * Called in case of row-based mapping, {@link IndexerConf.MappingType#ROW}.
      * 
      * @param row row key to be formatted
      */
     String formatRow(byte[] row);
+    
+    /**
+     * Format a column family value into a human-readable form.
+     * <p>
+     * Called as part of column-based mapping, {@link IndexerConf.MappingType#COLUMN}.
+     * 
+     * @param family family bytes to be formatted
+     */
+    String formatFamily(byte[] family);
 
     /**
      * Format a {@code KeyValue} into a human-readable form. Only the row, column family, and qualifier
@@ -49,6 +56,14 @@ public interface UniqueKeyFormatter {
      * @return the unformatted row key
      */
     byte[] unformatRow(String keyString);
+    
+    /**
+     * Perform the reverse formatting of a column family value.
+     * 
+     * @param familyString the formatted column family string
+     * @return the unformatted column family value
+     */
+    byte[] unformatFamily(String familyString);
     
     /**
      * Perform the reverse formatting of a {@code KeyValue}.

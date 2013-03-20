@@ -3,7 +3,9 @@
     table="table1"
     mapping-type="column"
     read-row="never"
-    unique-key-field="key"
+    unique-key-field="custom-id"
+    row-field="custom-row"
+    column-family-field="custom-family"
     mapper="com.ngdata.hbaseindexer.conf.TestResultToSolrMapper"
     unique-key-formatter="com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter"
     >

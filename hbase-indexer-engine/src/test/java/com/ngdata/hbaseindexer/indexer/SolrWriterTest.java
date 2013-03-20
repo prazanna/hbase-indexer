@@ -150,5 +150,14 @@ public class SolrWriterTest {
         
         verify(solrServer).deleteById(goodId);
     }
+    
+    @Test
+    public void testDeleteByQuery() throws SolrServerException, IOException {
+        String deleteQuery = "_delete_query_";
+        
+        solrWriter.deleteByQuery(deleteQuery);
+        
+        verify(solrServer).deleteByQuery(deleteQuery);
+    }
 
 }

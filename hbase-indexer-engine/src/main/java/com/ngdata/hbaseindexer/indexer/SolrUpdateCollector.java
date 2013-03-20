@@ -29,13 +29,16 @@ public class SolrUpdateCollector {
     private List<SolrInputDocument> documentsToAdd;
 
     private List<String> idsToDelete;
-    
+
+    private List<String> deleteQueries;
+
     /**
      * Instantiate with an expected initial capacity of added and deleted documents.
      */
     public SolrUpdateCollector(int initialSize) {
         documentsToAdd = Lists.newArrayListWithCapacity(initialSize);
         idsToDelete = Lists.newArrayListWithCapacity(initialSize);
+        deleteQueries = Lists.newArrayList();
     }
 
     /**
@@ -57,6 +60,15 @@ public class SolrUpdateCollector {
     }
 
     /**
+     * Add a new delete query to be executed on Solr.
+     * 
+     * @param deleteQuery delete query to be executed
+     */
+    public void deleteByQuery(String deleteQuery) {
+        deleteQueries.add(deleteQuery);
+    }
+
+    /**
      * Get all documents to be added in batch.
      * 
      * @return the list of documents
@@ -72,6 +84,15 @@ public class SolrUpdateCollector {
      */
     public List<String> getIdsToDelete() {
         return idsToDelete;
+    }
+
+    /**
+     * Get all delete queries to be executed on Solr.
+     * 
+     * @return list of delete queries
+     */
+    public List<String> getDeleteQueries() {
+        return deleteQueries;
     }
 
 }

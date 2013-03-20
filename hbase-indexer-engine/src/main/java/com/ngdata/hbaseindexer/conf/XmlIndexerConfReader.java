@@ -73,6 +73,8 @@ public class XmlIndexerConfReader {
         builder.mappingType(getEnumAttribute(MappingType.class, indexEl, "mapping-type", null));
         builder.rowReadMode(getEnumAttribute(RowReadMode.class, indexEl, "read-row", null));
         builder.uniqueyKeyField(getAttribute(indexEl, "unique-key-field", false));
+        builder.rowField(getAttribute(indexEl, "row-field", false));
+        builder.columnFamilyField(getAttribute(indexEl, "column-family-field", false));
         builder.globalParams(buildParams(indexEl));
         
         String mapperClassName = getAttribute(indexEl, "mapper", false);
