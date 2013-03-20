@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -161,6 +162,10 @@ public class IndexerSupervisor {
 
     public int getEventCount() {
         return eventCount.get();
+    }
+
+    public Set<String> getRunningIndexers() {
+        return indexers.keySet();
     }
 
     private SolrServer getSolrServer(IndexerDefinition indexerDef) throws MalformedURLException {

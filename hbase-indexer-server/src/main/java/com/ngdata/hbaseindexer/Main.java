@@ -129,6 +129,10 @@ public class Main {
         return indexerSupervisor;
     }
 
+    public IndexerMaster getIndexerMaster() {
+        return indexerMaster;
+    }
+
     public class ShutdownHandler implements  Runnable {
         @Override
         public void run() {

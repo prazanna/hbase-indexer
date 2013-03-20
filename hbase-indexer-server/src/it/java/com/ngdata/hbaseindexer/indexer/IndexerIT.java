@@ -52,10 +52,17 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import static org.apache.zookeeper.ZooKeeper.States.CONNECTED;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
+/**
+ * Integration tests.
+ *
+ * <p>Hint: use "mvn -Dit.test=IndexerIT#methodname integration-test" to run individual tests.</p>
+ */
 public class IndexerIT {
     private static boolean firstTest = true;
     private static Configuration conf;
@@ -222,7 +229,7 @@ public class IndexerIT {
         put.add(b("family1"), b("qualifier2"), b("value1"));
         table.put(put);
 
-        SepTestUtil.waitOnReplicationPeerReady("Indexer_indexer1");
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
         SepTestUtil.waitOnReplication(conf, 60000L);
 
         collection1.commit();
@@ -301,8 +308,8 @@ public class IndexerIT {
         put.add(b("family1"), b("qualifier1"), b("value1"));
         table2.put(put);
 
-        SepTestUtil.waitOnReplicationPeerReady("Indexer_indexer1");
-        SepTestUtil.waitOnReplicationPeerReady("Indexer_indexer2");
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer2"));
         SepTestUtil.waitOnReplication(conf, 60000L);
 
         collection1.commit();
@@ -313,6 +320,51 @@ public class IndexerIT {
 
         table1.close();
         table2.close();
+    }
+
+    @Test
+    public void testIndexNotSubscribed() throws Exception {
+        createTable("table1", "family1");
+
+        // First create an index in the default incremental indexing state (SUBSCRIBE_AND_CONSUME)
+        WriteableIndexerModel indexerModel = main.getIndexerModel();
+        IndexerDefinition indexerDef = new IndexerDefinitionBuilder()
+                .name("indexer1")
+                .configuration(("<indexer table='table1'>" +
+                        "<field name='field1_s' value='family1:qualifier1'/>" +
+                        "</indexer>").getBytes())
+                .connectionType("solr")
+                .connectionParams(ImmutableMap.of("solr.zk", solrTestingUtility.getZkConnectString(),
+                        "solr.collection", "collection1"))
+                .build();
+
+        indexerModel.addIndexer(indexerDef);
+
+        // Make sure the SEP and indexer processes were started
+        assertEquals(1, main.getIndexerSupervisor().getRunningIndexers().size());
+        SepTestUtil.waitOnReplicationPeerReady("indexer1");
+
+        // Now change to DO_NOT_SUBSCRIBE_STATE
+        int oldMasterEventCount = main.getIndexerMaster().getEventCount();
+        int oldSupervisorEventCount = main.getIndexerSupervisor().getEventCount();
+        String lock = indexerModel.lockIndexer("indexer1");
+        indexerDef = new IndexerDefinitionBuilder()
+                .startFrom(indexerModel.getFreshIndexer("indexer1"))
+                .incrementalIndexingState(IncrementalIndexingState.DO_NOT_SUBSCRIBE)
+                .build();
+        indexerModel.updateIndexer(indexerDef, lock);
+        indexerModel.unlockIndexer(lock);
+
+        waitOnMasterEventCountChange(oldMasterEventCount);
+
+        // Verify master removed the SEP subscription and unassigned the subscription ID
+        SepTestUtil.waitOnReplicationPeerStopped("indexer1");
+        indexerDef = indexerModel.getFreshIndexer("indexer1");
+        assertNull(indexerDef.getSubscriptionId());
+
+        // Verify supervisor stopped the indexer
+        waitOnSupervisorEventCountChange(oldSupervisorEventCount);
+        assertEquals(0, main.getIndexerSupervisor().getRunningIndexers().size());
     }
 
     public void cleanZooKeeper(String zkConnectString, String rootToDelete) throws Exception {
@@ -413,7 +465,22 @@ public class IndexerIT {
         }
     }
 
+    private void waitOnMasterEventCountChange(int oldEventCount) throws InterruptedException {
+        long lastNotification = System.currentTimeMillis();
+        while (main.getIndexerSupervisor().getEventCount() == oldEventCount) {
+            if (System.currentTimeMillis() > lastNotification + 1000) {
+                System.out.println("Waiting on change in number of events processed by IndexerSupervisor");
+                lastNotification = System.currentTimeMillis();
+            }
+            Thread.sleep(20);
+        }
+    }
+
     private static byte[] b(String string) {
         return Bytes.toBytes(string);
+    }
+
+    private String peerId(String indexerName) {
+        return "Indexer_" + indexerName;
     }
 }

@@ -22,6 +22,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -96,6 +97,11 @@ public class IndexerMaster {
 
     private SepModel sepModel;
 
+    /**
+     * Total number of IndexerModel events processed (useful in test cases).
+     */
+    private final AtomicInteger eventCount = new AtomicInteger();
+
     public IndexerMaster(ZooKeeperItf zk, WriteableIndexerModel indexerModel,
             Configuration mapReduceConf, Configuration mapReduceJobConf, Configuration hbaseConf,
             String zkConnectString, int zkSessionTimeout, SepModel sepModel, String hostName) {
@@ -137,6 +143,10 @@ public class IndexerMaster {
         }
 
         Closer.close(jobClient);
+    }
+
+    public int getEventCount() {
+        return eventCount.intValue();
     }
 
     private synchronized JobClient getJobClient() throws IOException {
@@ -505,7 +515,7 @@ public class IndexerMaster {
                             }
                         }
                     }
-
+                    eventCount.incrementAndGet();
                 } catch (InterruptedException e) {
                     return;
                 } catch (Throwable t) {
