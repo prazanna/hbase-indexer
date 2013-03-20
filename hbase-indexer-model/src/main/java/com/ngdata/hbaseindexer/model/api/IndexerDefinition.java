@@ -51,7 +51,7 @@ public class IndexerDefinition {
     private BatchBuildInfo lastBatchBuildInfo;
     private ActiveBatchBuildInfo activeBatchBuildInfo;
     private long subscriptionTimestamp;
-    private int occVersion = -1;
+    private int occVersion = 0; // not -1 by default, since otherwise users might unintentionally disable OCC
 
     /**
      * Use {@link IndexerDefinitionBuilder} to make instances of this class.
