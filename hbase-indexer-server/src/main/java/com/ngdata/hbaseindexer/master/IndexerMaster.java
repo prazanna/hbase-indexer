@@ -15,6 +15,9 @@
  */
 package com.ngdata.hbaseindexer.master;
 
+import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_ADDED;
+import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_UPDATED;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
@@ -27,19 +30,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import com.ngdata.hbaseindexer.ConfKeys;
 import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfo;
 import com.ngdata.hbaseindexer.model.api.BatchBuildInfoBuilder;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
-import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
+import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
 import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
-import com.ngdata.sep.util.io.Closer;
 import com.ngdata.hbaseindexer.util.zookeeper.LeaderElection;
 import com.ngdata.hbaseindexer.util.zookeeper.LeaderElectionCallback;
 import com.ngdata.hbaseindexer.util.zookeeper.LeaderElectionSetupException;
 import com.ngdata.sep.SepModel;
+import com.ngdata.sep.util.io.Closer;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,10 +58,6 @@ import org.apache.hadoop.mapred.JobStatus;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.Task;
 import org.apache.zookeeper.KeeperException;
-
-import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
-import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
-import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.*;
 
 /**
  * The indexer master is active on only one hbase-indexer node and is responsible for things such as launching
@@ -119,7 +121,8 @@ public class IndexerMaster {
 
     @PostConstruct
     public void start() throws LeaderElectionSetupException, IOException, InterruptedException, KeeperException {
-        leaderElection = new LeaderElection(zk, "Indexer Master", "/ngdata/indexer/masters",
+        leaderElection = new LeaderElection(zk, "Indexer Master",
+                hbaseConf.get(ConfKeys.ZK_ROOT_NODE) + "/masters",
                 new MyLeaderElectionCallback());
 
         // TODO

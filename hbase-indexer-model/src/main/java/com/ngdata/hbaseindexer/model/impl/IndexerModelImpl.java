@@ -139,7 +139,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
 
         this.indexerCollectionPath = zkRoot + "/indexer";
         this.indexerCollectionPathSlash = indexerCollectionPath + "/";
-        this.indexerTrashPath = zkRoot + "indexer-trash";
+        this.indexerTrashPath = zkRoot + "/indexer-trash";
 
         ZkUtil.createPath(zk, indexerCollectionPath);
         ZkUtil.createPath(zk, indexerTrashPath);
@@ -531,7 +531,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
             throws InterruptedException, KeeperException, IndexerNotFoundException {
         final String childPath = indexerCollectionPath + "/" + indexerName;
         final Stat stat = new Stat();
-
+        
         byte[] data;
         try {
             if (forCache) {
