@@ -21,6 +21,7 @@ import com.ngdata.hbaseindexer.HBaseIndexerConfiguration;
 import com.ngdata.hbaseindexer.Main;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
+import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
 import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
 import com.ngdata.hbaseindexer.util.net.NetUtils;
 import com.ngdata.hbaseindexer.util.solr.SolrTestingUtility;
@@ -434,7 +435,12 @@ public class IndexerIT {
         waitOnEventsProcessed(1);
 
         // Check index was removed
-        assertFalse(indexerModel.hasIndexer("indexer1"));
+        try {
+            indexerModel.getFreshIndexer("indexer1");
+            fail("expected an IndexerNotFoundException");
+        } catch (IndexerNotFoundException e) {
+            // expected
+        }
 
         // Verify master removed the SEP subscription
         SepTestUtil.waitOnReplicationPeerStopped(peerId("indexer1"));
@@ -598,7 +604,7 @@ public class IndexerIT {
             }
 
             @Override
-            public int getCurrentValue() {
+            public int getEventCount() {
                 return main.getIndexerMaster().getEventCount();
             }
         });
@@ -610,7 +616,7 @@ public class IndexerIT {
             }
 
             @Override
-            public int getCurrentValue() {
+            public int getEventCount() {
                 return main.getIndexerSupervisor().getEventCount();
             }
         });
@@ -620,14 +626,14 @@ public class IndexerIT {
             throws InterruptedException {
         long waitUntil = System.currentTimeMillis() + 60000L;
         long lastNotification = System.currentTimeMillis();
-        while (consumer.getCurrentValue() < oldEventCount + minExpectedEvents) {
+        while (consumer.getEventCount() < oldEventCount + minExpectedEvents) {
             if (System.currentTimeMillis() > waitUntil) {
                 throw new RuntimeException("Did not reach expected number of events processed by " + consumer.getName()
-                        + ", current " + consumer.getCurrentValue()
+                        + ", current " + consumer.getEventCount()
                         + ", expected: " + (oldEventCount + minExpectedEvents));
             }
             if (System.currentTimeMillis() > lastNotification + 1000) {
-                System.out.println("Waiting on change in number of events processed by IndexerSupervisor");
+                System.out.println("Waiting on change in number of events processed by " + consumer.getName());
                 lastNotification = System.currentTimeMillis();
             }
             Thread.sleep(20);
@@ -637,7 +643,7 @@ public class IndexerIT {
     private static interface EventConsumer {
         String getName();
 
-        int getCurrentValue();
+        int getEventCount();
     }
 
     private static byte[] b(String string) {
