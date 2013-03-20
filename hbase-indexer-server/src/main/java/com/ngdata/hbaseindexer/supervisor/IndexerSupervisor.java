@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -101,6 +102,11 @@ public class IndexerSupervisor {
 
     private final Log log = LogFactory.getLog(getClass());
 
+    /**
+     * Total number of IndexerModel events processed (useful in test cases).
+     */
+    private final AtomicInteger eventCount = new AtomicInteger();
+
     public IndexerSupervisor(IndexerModel indexerModel, ZooKeeperItf zk, String hostName,
             IndexerRegistry indexerRegistry, HTablePool htablePool, Configuration hbaseConf)
             throws IOException, InterruptedException {
@@ -151,6 +157,10 @@ public class IndexerSupervisor {
         }
 
         connectionManager.shutdown();
+    }
+
+    public int getEventCount() {
+        return eventCount.get();
     }
 
     private SolrServer getSolrServer(IndexerDefinition indexerDef) throws MalformedURLException {
@@ -363,6 +373,7 @@ public class IndexerSupervisor {
                     } else if (event.getType() == INDEXER_DELETED) {
                         stopIndexer(event.getIndexerName());
                     }
+                    eventCount.incrementAndGet();
                 } catch (InterruptedException e) {
                     log.info("IndexerWorker.EventWorker interrupted.");
                     return;
