@@ -17,17 +17,18 @@ package com.ngdata.hbaseindexer;
 
 import java.util.concurrent.TimeUnit;
 
-import com.yammer.metrics.reporting.GangliaReporter;
-
 import com.ngdata.hbaseindexer.master.IndexerMaster;
+import com.ngdata.hbaseindexer.model.api.IndexerProcessRegistry;
 import com.ngdata.hbaseindexer.model.api.WriteableIndexerModel;
 import com.ngdata.hbaseindexer.model.impl.IndexerModelImpl;
+import com.ngdata.hbaseindexer.model.impl.IndexerProcessRegistryImpl;
 import com.ngdata.hbaseindexer.supervisor.IndexerRegistry;
 import com.ngdata.hbaseindexer.supervisor.IndexerSupervisor;
 import com.ngdata.hbaseindexer.util.zookeeper.StateWatchingZooKeeper;
 import com.ngdata.sep.SepModel;
 import com.ngdata.sep.impl.SepModelImpl;
 import com.ngdata.sep.util.io.Closer;
+import com.yammer.metrics.reporting.GangliaReporter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -87,8 +88,9 @@ public class Main {
         indexerMaster.start();
 
         IndexerRegistry indexerRegistry = new IndexerRegistry();
+        IndexerProcessRegistry indexerProcessRegistry = new IndexerProcessRegistryImpl(zk, conf);
         indexerSupervisor = new IndexerSupervisor(indexerModel, zk, hostname, indexerRegistry,
-                tablePool, conf);
+                                        indexerProcessRegistry, tablePool, conf);
 
         indexerSupervisor.init();
         

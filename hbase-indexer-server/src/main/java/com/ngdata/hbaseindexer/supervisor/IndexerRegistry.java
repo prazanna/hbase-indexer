@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class IndexerRegistry  implements IndexerRegistryMBean {
+public class IndexerRegistry implements IndexerRegistryMBean {
     private final Map<String, Indexer> indexers = new ConcurrentHashMap<String, Indexer>();
     private final Log log = LogFactory.getLog(getClass());
     private ObjectName jmxObjectName;

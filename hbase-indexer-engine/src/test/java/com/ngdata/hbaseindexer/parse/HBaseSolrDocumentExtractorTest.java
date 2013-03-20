@@ -15,6 +15,7 @@
  */
 package com.ngdata.hbaseindexer.parse;
 
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,8 +49,8 @@ public class HBaseSolrDocumentExtractorTest extends TestCase {
         Result result = mock(Result.class);
 
         when(valueExtractor.extract(result)).thenReturn(Lists.newArrayList(bytesA, bytesB));
-        when(valueMapper.map(bytesA)).thenReturn(Lists.<Object> newArrayList("A"));
-        when(valueMapper.map(bytesB)).thenReturn(Lists.<Object> newArrayList("B"));
+        doReturn(Lists.newArrayList("A")).when(valueMapper).map(bytesA);
+        doReturn(Lists.newArrayList("B")).when(valueMapper).map(bytesB);
         
         SolrInputDocument solrDocument = new SolrInputDocument();
         documentExtractor.extractDocument(result, solrDocument);

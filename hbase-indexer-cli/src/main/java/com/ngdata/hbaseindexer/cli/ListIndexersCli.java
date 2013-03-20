@@ -31,6 +31,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.zookeeper.KeeperException;
+
+import com.ngdata.hbaseindexer.model.api.IndexerProcess;
+
+import com.ngdata.hbaseindexer.model.impl.IndexerProcessRegistryImpl;
+
+import com.ngdata.hbaseindexer.model.api.IndexerProcessRegistry;
+
 /**
  * CLI tool that lists the {@link IndexerDefinition}s defined in the {@link IndexerModel}.
  */
@@ -59,7 +67,7 @@ public class ListIndexersCli  extends BaseIndexCli {
     @Override
     public void run(OptionSet options) throws Exception {
         super.run(options);
-
+        
         List<IndexerDefinition> indexers = new ArrayList<IndexerDefinition>(model.getIndexers());
         Collections.sort(indexers, IndexerDefinitionNameComparator.INSTANCE);
 
@@ -117,6 +125,7 @@ public class ListIndexersCli  extends BaseIndexCli {
                 ps.println("    + Batch build config:");
                 printConf(lastBatchBuild.getBatchIndexConfiguration(), 8, ps, options.has("dump"));
             }
+            printProcessStatus(indexer.getName(), ps);
             ps.println();
         }
     }
@@ -132,6 +141,25 @@ public class ListIndexersCli  extends BaseIndexCli {
         }
 
         return result.toString();
+    }
+    
+    private void printProcessStatus(String indexerName, PrintStream printStream) throws InterruptedException, KeeperException {
+        int numRunning = 0;
+        int numFailed = 0;
+        IndexerProcessRegistry processRegistry = new IndexerProcessRegistryImpl(zk, conf);
+        List<IndexerProcess> indexerProcesses = processRegistry.getIndexerProcesses(indexerName);
+        for (IndexerProcess indexerProcess : indexerProcesses) {
+            if (indexerProcess.isRunning()) {
+                numRunning++;
+            } else {
+                numFailed++;
+            }
+        }
+        
+        printStream.println("  + Processes");
+        printStream.printf("    + %d running processes\n", numRunning);
+        printStream.printf("    + %d failed processes\n", numFailed);
+        
     }
 
     /**

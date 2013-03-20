@@ -35,6 +35,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.google.common.collect.Maps;
+
 import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.ConfigureUtil;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
@@ -47,6 +49,7 @@ import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
 import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
+import com.ngdata.hbaseindexer.model.api.IndexerProcessRegistry;
 import com.ngdata.hbaseindexer.parse.DefaultResultToSolrMapper;
 import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.util.solr.SolrConfigLoader;
@@ -82,7 +85,7 @@ public class IndexerSupervisor {
     private final IndexerModelListener listener = new MyListener();
 
     private final Map<String, IndexerHandle> indexers = new HashMap<String, IndexerHandle>();
-
+    
     private final Object indexersLock = new Object();
 
     private final BlockingQueue<IndexerModelEvent> eventQueue = new LinkedBlockingQueue<IndexerModelEvent>();
@@ -96,11 +99,15 @@ public class IndexerSupervisor {
     private ThreadSafeClientConnManager connectionManager;
 
     private final IndexerRegistry indexerRegistry;
+    
+    private final IndexerProcessRegistry indexerProcessRegistry;
+    
+    private final Map<String,String> indexerProcessIds;
 
     private final HTablePool htablePool;
 
     private final Configuration hbaseConf;
-
+    
     private final Log log = LogFactory.getLog(getClass());
 
     /**
@@ -109,12 +116,15 @@ public class IndexerSupervisor {
     private final AtomicInteger eventCount = new AtomicInteger();
 
     public IndexerSupervisor(IndexerModel indexerModel, ZooKeeperItf zk, String hostName,
-            IndexerRegistry indexerRegistry, HTablePool htablePool, Configuration hbaseConf)
+            IndexerRegistry indexerRegistry, IndexerProcessRegistry indexerProcessRegistry,
+            HTablePool htablePool, Configuration hbaseConf)
             throws IOException, InterruptedException {
         this.indexerModel = indexerModel;
         this.zk = zk;
         this.hostName = hostName;
         this.indexerRegistry = indexerRegistry;
+        this.indexerProcessRegistry = indexerProcessRegistry;
+        this.indexerProcessIds = Maps.newHashMap();
         this.htablePool = htablePool;
         this.hbaseConf = hbaseConf;
     }
@@ -186,11 +196,24 @@ public class IndexerSupervisor {
                     " found : '" + solrMode + "'.");
         }
     }
-
+    
     private void startIndexer(IndexerDefinition indexerDef) {
         IndexerHandle handle = null;
         SolrServer solr = null;
+        
+     
+        String indexerProcessId = null;
         try {
+            
+            // If this is an update and the indexer failed to start, it's still in the registry as a
+            // failed process
+            if (indexerProcessIds.containsKey(indexerDef.getName())) {
+                indexerProcessRegistry.unregisterIndexerProcess(indexerProcessIds.remove(indexerDef.getName()));
+            }
+            
+            indexerProcessId = indexerProcessRegistry.registerIndexerProcess(indexerDef.getName(), hostName);
+            indexerProcessIds.put(indexerDef.getName(), indexerProcessId);
+            
             IndexerConf indexerConf = new XmlIndexerConfReader().read(new ByteArrayInputStream(indexerDef.getConfiguration()));
 
             IndexSchema indexSchema = loadIndexSchema(indexerDef);
@@ -211,6 +234,7 @@ public class IndexerSupervisor {
             SepConsumer sepConsumer = new SepConsumer(indexerDef.getSubscriptionId(),
                     indexerDef.getSubscriptionTimestamp(), indexer, 10 /* TODO make configurable */, hostName,
                     zk, hbaseConf, null);
+            
             handle = new IndexerHandle(indexerDef, indexer, sepConsumer, solr);
             handle.start();
 
@@ -224,6 +248,14 @@ public class IndexerSupervisor {
             }
 
             log.error("Problem starting indexer " + indexerDef.getName(), t);
+            
+            try {
+                if (indexerProcessId != null) {
+                    indexerProcessRegistry.setErrorStatus(indexerProcessId, t);
+                }
+            } catch (Exception e) {
+                log.error("Error setting error status on indexer process " + indexerProcessId, e);
+            }
 
             if (handle != null) {
                 // stop any listeners that might have been started
@@ -253,6 +285,7 @@ public class IndexerSupervisor {
     }
 
     private void restartIndexer(IndexerDefinition indexerDef) {
+        
         IndexerHandle handle = indexers.get(indexerDef.getName());
 
         if (handle.indexerDef.getOccVersion() >= indexerDef.getOccVersion()) {
@@ -275,8 +308,15 @@ public class IndexerSupervisor {
     private boolean stopIndexer(String indexerName) {
         indexerRegistry.unregister(indexerName);
 
-        IndexerHandle handle = indexers.get(indexerName);
+        
+        try {
+            indexerProcessRegistry.unregisterIndexerProcess(indexerProcessIds.remove(indexerName));
+        } catch (Exception e) {
+            log.error("Error unregistering indexer process " + indexerProcessIds.get(indexerName));
+        }
 
+        IndexerHandle handle = indexers.get(indexerName);
+        
         if (handle == null) {
             return true;
         }
@@ -325,7 +365,7 @@ public class IndexerSupervisor {
             this.sepConsumer = sepEventSlave;
             this.solrServer = solrServer;
         }
-
+        
         public void start() throws InterruptedException, KeeperException, IOException {
             sepConsumer.start();
         }

@@ -179,6 +179,7 @@ public class IndexerModelImpl implements WriteableIndexerModel {
         } catch (Exception e) {
             throw new IndexerModelException("Error creating indexer.", e);
         }
+  
     }
 
     private void assertValid(IndexerDefinition indexer) throws IndexerValidityException {

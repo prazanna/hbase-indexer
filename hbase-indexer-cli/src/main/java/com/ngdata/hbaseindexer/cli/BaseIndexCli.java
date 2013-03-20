@@ -35,7 +35,7 @@ import java.io.IOException;
 public abstract class BaseIndexCli extends BaseCli {
     private OptionSpec<String> zkOption;
     private String zkConnectionString;
-    private Configuration conf;
+    protected Configuration conf;
     protected ZooKeeperItf zk;
     protected WriteableIndexerModel model;
 
