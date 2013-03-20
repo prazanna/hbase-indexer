@@ -380,11 +380,11 @@ public class IndexerMaster {
         }
 
         if (canBeDeleted) {
-            deleteIndex(indexerName);
+            deleteIndexer(indexerName);
         }
     }
 
-    private void deleteIndex(String indexerName) {
+    private void deleteIndexer(String indexerName) {
         // delete model
         boolean failedToDeleteIndexer = false;
         try {
