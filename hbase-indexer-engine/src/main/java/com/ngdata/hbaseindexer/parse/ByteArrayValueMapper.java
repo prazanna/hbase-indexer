@@ -30,6 +30,6 @@ public interface ByteArrayValueMapper {
      * @param input byte array to be mapped
      * @return mapped values
      */
-    Collection<Object> map(byte[] input);
+    Collection<? extends Object> map(byte[] input);
 
 }
