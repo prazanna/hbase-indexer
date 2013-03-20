@@ -207,15 +207,15 @@ public class IndexerSupervisor {
             
             solr = getSolrServer(indexerDef);
             Indexer indexer = Indexer.createIndexer(indexerDef.getName(), indexerConf, mapper, htablePool, solr);
-            indexerRegistry.register(indexerDef.getName(), indexer);
 
             SepConsumer sepConsumer = new SepConsumer(indexerDef.getSubscriptionId(),
                     indexerDef.getSubscriptionTimestamp(), indexer, 10 /* TODO make configurable */, hostName,
                     zk, hbaseConf, null);
-            handle = new IndexerHandle(indexerDef, sepConsumer, solr);
+            handle = new IndexerHandle(indexerDef, indexer, sepConsumer, solr);
             handle.start();
 
             indexers.put(indexerDef.getName(), handle);
+            indexerRegistry.register(indexerDef.getName(), indexer);
 
             log.info("Started indexer for " + indexerDef.getName());
         } catch (Throwable t) {
@@ -273,10 +273,6 @@ public class IndexerSupervisor {
     }
 
     private boolean stopIndexer(String indexerName) {
-        Indexer indexer = indexerRegistry.getIndexer(indexerName);
-        if (indexer != null) {
-            indexer.stop();
-        }
         indexerRegistry.unregister(indexerName);
 
         IndexerHandle handle = indexers.get(indexerName);
@@ -318,11 +314,14 @@ public class IndexerSupervisor {
 
     private class IndexerHandle {
         private final IndexerDefinition indexerDef;
+        private final Indexer indexer;
         private final SepConsumer sepConsumer;
         private final SolrServer solrServer;
 
-        public IndexerHandle(IndexerDefinition indexerDef, SepConsumer sepEventSlave, SolrServer solrServer) {
+        public IndexerHandle(IndexerDefinition indexerDef, Indexer indexer, SepConsumer sepEventSlave,
+                SolrServer solrServer) {
             this.indexerDef = indexerDef;
+            this.indexer = indexer;
             this.sepConsumer = sepEventSlave;
             this.solrServer = solrServer;
         }
@@ -334,6 +333,7 @@ public class IndexerSupervisor {
         public void stop() throws InterruptedException {
             Closer.close(sepConsumer);
             Closer.close(solrServer);
+            Closer.close(indexer);
         }
     }
 
