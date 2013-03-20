@@ -40,6 +40,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -501,7 +502,120 @@ public class IndexerIT {
         table.close();
     }
 
-    public void cleanZooKeeper(String zkConnectString, String rootToDelete) throws Exception {
+    @Test
+    public void testCustomKeyFormatter() throws Exception {
+        createTable("table1", "family1");
+
+        HTable table = new HTable(conf, "table1");
+
+        StringBuilder indexerConf = new StringBuilder();
+        indexerConf.append("<indexer table='table1'");
+        indexerConf.append("          unique-key-formatter='com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter'>");
+        indexerConf.append("  <field name='field1_s' value='family1:field1' type='string'/>");
+        indexerConf.append("</indexer>");
+
+        createIndexer1(indexerConf.toString());
+
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+
+        Put put = new Put(new byte[] { 0, 0, 0, 0 });
+        put.add(b("family1"), b("field1"), b("value1"));
+        table.put(put);
+
+        SepTestUtil.waitOnReplication(conf, 60000L);
+        collection1.commit();
+
+        QueryResponse response = collection1.query(new SolrQuery("*:*"));
+        assertEquals(1, response.getResults().size());
+        SolrDocument doc = response.getResults().get(0);
+        assertEquals("00000000", doc.getFirstValue("id").toString());
+
+        table.close();
+    }
+
+    @Test
+    public void testDefaultKeyFormatter() throws Exception {
+        createTable("table1", "family1");
+
+        HTable table = new HTable(conf, "table1");
+
+        StringBuilder indexerConf = new StringBuilder();
+        indexerConf.append("<indexer table='table1'>");
+        indexerConf.append("  <field name='field1_s' value='family1:field1' type='string'/>");
+        indexerConf.append("</indexer>");
+
+        createIndexer1(indexerConf.toString());
+
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+
+        Put put = new Put(new byte[] { 0, 0, 0, 0 });
+        put.add(b("family1"), b("field1"), b("value1"));
+        table.put(put);
+
+        SepTestUtil.waitOnReplication(conf, 60000L);
+        collection1.commit();
+
+        QueryResponse response = collection1.query(new SolrQuery("*:*"));
+        assertEquals(1, response.getResults().size());
+        SolrDocument doc = response.getResults().get(0);
+        assertEquals("#0;#0;#0;#0;", doc.getFirstValue("id").toString());
+
+        table.close();
+    }
+
+    @Test
+    public void testSomeDataTypesIncludingCustomValueMapper() throws Exception {
+        createTable("table1", "family1");
+
+        HTable table = new HTable(conf, "table1");
+
+        StringBuilder indexerConf = new StringBuilder();
+        indexerConf.append("<indexer table='table1'>");
+        indexerConf.append("  <field name='field1_s' value='family1:field1' type='string'/>");
+        indexerConf.append("  <field name='field2_s' value='family1:field2' type='int'/>");
+        indexerConf.append("  <field name='field3_ss' value='family1:field3' type='com.ngdata.hbaseindexer.indexer.CsvByteArrayValueMapper'>");
+        indexerConf.append("    <param name='defaults' value='default1,default2'/>");
+        indexerConf.append("  </field>");
+        indexerConf.append("</indexer>");
+
+        createIndexer1(indexerConf.toString());
+
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+
+        Put put = new Put(Bytes.toBytes("cry baby"));
+        put.add(b("family1"), b("field1"), b("value1"));
+        put.add(b("family1"), b("field2"), Bytes.toBytes(836));
+        put.add(b("family1"), b("field3"), b("blue,green,black,orange"));
+        table.put(put);
+
+        SepTestUtil.waitOnReplication(conf, 60000L);
+
+        collection1.commit();
+        QueryResponse response = collection1.query(new SolrQuery("*:*"));
+        assertEquals(1, response.getResults().size());
+        SolrDocument doc = response.getResults().get(0);
+        assertEquals("value1", doc.getFirstValue("field1_s"));
+        assertEquals(836, Integer.parseInt(doc.getFirstValue("field2_s").toString()));
+        assertEquals(6, doc.getFieldValues("field3_ss").size());
+        assertTrue(doc.getFieldValues("field3_ss").contains("orange"));
+        assertTrue(doc.getFieldValues("field3_ss").contains("default1"));
+
+        table.close();
+    }
+
+    private void createIndexer1(String indexerConf) throws Exception {
+        WriteableIndexerModel indexerModel = main.getIndexerModel();
+        IndexerDefinition indexerDef = new IndexerDefinitionBuilder()
+                .name("indexer1")
+                .configuration(indexerConf.toString().getBytes())
+                .connectionType("solr")
+                .connectionParams(ImmutableMap.of("solr.zk", solrTestingUtility.getZkConnectString(),
+                        "solr.collection", "collection1"))
+                .build();
+        indexerModel.addIndexer(indexerDef);
+    }
+
+    private void cleanZooKeeper(String zkConnectString, String rootToDelete) throws Exception {
         int sessionTimeout = 10000;
 
         ZooKeeper zk = new ZooKeeper(zkConnectString, sessionTimeout, new Watcher() {
