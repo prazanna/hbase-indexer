@@ -1,20 +1,34 @@
+/*
+ * Copyright 2013 NGDATA nv
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ngdata.hbaseindexer.impl;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfoBuilder;
-import com.ngdata.hbaseindexer.model.api.BatchBuildInfoBuilder;
-import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
-import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
-import com.ngdata.hbaseindexer.model.impl.IndexerDefinitionJsonSerDeser;
-import org.junit.Test;
-
-import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
-import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
-import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
+import com.google.common.collect.ImmutableMap;
+import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfoBuilder;
+import com.ngdata.hbaseindexer.model.api.BatchBuildInfoBuilder;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition.LifecycleState;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
+import com.ngdata.hbaseindexer.model.impl.IndexerDefinitionJsonSerDeser;
+import org.junit.Test;
 
 public class IndexerDefinitionJsonSerDeserTest {
     @Test
