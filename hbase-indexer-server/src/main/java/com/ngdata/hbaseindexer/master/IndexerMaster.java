@@ -494,24 +494,23 @@ public class IndexerMaster {
                                 prepareDeleteIndex(indexer.getName());
 
                                 // in case of delete, we do not need to handle any other cases
-                                continue;
-                            }
+                            } else {
+                                if (needsSubscriptionIdAssigned(indexer)) {
+                                    assignSubscription(indexer.getName());
+                                }
 
-                            if (needsSubscriptionIdAssigned(indexer)) {
-                                assignSubscription(indexer.getName());
-                            }
+                                if (needsSubscriptionIdUnassigned(indexer)) {
+                                    unassignSubscription(indexer.getName());
+                                }
 
-                            if (needsSubscriptionIdUnassigned(indexer)) {
-                                unassignSubscription(indexer.getName());
-                            }
+                                if (needsBatchBuildStart(indexer)) {
+                                    startFullIndexBuild(indexer.getName());
+                                }
 
-                            if (needsBatchBuildStart(indexer)) {
-                                startFullIndexBuild(indexer.getName());
-                            }
-
-                            if (indexer.getActiveBatchBuildInfo() != null) {
-                                jobStatusWatcher
-                                        .assureWatching(indexer.getName(), indexer.getActiveBatchBuildInfo().getJobId());
+                                if (indexer.getActiveBatchBuildInfo() != null) {
+                                    jobStatusWatcher
+                                            .assureWatching(indexer.getName(), indexer.getActiveBatchBuildInfo().getJobId());
+                                }
                             }
                         }
                     }
