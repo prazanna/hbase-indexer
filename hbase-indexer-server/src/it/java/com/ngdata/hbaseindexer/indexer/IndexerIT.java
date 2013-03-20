@@ -54,9 +54,7 @@ import java.util.List;
 
 import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import static org.apache.zookeeper.ZooKeeper.States.CONNECTED;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Integration tests.
@@ -70,7 +68,10 @@ public class IndexerIT {
     private static SolrTestingUtility solrTestingUtility;
     private static CloudSolrServer collection1;
     private static CloudSolrServer collection2;
+
     private Main main;
+    private int oldMasterEventCount;
+    private int oldSupervisorEventCount;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -237,7 +238,7 @@ public class IndexerIT {
         assertEquals(1, response.getResults().size());
 
         // update indexer model
-        int oldEventCount = main.getIndexerSupervisor().getEventCount();
+        markEventCounts();
         String lock = indexerModel.lockIndexer("indexer1");
         indexerDef = new IndexerDefinitionBuilder()
                 .startFrom(indexerModel.getFreshIndexer("indexer1"))
@@ -248,8 +249,7 @@ public class IndexerIT {
                 .build();
         indexerModel.updateIndexer(indexerDef, lock);
         indexerModel.unlockIndexer(lock);
-
-        waitOnSupervisorEventCountChange(oldEventCount);
+        waitOnEventsProcessed(1);
 
         put = new Put(b("row3"));
         put.add(b("family1"), b("qualifier2"), b("value1"));
@@ -265,7 +265,7 @@ public class IndexerIT {
     }
 
     @Test
-    public void testTwoTablesTwoIndexes() throws Exception {
+    public void testTwoTablesTwoIndexers() throws Exception {
         createTable("table1", "family1");
         createTable("table2", "family1");
 
@@ -323,10 +323,87 @@ public class IndexerIT {
     }
 
     @Test
-    public void testIndexNotSubscribed() throws Exception {
+    public void testIndexerIncrementalIndexingStates() throws Exception {
         createTable("table1", "family1");
 
         // First create an index in the default incremental indexing state (SUBSCRIBE_AND_CONSUME)
+        markEventCounts();
+        WriteableIndexerModel indexerModel = main.getIndexerModel();
+        IndexerDefinition indexerDef = new IndexerDefinitionBuilder()
+                .name("indexer1")
+                .configuration(("<indexer table='table1'>" +
+                        "<field name='field1_s' value='family1:qualifier1'/>" +
+                        "</indexer>").getBytes())
+                .connectionType("solr")
+                .connectionParams(ImmutableMap.of("solr.zk", solrTestingUtility.getZkConnectString(),
+                        "solr.collection", "collection1"))
+                .build();
+        indexerModel.addIndexer(indexerDef);
+        // wait for 2 events because: first the indexer is added (= first event), then IndexerMaster
+        // updates it to assign subscription (= second event), and only then IndexerSupervisor will start the indexer
+        waitOnEventsProcessed(2);
+
+        // Make sure the SEP and indexer processes were started
+        assertEquals(1, main.getIndexerSupervisor().getRunningIndexers().size());
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+
+        // Now change to DO_NOT_SUBSCRIBE_STATE
+        markEventCounts();
+        String lock = indexerModel.lockIndexer("indexer1");
+        indexerDef = new IndexerDefinitionBuilder()
+                .startFrom(indexerModel.getFreshIndexer("indexer1"))
+                .incrementalIndexingState(IncrementalIndexingState.DO_NOT_SUBSCRIBE)
+                .build();
+        indexerModel.updateIndexer(indexerDef, lock);
+        indexerModel.unlockIndexer(lock);
+        waitOnEventsProcessed(1);
+
+        // Verify master removed the SEP subscription and unassigned the subscription ID
+        SepTestUtil.waitOnReplicationPeerStopped(peerId("indexer1"));
+        assertNull(indexerModel.getFreshIndexer("indexer1").getSubscriptionId());
+
+        // Verify supervisor stopped the indexer
+        assertEquals(0, main.getIndexerSupervisor().getRunningIndexers().size());
+
+        // Change to SUBSCRIBE_DO_NOT_CONSUME
+        markEventCounts();
+        lock = indexerModel.lockIndexer("indexer1");
+        indexerDef = new IndexerDefinitionBuilder()
+                .startFrom(indexerModel.getFreshIndexer("indexer1"))
+                .incrementalIndexingState(IncrementalIndexingState.SUBSCRIBE_DO_NOT_CONSUME)
+                .build();
+        indexerModel.updateIndexer(indexerDef, lock);
+        indexerModel.unlockIndexer(lock);
+        waitOnEventsProcessed(1);
+
+        // Verify master registered the SEP subscription and assigned the subscription ID
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+        assertNotNull(indexerModel.getFreshIndexer("indexer1").getSubscriptionId());
+
+        // Verify supervisor didn't start the indexer (because in state "do no consume")
+        assertEquals(0, main.getIndexerSupervisor().getRunningIndexers().size());
+
+        // Change again to default SUBSCRIBE_AND_CONSUME
+        markEventCounts();
+        lock = indexerModel.lockIndexer("indexer1");
+        indexerDef = new IndexerDefinitionBuilder()
+                .startFrom(indexerModel.getFreshIndexer("indexer1"))
+                .incrementalIndexingState(IncrementalIndexingState.SUBSCRIBE_AND_CONSUME)
+                .build();
+        indexerModel.updateIndexer(indexerDef, lock);
+        indexerModel.unlockIndexer(lock);
+        waitOnEventsProcessed(1);
+
+        // Verify supervisor started the indexer
+        assertEquals(1, main.getIndexerSupervisor().getRunningIndexers().size());
+    }
+
+    @Test
+    public void testDeleteIndexer() throws Exception {
+        createTable("table1", "family1");
+
+        // Create an index
+        markEventCounts();
         WriteableIndexerModel indexerModel = main.getIndexerModel();
         IndexerDefinition indexerDef = new IndexerDefinitionBuilder()
                 .name("indexer1")
@@ -339,32 +416,83 @@ public class IndexerIT {
                 .build();
 
         indexerModel.addIndexer(indexerDef);
+        waitOnEventsProcessed(2);
 
         // Make sure the SEP and indexer processes were started
         assertEquals(1, main.getIndexerSupervisor().getRunningIndexers().size());
-        SepTestUtil.waitOnReplicationPeerReady("indexer1");
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
 
-        // Now change to DO_NOT_SUBSCRIBE_STATE
-        int oldMasterEventCount = main.getIndexerMaster().getEventCount();
-        int oldSupervisorEventCount = main.getIndexerSupervisor().getEventCount();
+        // Now request to delete the indexer, this is done by changing the lifecycle state to DELETE_REQUESTED
+        markEventCounts();
         String lock = indexerModel.lockIndexer("indexer1");
         indexerDef = new IndexerDefinitionBuilder()
                 .startFrom(indexerModel.getFreshIndexer("indexer1"))
-                .incrementalIndexingState(IncrementalIndexingState.DO_NOT_SUBSCRIBE)
+                .lifecycleState(IndexerDefinition.LifecycleState.DELETE_REQUESTED)
                 .build();
         indexerModel.updateIndexer(indexerDef, lock);
         indexerModel.unlockIndexer(lock);
+        waitOnEventsProcessed(1);
 
-        waitOnMasterEventCountChange(oldMasterEventCount);
+        // Check index was removed
+        assertFalse(indexerModel.hasIndexer("indexer1"));
 
-        // Verify master removed the SEP subscription and unassigned the subscription ID
-        SepTestUtil.waitOnReplicationPeerStopped("indexer1");
-        indexerDef = indexerModel.getFreshIndexer("indexer1");
-        assertNull(indexerDef.getSubscriptionId());
+        // Verify master removed the SEP subscription
+        SepTestUtil.waitOnReplicationPeerStopped(peerId("indexer1"));
 
         // Verify supervisor stopped the indexer
-        waitOnSupervisorEventCountChange(oldSupervisorEventCount);
         assertEquals(0, main.getIndexerSupervisor().getRunningIndexers().size());
+    }
+
+    /**
+     * When adding a new replication peer (= SEP consumer), HBase replication will deliver events starting
+     * from the beginning of the current hlog file. These events might already be quite a while in there (if
+     * there hasn't been much activity), which would lead to the surprising effect of these being indexed.
+     * Therefore, the SEP has the concept of a subscriptionTimestamp, andy events older than that ts are
+     * ignored.
+     */
+    @Test
+    public void testSubscriptionTimestamp() throws Exception {
+        createTable("table1", "family1");
+
+        HTable table = new HTable(conf, "table1");
+
+        for (int i = 0; i < 10; i++) {
+            Put put = new Put(b("row" + i));
+            put.add(b("family1"), b("qualifier1"), b("value1"));
+            table.put(put);
+        }
+
+        WriteableIndexerModel indexerModel = main.getIndexerModel();
+        IndexerDefinition indexerDef = new IndexerDefinitionBuilder()
+                .name("indexer1")
+                .configuration(("<indexer table='table1'>" +
+                        "<field name='field1_s' value='family1:qualifier1'/>" +
+                        "</indexer>").getBytes())
+                .connectionType("solr")
+                .connectionParams(ImmutableMap.of("solr.zk", solrTestingUtility.getZkConnectString(),
+                        "solr.collection", "collection1"))
+                .build();
+        indexerModel.addIndexer(indexerDef);
+
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+        SepTestUtil.waitOnReplication(conf, 60000L);
+
+        // Check that records created before the indexer was added are not indexed
+        collection1.commit();
+        assertEquals(0, collection1.query(new SolrQuery("*:*")).getResults().size());
+
+        // But newly added rows should be indexed
+        for (int i = 0; i < 10; i++) {
+            Put put = new Put(b("row_b_" + i));
+            put.add(b("family1"), b("qualifier1"), b("value1"));
+            table.put(put);
+        }
+
+        SepTestUtil.waitOnReplication(conf, 60000L);
+        collection1.commit();
+        assertEquals(10, collection1.query(new SolrQuery("*:*")).getResults().size());
+
+        table.close();
     }
 
     public void cleanZooKeeper(String zkConnectString, String rootToDelete) throws Exception {
@@ -426,6 +554,9 @@ public class IndexerIT {
         }
     }
 
+    /**
+     * Creates a table wit one family, with replication enabled.
+     */
     private void createTable(String tableName, String familyName) throws Exception {
         HTableDescriptor tableDescriptor = new HTableDescriptor(tableName);
         HColumnDescriptor familyDescriptor = new HColumnDescriptor(familyName);
@@ -454,9 +585,47 @@ public class IndexerIT {
         }
     }
 
-    private void waitOnSupervisorEventCountChange(int oldEventCount) throws InterruptedException {
+    private void markEventCounts() {
+        oldMasterEventCount = main.getIndexerMaster().getEventCount();
+        oldSupervisorEventCount = main.getIndexerSupervisor().getEventCount();
+    }
+
+    private void waitOnEventsProcessed(int expectedEvents) throws InterruptedException {
+        waitOnEventCountChange(oldMasterEventCount, expectedEvents, new EventConsumer() {
+            @Override
+            public String getName() {
+                return "IndexerMaster";
+            }
+
+            @Override
+            public int getCurrentValue() {
+                return main.getIndexerMaster().getEventCount();
+            }
+        });
+
+        waitOnEventCountChange(oldSupervisorEventCount, expectedEvents, new EventConsumer() {
+            @Override
+            public String getName() {
+                return "IndexerSupervisor";
+            }
+
+            @Override
+            public int getCurrentValue() {
+                return main.getIndexerSupervisor().getEventCount();
+            }
+        });
+    }
+
+    private void waitOnEventCountChange(int oldEventCount, int minExpectedEvents, EventConsumer consumer)
+            throws InterruptedException {
+        long waitUntil = System.currentTimeMillis() + 60000L;
         long lastNotification = System.currentTimeMillis();
-        while (main.getIndexerSupervisor().getEventCount() == oldEventCount) {
+        while (consumer.getCurrentValue() < oldEventCount + minExpectedEvents) {
+            if (System.currentTimeMillis() > waitUntil) {
+                throw new RuntimeException("Did not reach expected number of events processed by " + consumer.getName()
+                        + ", current " + consumer.getCurrentValue()
+                        + ", expected: " + (oldEventCount + minExpectedEvents));
+            }
             if (System.currentTimeMillis() > lastNotification + 1000) {
                 System.out.println("Waiting on change in number of events processed by IndexerSupervisor");
                 lastNotification = System.currentTimeMillis();
@@ -465,15 +634,10 @@ public class IndexerIT {
         }
     }
 
-    private void waitOnMasterEventCountChange(int oldEventCount) throws InterruptedException {
-        long lastNotification = System.currentTimeMillis();
-        while (main.getIndexerSupervisor().getEventCount() == oldEventCount) {
-            if (System.currentTimeMillis() > lastNotification + 1000) {
-                System.out.println("Waiting on change in number of events processed by IndexerSupervisor");
-                lastNotification = System.currentTimeMillis();
-            }
-            Thread.sleep(20);
-        }
+    private static interface EventConsumer {
+        String getName();
+
+        int getCurrentValue();
     }
 
     private static byte[] b(String string) {
