@@ -19,6 +19,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
+
 import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 import com.ngdata.hbaseindexer.indexer.Indexer;
 import com.ngdata.hbaseindexer.uniquekey.StringUniqueKeyFormatter;
@@ -36,6 +38,7 @@ public class IndexerConf {
     private MappingType mappingType;
     private RowReadMode rowReadMode;
     private String uniqueKeyField;
+    private Class<? extends ResultToSolrMapper> mapperClass;
     private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
     private List<FieldDefinition> fieldDefinitions;
     private List<DocumentExtractDefinition> extractDefinitions;
@@ -88,6 +91,10 @@ public class IndexerConf {
     public String getUniqueKeyField() {
         return uniqueKeyField;
     }
+    
+    public Class<? extends ResultToSolrMapper> getMapperClass() {
+        return mapperClass;
+    }
 
     public Class<? extends UniqueKeyFormatter> getUniqueKeyFormatterClass() {
         return uniqueKeyFormatterClass;
@@ -114,6 +121,10 @@ public class IndexerConf {
 
     void setRowReadMode(RowReadMode rowReadMode) {
         this.rowReadMode = rowReadMode;
+    }
+    
+    public void setMapperClass(Class<? extends ResultToSolrMapper> mapperClass) {
+        this.mapperClass = mapperClass;
     }
 
     void setUniqueKeyField(String uniqueKeyField) {

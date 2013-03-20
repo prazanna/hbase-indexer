@@ -34,6 +34,8 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
+
 import com.google.common.collect.Maps;
 
 import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
@@ -72,6 +74,11 @@ public class XmlIndexerConfReader {
         builder.rowReadMode(getEnumAttribute(RowReadMode.class, indexEl, "read-row", null));
         builder.uniqueyKeyField(getAttribute(indexEl, "unique-key-field", false));
         builder.globalParams(buildParams(indexEl));
+        
+        String mapperClassName = getAttribute(indexEl, "mapper", false);
+        if (mapperClassName != null) {
+            builder.mapperClass(loadClass(mapperClassName, ResultToSolrMapper.class));
+        }
 
         String uniqueKeyFormatterName = getAttribute(indexEl, "unique-key-formatter", false);
         if (uniqueKeyFormatterName != null) {

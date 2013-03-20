@@ -4,6 +4,7 @@
     mapping-type="column"
     read-row="never"
     unique-key-field="key"
+    mapper="com.ngdata.hbaseindexer.conf.TestResultToSolrMapper"
     unique-key-formatter="com.ngdata.hbaseindexer.uniquekey.HexUniqueKeyFormatter"
     >
 

@@ -33,21 +33,20 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.google.common.base.Objects;
+import com.ngdata.hbaseindexer.ConfigureUtil;
+import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.conf.XmlIndexerConfReader;
-import com.ngdata.hbaseindexer.parse.DefaultResultToSolrMapper;
-import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
-import org.apache.hadoop.hbase.EmptyWatcher;
-
-import com.google.common.base.Objects;
 import com.ngdata.hbaseindexer.indexer.Indexer;
-import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
 import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
 import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
+import com.ngdata.hbaseindexer.parse.DefaultResultToSolrMapper;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.util.solr.SolrConfigLoader;
 import com.ngdata.sep.impl.SepConsumer;
 import com.ngdata.sep.util.io.Closer;
@@ -55,6 +54,7 @@ import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.EmptyWatcher;
 import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -181,8 +181,15 @@ public class IndexerSupervisor {
             IndexSchema indexSchema = loadIndexSchema(indexerDef);
             
             // create and register the indexer
-            ResultToSolrMapper mapper = new DefaultResultToSolrMapper(indexerDef.getName(),
-                    indexerConf.getFieldDefinitions(), indexerConf.getDocumentExtractDefinitions(), indexSchema);
+            ResultToSolrMapper mapper = null;
+            if (indexerConf.getMapperClass() == null) {
+                mapper = new DefaultResultToSolrMapper(indexerDef.getName(),
+                        indexerConf.getFieldDefinitions(), indexerConf.getDocumentExtractDefinitions(), indexSchema);
+            } else {
+                mapper = indexerConf.getMapperClass().newInstance();
+                ConfigureUtil.configure(mapper, indexerConf.getGlobalParams());
+            }
+            
             solr = getSolrServer(indexerDef);
             Indexer indexer = Indexer.createIndexer(indexerDef.getName(), indexerConf, mapper, htablePool, solr);
             indexerRegistry.register(indexerDef.getName(), indexer);

@@ -51,6 +51,7 @@ public class XmlIndexerConfReaderTest {
         assertEquals(IndexerConf.RowReadMode.NEVER, conf.getRowReadMode());
         assertEquals("key", conf.getUniqueKeyField());
         assertEquals(HexUniqueKeyFormatter.class, conf.getUniqueKeyFormatterClass());
+        assertEquals(TestResultToSolrMapper.class, conf.getMapperClass());
 
         List<FieldDefinition> fieldDefs = conf.getFieldDefinitions();
         List<FieldDefinition> expectedFieldDefs = Lists.newArrayList(
@@ -78,6 +79,7 @@ public class XmlIndexerConfReaderTest {
         assertEquals(IndexerConf.DEFAULT_ROW_READ_MODE, conf.getRowReadMode());
         assertEquals(IndexerConf.DEFAULT_UNIQUE_KEY_FIELD, conf.getUniqueKeyField());
         assertEquals(IndexerConf.DEFAULT_UNIQUE_KEY_FORMATTER, conf.getUniqueKeyFormatterClass());
+        assertEquals(null, conf.getMapperClass());
 
         List<FieldDefinition> fieldDefs = conf.getFieldDefinitions();
         List<FieldDefinition> expectedFieldDefs = Lists.newArrayList(

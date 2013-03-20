@@ -16,12 +16,13 @@
 package com.ngdata.hbaseindexer.conf;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
 
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
+import com.ngdata.hbaseindexer.conf.FieldDefinition.ValueSource;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 
 /**
@@ -30,6 +31,7 @@ import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
 public class IndexerConfBuilder {
     private String table;
     private String uniqueKeyField = "id";
+    private Class<? extends ResultToSolrMapper> mapperClass;
     private Class<? extends UniqueKeyFormatter> uniqueKeyFormatterClass;
     private IndexerConf.RowReadMode rowReadMode = IndexerConf.RowReadMode.DYNAMIC;
     private IndexerConf.MappingType mappingType = IndexerConf.MappingType.ROW;
@@ -54,6 +56,11 @@ public class IndexerConfBuilder {
 
     public IndexerConfBuilder uniqueyKeyField(String uniqueKeyField) {
         this.uniqueKeyField = uniqueKeyField;
+        return this;
+    }
+    
+    public IndexerConfBuilder mapperClass(Class<? extends ResultToSolrMapper> mapperClass) {
+        this.mapperClass = mapperClass;
         return this;
     }
 
@@ -89,6 +96,7 @@ public class IndexerConfBuilder {
         conf.setMappingType(mappingType != null ? mappingType : IndexerConf.DEFAULT_MAPPING_TYPE);
         conf.setRowReadMode(rowReadMode != null ? rowReadMode : IndexerConf.DEFAULT_ROW_READ_MODE);
         conf.setUniqueKeyField(uniqueKeyField != null ? uniqueKeyField : IndexerConf.DEFAULT_UNIQUE_KEY_FIELD);
+        conf.setMapperClass(mapperClass);
         conf.setUniqueKeyFormatterClass(uniqueKeyFormatterClass != null ?
                 uniqueKeyFormatterClass : IndexerConf.DEFAULT_UNIQUE_KEY_FORMATTER);
         conf.setFieldDefinitions(fieldDefinitions);
