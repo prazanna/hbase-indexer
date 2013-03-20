@@ -16,6 +16,7 @@
 package com.ngdata.hbaseindexer.indexer;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
 import com.ngdata.hbaseindexer.HBaseIndexerConfiguration;
 import com.ngdata.hbaseindexer.Main;
@@ -602,6 +603,65 @@ public class IndexerIT {
 
         table.close();
     }
+
+    @Test
+    public void testColumnMappingAndRowAndFamilySolrFields() throws Exception {
+        createTable("table1", "family1");
+
+        HTable table = new HTable(conf, "table1");
+
+        StringBuilder indexerConf = new StringBuilder();
+        indexerConf.append("<indexer table='table1'");
+        indexerConf.append("         unique-key-field='id'");
+        indexerConf.append("         row-field='row_s'");
+        indexerConf.append("         column-family-field='family_s'");
+        indexerConf.append("         mapping-type='column'>");
+        // one cell can map to a solr doc with multiple fields
+        indexerConf.append("  <field name='cell_s' value='family1:*' type='string'/>");
+        indexerConf.append("  <field name='cell_qualifier_s' value='family1:*' source='qualifier' type='string'/>");
+        indexerConf.append("</indexer>");
+
+        createIndexer1(indexerConf.toString());
+
+        SepTestUtil.waitOnReplicationPeerReady(peerId("indexer1"));
+
+        Put put = new Put(Bytes.toBytes("the row"));
+        put.add(b("family1"), b("col1"), b("value1"));
+        table.put(put);
+
+        put = new Put(Bytes.toBytes("the row"));
+        put.add(b("family1"), b("col2"), b("value2"));
+        table.put(put);
+
+        // 2 columns added in one call should still be mapped individually
+        put = new Put(Bytes.toBytes("the row"));
+        put.add(b("family1"), b("col3"), b("value3"));
+        put.add(b("family1"), b("col4"), b("value4"));
+        table.put(put);
+
+        SepTestUtil.waitOnReplication(conf, 60000L);
+
+        collection1.commit();
+        QueryResponse response = collection1.query(new SolrQuery("*:*"));
+        assertEquals(4, response.getResults().size());
+
+        response = collection1.query(new SolrQuery("+row_s:\"the row\""));
+        assertEquals(4, response.getResults().size());
+
+        response = collection1.query(new SolrQuery("+row_s:\"the row\" +family_s:family1"));
+        assertEquals(4, response.getResults().size());
+
+        for (String col : Lists.newArrayList("col1", "col2", "col3", "col4")) {
+            response = collection1.query(new SolrQuery("+cell_qualifier_s:" + col));
+            assertEquals(1, response.getResults().size());
+        }
+
+        response = collection1.query(new SolrQuery("+cell_s:value1"));
+        assertEquals(1, response.getResults().size());
+
+        table.close();
+    }
+
 
     private void createIndexer1(String indexerConf) throws Exception {
         WriteableIndexerModel indexerModel = main.getIndexerModel();
