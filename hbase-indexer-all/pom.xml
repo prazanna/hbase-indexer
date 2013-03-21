@@ -39,6 +39,10 @@
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-indexer-cli</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.ngdata</groupId>
+      <artifactId>hbase-indexer-demo</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
