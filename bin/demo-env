@@ -1,0 +1,205 @@
+#!/bin/sh
+
+# 
+# Script for downloading, installing, and running Hadoop (HDFS), HBase,
+# and Solr for demonstrating the hbase-indexer project.
+#
+
+
+# Where everything will be downloaded to and installed
+TARGET=~/hbaseindexer
+
+INDEXER_INSTALL_DIR=.
+
+HDFS_PORT=9000
+
+HADOOP_VERSION=2.0.0-cdh4.2.0
+SOLR_VERSION=4.2.0
+
+HADOOP=hadoop-$HADOOP_VERSION
+SOLR=solr-$SOLR_VERSION
+HBASE=hbase-0.94.2-cdh4.2.0
+
+CDH4_URL=http://archive.cloudera.com/cdh4/cdh/4
+SOLR_URL=http://apache.mirrors.pair.com/lucene/solr/$SOLR_VERSION
+
+function install {
+
+    echo "This script will download and install the following software"
+    echo "  - $HADOOP"
+    echo "  - $HBASE"
+    echo "  - $SOLR"
+    echo "The software will be downloaded an installed to $TARGET"
+
+    while true; do
+        read -p "Are you sure you wish to continue? (y/n)? " yn
+        case $yn in
+            [Yy]* ) break;;
+            [Nn]* ) echo "Aborting"; exit 1;;
+            * ) echo "Please answer with y or n.";;
+        esac
+    done
+
+    if [ -e $TARGET ]
+    then
+        echo "Install directory $TARGET already exists, aborting"
+        exit 1
+    fi
+    
+    mkdir $TARGET
+
+    echo "Downloading $HADOOP"
+    wget $CDH4_URL/$HADOOP.tar.gz -O $TARGET/$HADOOP.tar.gz
+    tar xzf $TARGET/$HADOOP.tar.gz -C $TARGET
+    rm $TARGET/$HADOOP.tar.gz
+
+    echo "Downloading $HBASE"
+    wget $CDH4_URL/$HBASE.tar.gz -O $TARGET/$HBASE.tar.gz
+    tar xzf $TARGET/$HBASE.tar.gz -C $TARGET
+    rm $TARGET/$HBASE.tar.gz
+
+    echo "Downloading $SOLR"
+    wget $SOLR_URL/$SOLR.tgz -O $TARGET/$SOLR.tgz
+    tar zxf $TARGET/$SOLR.tgz -C $TARGET
+    rm $TARGET/$SOLR.tgz
+
+}
+
+
+function configure {
+    cd $TARGET/$HBASE
+    cat > conf/hbase-site.xml <<EOF
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>hbase.rootdir</name>
+    <value>hdfs://localhost:$HDFS_PORT/hbase</value>
+  </property>
+  <property>
+    <name>hbase.cluster.distributed</name>
+    <value>true</value>
+  </property>
+  <!-- SEP is basically replication, so enable it -->
+  <property>
+    <name>hbase.replication</name>
+    <value>true</value>
+  </property>
+  <!-- Source ratio of 100% makes sure that each SEP consumer is actually
+       used (otherwise, some can sit idle, especially with small clusters) -->
+  <property>
+    <name>replication.source.ratio</name>
+    <value>1.0</value>
+  </property>
+  <!-- Maximum number of hlog entries to replicate in one go. If this is
+       large, and a consumer takes a while to process the events, the
+       HBase rpc call will time out. -->
+  <property>
+    <name>replication.source.nb.capacity</name>
+    <value>1000</value>
+  </property>
+  <!-- A custom replication source that fixes a few things and adds
+       some functionality (doesn't interfere with normal replication
+       usage). -->
+  <property>
+    <name>replication.replicationsource.implementation</name>
+    <value>com.ngdata.sep.impl.SepReplicationSource</value>
+  </property>
+</configuration>
+EOF
+
+    if [ -e $INDEXER_INSTALL_DIR/lib ]
+    then
+        # If we're using the binary distribution
+        cp $INDEXER_INSTALL_DIR/lib/hbase-sep-* $TARGET/$HBASE/lib
+    else 
+        # If we're using the source distribution
+        cd $INDEXER_INSTALL_DIR
+        mvn dependency:copy-dependencies \
+                -DincludeArtifactIds=hbase-sep-api,hbase-sep-impl \
+                -DoutputDirectory=$TARGET/$HBASE/lib
+    fi
+}
+
+
+function start_services {
+    # TODO We probably don't want to format the namenode every time
+
+    if [ ! -e $TARGET ]
+    then
+        echo "Install directly doesn't exist, please run '$0 install' first"
+        exit 1
+    fi
+
+    cd $TARGET/$HADOOP
+    ./bin/hadoop jar ./share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-$HADOOP_VERSION.jar minicluster -nomr -format  -nnport $HDFS_PORT > hadoop.log 2>&1 &
+    cd $TARGET
+    echo $! > hadoop.pid
+
+    cd $TARGET/$HBASE
+    ./bin/start-hbase.sh
+
+    cd $TARGET/$SOLR/example
+    java -Dbootstrap_confdir=./solr/collection1/conf \
+            -Dcollection.configName=myconf \
+            -DzkHost=localhost:2181/solr  \
+            -jar start.jar >solr.log 2>&1 &
+    cd $TARGET
+    echo $! > solr.pid
+}
+
+
+function stop_services {
+
+    if [ ! -e $TARGET ]
+    then
+        echo "Install directory $TARGET doesn't exist"
+        exit 1
+    fi
+
+    cd $TARGET
+    if [ -e solr.pid]
+    then
+        kill `cat solr.pid`
+    fi
+
+    cd $TARGET/$HBASE
+    ./bin/stop-hbase.sh
+
+    sleep 2
+
+    cd $TARGET
+    if [ -e hadoop.pid ]
+    then
+        kill `cat hadoop.pid`
+    fi
+
+}
+
+function usage {
+    echo "Usage: $0 (install|start|stop)"
+}
+
+
+if [ $# != 1 ]
+then
+    usage
+    exit 1
+fi
+
+
+for CMD in wget java mvn 
+do
+    command -v $CMD > /dev/null && continue || { echo "Required command $CMD not found"; exit 1; }
+done
+
+# Funny stuff to figure out the hbase-indexer base directory
+INDEXER_INSTALL_DIR=$(dirname $0)/..
+cd $INDEXER_INSTALL_DIR
+INDEXER_INSTALL_DIR=$(pwd)
+
+case $1 in 
+    install) install; configure; echo "Software is now installed";;
+    start) start_services;;
+    stop) stop_services;;
+    *) usage; exit 1;;
+esac
