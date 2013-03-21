@@ -162,6 +162,7 @@ public class IndexerIT {
             SepTestUtil.waitOnAllReplicationPeersStopped();
 
             // Clear Solr indexes
+            System.out.println(">>> Clearing Solr indexes");
             collection1.deleteByQuery("*:*");
             collection1.commit();
             collection2.deleteByQuery("*:*");
