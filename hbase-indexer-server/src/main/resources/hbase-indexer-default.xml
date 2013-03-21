@@ -34,6 +34,13 @@
     <value>30000</value>
   </property>
   <property>
+    <name>hbaseindexer.indexer.threads</name>
+    <value>20</value>
+    <description>
+      The number of threads that should concurrently perform indexing (per indexer).
+    </description>
+  </property>
+  <property>
     <name>hbaseindexer.zookeeper.znode.parent</name>
     <value>/ngdata/hbaseindexer</value>
     <description>Root ZNode for HBase Indexer in ZooKeeper.</description>

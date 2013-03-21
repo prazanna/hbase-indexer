@@ -231,8 +231,9 @@ public class IndexerSupervisor {
             solr = getSolrServer(indexerDef);
             Indexer indexer = Indexer.createIndexer(indexerDef.getName(), indexerConf, mapper, htablePool, solr);
 
+            int threads = hbaseConf.getInt("hbaseindexer.indexer.threads", 10);
             SepConsumer sepConsumer = new SepConsumer(indexerDef.getSubscriptionId(),
-                    indexerDef.getSubscriptionTimestamp(), indexer, 10 /* TODO make configurable */, hostName,
+                    indexerDef.getSubscriptionTimestamp(), indexer, threads, hostName,
                     zk, hbaseConf, null);
             
             handle = new IndexerHandle(indexerDef, indexer, sepConsumer, solr);
