@@ -19,6 +19,8 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 
 import java.util.Map;
 
+import com.ngdata.hbaseindexer.util.IndexerNameValidator;
+
 /**
  * Defines an indexer within the {@link IndexerModel}.
  *
@@ -70,6 +72,7 @@ public class IndexerDefinition {
             ActiveBatchBuildInfo activeBatchBuildInfo,
             long subscriptionTimestamp,
             int occVersion) {
+        IndexerNameValidator.validate(name);
         this.name = name;
         this.lifecycleState = lifecycleState;
         this.batchIndexingState = batchIndexingState;
@@ -209,6 +212,7 @@ public class IndexerDefinition {
         return subscriptionTimestamp;
     }
 
+    @Override
     public boolean equals(Object obj) {
         return EqualsBuilder.reflectionEquals(this, obj);
     }

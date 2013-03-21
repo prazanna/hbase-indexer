@@ -162,13 +162,13 @@ public class IndexerModelImplTest {
 
             // Create an index
             IndexerDefinition indexer1 = new IndexerDefinitionBuilder()
-                    .name("lock-test-indexer")
+                    .name("lock_test_indexer")
                     .configuration("foo".getBytes())
                     .build();
             model1.addIndexer(indexer1);
 
             // Lock the index via the first client
-            String lock = model1.lockIndexer("lock-test-indexer");
+            String lock = model1.lockIndexer("lock_test_indexer");
 
             // Try to update it via the second client
             indexer1 = new IndexerDefinitionBuilder()

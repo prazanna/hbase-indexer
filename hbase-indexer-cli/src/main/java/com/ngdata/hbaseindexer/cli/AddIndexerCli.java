@@ -45,11 +45,19 @@ public class AddIndexerCli extends AddOrUpdateIndexerCli {
         return "add-indexer";
     }
 
+    @Override
     public void run(OptionSet options) throws Exception {
         super.run(options);
 
-        IndexerDefinitionBuilder builder = buildIndexerDefinition(options, null);
-        IndexerDefinition indexer = builder.build();
+
+        IndexerDefinition indexer = null;
+        try {
+            IndexerDefinitionBuilder builder = buildIndexerDefinition(options, null);
+            indexer = builder.build();
+        } catch (IllegalArgumentException e) {
+            System.err.printf("Error adding indexer: %s\n", e.getMessage());
+            return;
+        }
 
         model.addIndexer(indexer);
 

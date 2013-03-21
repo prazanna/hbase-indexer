@@ -15,29 +15,26 @@
  */
 package com.ngdata.hbaseindexer.cli;
 
-import com.google.common.base.Strings;
-import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfo;
-import com.ngdata.hbaseindexer.model.api.BatchBuildInfo;
-import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
-import com.ngdata.hbaseindexer.model.api.IndexerDefinitionNameComparator;
-import com.ngdata.hbaseindexer.model.api.IndexerModel;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import org.joda.time.DateTime;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.zookeeper.KeeperException;
-
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.ngdata.hbaseindexer.model.api.ActiveBatchBuildInfo;
+import com.ngdata.hbaseindexer.model.api.BatchBuildInfo;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinitionNameComparator;
+import com.ngdata.hbaseindexer.model.api.IndexerModel;
 import com.ngdata.hbaseindexer.model.api.IndexerProcess;
-
-import com.ngdata.hbaseindexer.model.impl.IndexerProcessRegistryImpl;
-
 import com.ngdata.hbaseindexer.model.api.IndexerProcessRegistry;
+import com.ngdata.hbaseindexer.model.impl.IndexerProcessRegistryImpl;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import org.apache.zookeeper.KeeperException;
+import org.joda.time.DateTime;
 
 /**
  * CLI tool that lists the {@link IndexerDefinition}s defined in the {@link IndexerModel}.
@@ -145,20 +142,23 @@ public class ListIndexersCli  extends BaseIndexCli {
     
     private void printProcessStatus(String indexerName, PrintStream printStream) throws InterruptedException, KeeperException {
         int numRunning = 0;
-        int numFailed = 0;
+        List<String> failedNodes = Lists.newArrayList();
         IndexerProcessRegistry processRegistry = new IndexerProcessRegistryImpl(zk, conf);
         List<IndexerProcess> indexerProcesses = processRegistry.getIndexerProcesses(indexerName);
         for (IndexerProcess indexerProcess : indexerProcesses) {
             if (indexerProcess.isRunning()) {
                 numRunning++;
             } else {
-                numFailed++;
+                failedNodes.add(indexerProcess.getHostName());
             }
         }
         
         printStream.println("  + Processes");
         printStream.printf("    + %d running processes\n", numRunning);
-        printStream.printf("    + %d failed processes\n", numFailed);
+        printStream.printf("    + %d failed processes\n", failedNodes.size());
+        for (String failedNode : failedNodes) {
+            printStream.printf("      + %s\n", failedNode);
+        }
         
     }
 

@@ -35,6 +35,9 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
+
+import com.ngdata.hbaseindexer.util.IndexerNameValidator;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -133,7 +136,9 @@ public abstract class AddOrUpdateIndexerCli extends BaseIndexCli {
             builder.startFrom(oldIndexerDef);
 
         // name option is always required, so don't need to check for nulliness
-        builder.name(nameOption.value(options));
+        String indexerName = nameOption.value(options);
+        IndexerNameValidator.validate(indexerName);
+        builder.name(indexerName);
 
         LifecycleState lifecycleState = lifecycleStateOption.value(options);
         if (lifecycleState != null)
