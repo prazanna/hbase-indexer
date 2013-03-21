@@ -55,6 +55,8 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.solr.common.SolrDocumentList;
+
 import static com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
 import static org.apache.zookeeper.ZooKeeper.States.CONNECTED;
 import static org.junit.Assert.*;
@@ -455,7 +457,7 @@ public class IndexerIT {
      * When adding a new replication peer (= SEP consumer), HBase replication will deliver events starting
      * from the beginning of the current hlog file. These events might already be quite a while in there (if
      * there hasn't been much activity), which would lead to the surprising effect of these being indexed.
-     * Therefore, the SEP has the concept of a subscriptionTimestamp, andy events older than that ts are
+     * Therefore, the SEP has the concept of a subscriptionTimestamp, and events older than that ts are
      * ignored.
      */
     @Test
@@ -469,6 +471,9 @@ public class IndexerIT {
             put.add(b("family1"), b("qualifier1"), b("value1"));
             table.put(put);
         }
+        
+        // Ensure that the index is added on a different timestamp than the last put
+        Thread.sleep(5);
 
         WriteableIndexerModel indexerModel = main.getIndexerModel();
         IndexerDefinition indexerDef = new IndexerDefinitionBuilder()
@@ -487,7 +492,9 @@ public class IndexerIT {
 
         // Check that records created before the indexer was added are not indexed
         collection1.commit();
-        assertEquals(0, collection1.query(new SolrQuery("*:*")).getResults().size());
+        
+        SolrDocumentList results = collection1.query(new SolrQuery("*:*")).getResults();
+        assertEquals("Got results " + results + " while expecting none", 0, results.size());
 
         // But newly added rows should be indexed
         for (int i = 0; i < 10; i++) {
