@@ -28,8 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Joiner;
-
 import com.ngdata.hbaseindexer.ConfigureUtil;
 
 import com.google.common.base.Predicate;
@@ -194,6 +192,8 @@ public abstract class Indexer implements EventListener {
                 }
             }
 
+            // A Result object requires that the KeyValues are sorted (e.g., it does binary search on them)
+            Collections.sort(keyValues, KeyValue.COMPARATOR);
             return new Result(keyValues);
         }
 
