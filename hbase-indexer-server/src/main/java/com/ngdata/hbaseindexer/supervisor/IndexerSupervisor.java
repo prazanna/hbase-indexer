@@ -309,11 +309,11 @@ public class IndexerSupervisor {
     private boolean stopIndexer(String indexerName) {
         indexerRegistry.unregister(indexerName);
 
-        
+        String processId = indexerProcessIds.remove(indexerName);
         try {
-            indexerProcessRegistry.unregisterIndexerProcess(indexerProcessIds.remove(indexerName));
+            indexerProcessRegistry.unregisterIndexerProcess(processId);
         } catch (Exception e) {
-            log.error("Error unregistering indexer process " + indexerProcessIds.get(indexerName));
+            log.error("Error unregistering indexer process (from zookeeper): " + indexerProcessIds,  e);
         }
 
         IndexerHandle handle = indexers.get(indexerName);
