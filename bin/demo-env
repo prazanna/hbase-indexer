@@ -137,8 +137,8 @@ EOF
 
     # Set up autoCommit in Solr
     cd $TARGET/$SOLR/example/solr/collection1/conf
-    sed -i 's/<maxTime>15000<\/maxTime>/<maxTime>1000<\/maxTime>/' solrconfig.xml
-    sed -i 's/<openSearcher>false<\/openSearcher>/<openSearcher>true<\/openSearcher>/' solrconfig.xml
+    perl -pi -e 's/<maxTime>15000<\/maxTime>/<maxTime>1000<\/maxTime>/' solrconfig.xml
+    perl -pi -e 's/<openSearcher>false<\/openSearcher>/<openSearcher>true<\/openSearcher>/' solrconfig.xml
 
 }
 
@@ -209,7 +209,7 @@ then
 fi
 
 
-for CMD in wget java mvn sed
+for CMD in wget java mvn perl
 do
     command -v $CMD > /dev/null && continue || { echo "Required command $CMD not found"; exit 1; }
 done
