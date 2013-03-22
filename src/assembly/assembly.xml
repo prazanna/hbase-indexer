@@ -32,6 +32,14 @@
       </includes>
     </fileSet>
     <fileSet>
+      <outputDirectory>/demo</outputDirectory>
+      <directory>hbase-indexer-demo</directory>
+      <includes>
+        <include>*_indexer.xml</include>
+        <include>README.md</include>
+      </includes>
+    </fileSet>
+    <fileSet>
       <directory>conf</directory>
       <outputDirectory>conf</outputDirectory>
       <fileMode>0644</fileMode>
