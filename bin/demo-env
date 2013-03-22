@@ -136,6 +136,13 @@ EOF
                 -DincludeArtifactIds=hbase-sep-api,hbase-sep-impl \
                 -DoutputDirectory=$TARGET/$HBASE/lib
     fi
+
+
+    # Set up autoCommit in Solr
+    cd $TARGET/$SOLR/example/solr/collection1/conf
+    sed -i 's/<maxTime>15000<\/maxTime>/<maxTime>1000<\/maxTime>/' solrconfig.xml
+    sed -i 's/<openSearcher>false<\/openSearcher>/<openSearcher>true<\/openSearcher>/' solrconfig.xml
+
 }
 
 
@@ -205,7 +212,7 @@ then
 fi
 
 
-for CMD in wget java mvn 
+for CMD in wget java mvn sed
 do
     command -v $CMD > /dev/null && continue || { echo "Required command $CMD not found"; exit 1; }
 done
