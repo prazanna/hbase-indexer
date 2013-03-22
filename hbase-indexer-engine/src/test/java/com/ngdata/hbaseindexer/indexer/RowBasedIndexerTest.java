@@ -78,9 +78,20 @@ public class RowBasedIndexerTest {
     }
     
     @Test
-    public void testCalculateIndexUpdates_Delete() throws IOException {
+    public void testCalculateIndexUpdates_DeleteCell() throws IOException {
         
-        KeyValue keyValue = new KeyValue("_row_".getBytes(), "_cf_".getBytes(), "_qual_".getBytes(), 0L, Type.Delete);
+        KeyValue keyValue = new KeyValue("_row_".getBytes(), "_cf_".getBytes(), "_qual_".getBytes(), 0L, Type.DeleteColumn);
+        SepEvent sepEvent = createSepEvent("_row_", keyValue);
+        indexer.calculateIndexUpdates(Lists.newArrayList(sepEvent), updateCollector);
+        
+        assertEquals(Lists.newArrayList("_row_"), updateCollector.getIdsToDelete());
+        assertTrue(updateCollector.getDocumentsToAdd().isEmpty());
+    }
+    
+    @Test
+    public void testCalculateIndexUpdates_DeleteRow() throws IOException {
+        
+        KeyValue keyValue = new KeyValue("_row_".getBytes(), "".getBytes(), "".getBytes(), 0L, Type.Delete);
         SepEvent sepEvent = createSepEvent("_row_", keyValue);
         indexer.calculateIndexUpdates(Lists.newArrayList(sepEvent), updateCollector);
         

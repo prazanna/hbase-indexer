@@ -256,7 +256,7 @@ public abstract class Indexer implements EventListener {
                 // Check if the event contains changes to relevant key values
                 boolean relevant = false;
                 for (KeyValue kv : event.getKeyValues()) {
-                    if (mapper.isRelevantKV(kv)) {
+                    if (mapper.isRelevantKV(kv) || kv.isDelete()) {
                         relevant = true;
                         break;
                     }
