@@ -41,6 +41,12 @@
       <artifactId>hbase</artifactId>
       <version>${version.hbase}</version>
     </dependency>
+    <!-- Normally, client applications don't need to depend on hbase-indexer stuff, we only
+         use it here to load the hbase connection settings from hbase-indexer-site.xml -->
+    <dependency>
+      <groupId>com.ngdata</groupId>
+      <artifactId>hbase-indexer-common</artifactId>
+    </dependency>
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
       <artifactId>jopt-simple</artifactId>

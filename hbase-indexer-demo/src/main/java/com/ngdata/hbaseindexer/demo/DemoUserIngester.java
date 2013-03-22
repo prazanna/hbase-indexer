@@ -23,11 +23,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.ngdata.hbaseindexer.HBaseIndexerConfiguration;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -52,6 +52,8 @@ public class DemoUserIngester {
     public void run(String[] args) throws Exception {
         OptionParser parser =  new OptionParser();
 
+        parser.accepts("h", "help");
+
         ArgumentAcceptingOptionSpec<Integer> threadsOption =
                 parser.accepts("threads", "number of concurrent threads")
                         .withRequiredArg()
@@ -66,10 +68,15 @@ public class DemoUserIngester {
 
         OptionSet options = parser.parse(args);
 
+        if (options.has("h")) {
+            parser.printHelpOn(System.out);
+            System.exit(1);
+        }
+
         final int threads = threadsOption.value(options);
         final int batchSize = batchSizeOption.value(options);
 
-        Configuration conf = HBaseConfiguration.create();
+        Configuration conf = HBaseIndexerConfiguration.create();
 
         DemoSchema.createSchema(conf);
 
