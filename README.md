@@ -24,7 +24,7 @@ These steps assume a running HBase 0.94.x installation (preferably CDH 4.2), as 
 
 4. Create a table in HBase that has replication enabled. For this example, we'll create a table called "record" with a single column family called 'data'.
 
-        hbase> create 'record, {NAME => 'data', REPLICATION_SCOPE => 1}
+        hbase> create 'record', {NAME => 'data', REPLICATION_SCOPE => 1}
 
 5. Start the hbase-indexer server
 
@@ -39,7 +39,7 @@ These steps assume a running HBase 0.94.x installation (preferably CDH 4.2), as 
    
 7. Add the indexer definition to the indexer server. The following command assumes that the Solr ZooKeeper is running on the current host, and the name of the collection to be used for indexing is "core0".
 
-        $ ./bin/hbase-indexer -n sampleindex -c sample.xml --cp solr.collection=core0 
+        $ ./bin/hbase-indexer add-indexer  -n sampleindex -c sample.xml --cp solr.collection=core0 
 
 8. Add some data to the record table in HBase. The data added to the data column family in the record table should show up in the Solr index.
 
